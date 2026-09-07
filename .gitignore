@@ -1,0 +1,19 @@
+# Node
+node_modules/
+front/dist/
+front/.env
+*.local
+
+# Python
+back/.venv/
+back/.env
+back/media/
+back/staticfiles/
+__pycache__/
+*.py[cod]
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
