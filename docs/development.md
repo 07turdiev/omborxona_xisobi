@@ -39,15 +39,21 @@ Backend: http://127.0.0.1:8000
 
 Demo foydalanuvchilar (parol ikkalasida ham `demo12345`):
 
-| Login | Tashkilot | O'lchov birliklari |
+| Login | Parol | Tashkilot |
 |---|---|---|
-| `qurilish` | Baraka qurilish mollari | `mashina` (6 m³), `vagon` (60 m³) |
-| `kiyim` | Zamon kiyim-kechak | `tup` (10 dona), `top` (50 m) |
+| `qurilish` | `demo12345` | Baraka qurilish mollari — `mashina` (6 m³), `vagon` (60 m³) |
+| `kiyim` | `demo12345` | Zamon kiyim-kechak — `tup` (10 dona), `top` (50 m) |
+| `superadmin` | `admin12345` | Ikkala tashkilotning egasi + Django admin paneli |
 
 Ikkita tashkilot ataylab: tenant izolyatsiyasini brauzerda o'zingiz
 tekshirib ko'rishingiz uchun.
 
-Django admin uchun alohida superuser kerak:
+`superadmin` `seed_demo` tomonidan yaratiladi va ikkala tashkilotga ega
+qilib qo'shiladi. **Django superuser huquqi faqat `/admin/` ga taalluqli** —
+interfeysda ma'lumot ko'rish uchun a'zolik kerak, chunki RLS superuserga ham
+qo'llanadi (jadvallarda `FORCE ROW LEVEL SECURITY`).
+
+Boshqa superuser kerak bo'lsa:
 
 ```bash
 .venv/Scripts/python.exe manage.py createsuperuser

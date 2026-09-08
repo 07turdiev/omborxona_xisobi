@@ -28,6 +28,11 @@ User = get_user_model()
 
 DEMO_PASSWORD = 'demo12345'
 
+# Django admin paneli uchun superuser. U bir vaqtda ikkala demo
+# tashkilotning egasi qilinadi, shunda interfeysga ham kira oladi.
+SUPERUSER_NAME = 'superadmin'
+SUPERUSER_PASSWORD = 'admin12345'
+
 DEMO_TENANTS = [
     {
         'slug': 'qurilish',
@@ -126,6 +131,8 @@ class Command(BaseCommand):
         for spec in DEMO_TENANTS:
             self._create_tenant(spec)
 
+        self._create_superuser()
+
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('Demo ma\'lumot tayyor.'))
         self.stdout.write('')
@@ -136,11 +143,50 @@ class Command(BaseCommand):
                 f'  {spec["username"]:12} / {DEMO_PASSWORD}   — {spec["name"]}'
             )
 
+        self.stdout.write(
+            f'  {SUPERUSER_NAME:12} / {SUPERUSER_PASSWORD}   '
+            '— superadmin (Django admin + ikkala tashkilot)'
+        )
+
+    def _create_superuser(self):
+        """Superuser yaratadi va uni ikkala tashkilotga ega qilib qo'shadi.
+
+        Django superuser huquqi faqat /admin/ ga taalluqli. Interfeysda
+        ma'lumot ko'rish uchun a'zolik kerak, chunki PostgreSQL RLS
+        superuserga ham qo'llanadi (jadvallarda FORCE ROW LEVEL SECURITY).
+        """
+        user, created = User.objects.get_or_create(
+            username=SUPERUSER_NAME,
+            defaults={
+                'first_name': 'Bosh',
+                'last_name': 'administrator',
+                'email': 'superadmin@example.uz',
+                'is_staff': True,
+                'is_superuser': True,
+            },
+        )
+
+        if created:
+            user.set_password(SUPERUSER_PASSWORD)
+            user.save(update_fields=['password'])
+
+        for tenant in Tenant.objects.filter(
+            slug__in=[spec['slug'] for spec in DEMO_TENANTS]
+        ):
+            Membership.objects.get_or_create(
+                tenant=tenant,
+                user=user,
+                defaults={'role': Membership.Role.OWNER},
+            )
+
+        verb = 'yaratildi' if created else 'mavjud'
+        self.stdout.write(f'Superadmin {verb}: {user.username}')
+
     # -- ichki yordamchilar --------------------------------------------
 
     def _reset(self):
         slugs = [spec['slug'] for spec in DEMO_TENANTS]
-        usernames = [spec['username'] for spec in DEMO_TENANTS]
+        usernames = [spec['username'] for spec in DEMO_TENANTS] + [SUPERUSER_NAME]
 
         for tenant in Tenant.objects.filter(slug__in=slugs):
             # CustomUnit RLS bilan himoyalangan — o'chirish ham kontekstda
