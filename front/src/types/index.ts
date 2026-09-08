@@ -85,3 +85,93 @@ export interface WarehouseChoices {
   goods_types: Choice[]
   purposes: Choice[]
 }
+
+// -- Katalog ---------------------------------------------------------
+
+export interface Category {
+  id: number
+  name: string
+  parent: number | null
+  path: string
+  depth: number
+  default_unit: string
+  code_prefix: string
+  is_active: boolean
+  product_count: number
+}
+
+export type AttributeValueType = 'text' | 'number' | 'choice' | 'boolean'
+
+export interface AttributeDefinition {
+  id: number
+  category: number
+  category_name: string
+  key: string
+  name: string
+  value_type: AttributeValueType
+  value_type_display: string
+  unit: string
+  choices: string[]
+  default_value: string
+  is_required: boolean
+  is_variant_axis: boolean
+  uniqueness: number
+  position: number
+}
+
+export interface ProductUnit {
+  id: number
+  variant: number
+  unit: string
+  /** Decimal — satr sifatida keladi */
+  factor_to_base: string
+  is_default_purchase: boolean
+  is_default_sale: boolean
+}
+
+export interface Barcode {
+  id: number
+  variant: number
+  code: string
+  code_normalized: string
+  code_type: string
+}
+
+export interface Variant {
+  id: number
+  product: number
+  product_name: string
+  category: number
+  sku: string
+  name: string
+  display_name: string
+  /** Xom qiymatlar: {"qalinlik": "12 mm"} */
+  attributes: Record<string, string | boolean | null>
+  /** To'liq juftliklar: {"qalinlik": {"raw": "12 mm", "num": "0.012"}} */
+  attributes_full: Record<string, { raw: unknown; num: string | null }>
+  purchase_price: string | null
+  sale_price: string | null
+  currency: string
+  min_stock: string | null
+  is_active: boolean
+  units: ProductUnit[]
+  barcodes: Barcode[]
+}
+
+export interface Product {
+  id: number
+  category: number
+  category_name: string
+  name: string
+  brand: string
+  model: string
+  description: string
+  base_unit: string
+  effective_unit: string
+  is_active: boolean
+  variants: Variant[]
+}
+
+export type ProductInput = Partial<
+  Omit<Product, 'id' | 'category_name' | 'effective_unit' | 'variants'>
+> & { sku?: string }

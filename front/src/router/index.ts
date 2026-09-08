@@ -27,6 +27,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/products',
+      name: 'products',
+      component: () => import('@/views/ProductsView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Mahsulotlar',
+        subtitle: 'Katalog, atributlar va o‘ram birliklari',
+      },
+    },
+    {
       path: '/units',
       name: 'units',
       component: () => import('@/views/UnitsView.vue'),
