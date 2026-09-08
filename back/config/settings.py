@@ -40,7 +40,10 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    "apps.core",
+    "apps.tenants",
     "apps.users",
+    "apps.units",
     "apps.warehouse",
 ]
 
@@ -53,6 +56,9 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Tenant kontekstini o'rnatadi va so'rovni tranzaksiyaga o'raydi.
+    # AuthenticationMiddleware dan keyin turishi shart.
+    "apps.core.middleware.TenantMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -82,6 +88,27 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
     "default": env.db("DATABASE_URL", default="postgres://postgres:postgres@localhost:5432/omborxona_xisobi"),
+}
+
+
+# --- Kesh -----------------------------------------------------------------
+
+REDIS_URL = env("REDIS_URL", default="")
+
+CACHES = {
+    "default": (
+        {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+        }
+        if REDIS_URL
+        else {
+            # Redis yo'q bo'lsa jarayon xotirasi. Bir nechta process bo'lganda
+            # o'lchov birligi keshi ular orasida sinxronlanmaydi — ishlab
+            # chiqarishda REDIS_URL berilishi kerak.
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    )
 }
 
 

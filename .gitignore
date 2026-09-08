@@ -17,3 +17,7 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Read-only ma'lumotnoma (repoga kirmaydi)
+InvenTree-master/
+reference/
