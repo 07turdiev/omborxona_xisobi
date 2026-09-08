@@ -9,6 +9,17 @@ Omborxona hisob-kitob tizimi. Backend — Django + DRF, frontend — Vue 3 + Vit
 | Backend  | Django 5.2, Django REST Framework, SimpleJWT, drf-spectacular, PostgreSQL   |
 | Frontend | Vue 3, TypeScript, Vite, Vue Router, Pinia, Tailwind CSS v4, Axios          |
 
+## Repoda nima yo'q
+
+Ikkita papka ataylab git'ga kiritilmagan (ular `.gitignore` da):
+
+| Papka | Nima | Nega yo'q |
+|---|---|---|
+| `InvenTree-master/` | InvenTree manba kodi (MIT) | 2770 fayl, faqat o'qish uchun ma'lumotnoma. Undan olingan qismlar [NOTICE](NOTICE) da qayd etilgan; kodimiz undan hech qachon import qilmaydi. |
+| `store/` | StoreFlow dizayn prototipi | Undan olingan uslublar `front/src/assets/app.css` va `login.css` ga ko'chirilgan — ilova bu papkasiz to'liq ishlaydi. Prototipning o'zi 26 000 qatorlik statik HTML/JS. |
+
+Loyihani boshqa kompyuterda ochganda bu ikkisi kerak emas.
+
 ## Struktura
 
 ```

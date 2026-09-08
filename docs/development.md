@@ -7,7 +7,7 @@ Bazangizda quyidagilar yaratildi:
 | Nima | Qiymat |
 |---|---|
 | Baza | `omborxona_xisobi` |
-| Django roli | `omborxona_app` (parol `2002`) |
+| Django roli | `omborxona_app` — parol [back/.env](../back/.env) da |
 | Extensionlar | `ltree`, `pg_trgm`, `btree_gin` |
 
 **Nega yangi rol kerak bo'ldi.** Siz bergan `omborxona` roli **SUPERUSER** va
@@ -25,6 +25,11 @@ psql -U omborxona -c "DROP DATABASE mborxona_xisobi"
 ```
 
 Sozlamalar [back/.env](../back/.env) da. U git'ga tushmaydi.
+
+> **Parollar haqida.** Bu hujjatda hech qanday haqiqiy parol yozilmagan.
+> Quyidagi demo hisoblar parollari ataylab ochiq — ular faqat lokal
+> sinov uchun. **Ishlab chiqarishga chiqarishdan oldin barchasini
+> almashtiring**, jumladan `omborxona_app` baza rolining parolini ham.
 
 ## 2. Ishga tushirish — eng oson yo'li
 

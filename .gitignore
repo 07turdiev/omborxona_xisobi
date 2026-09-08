@@ -1,23 +1,103 @@
-# Node
-node_modules/
-front/dist/
-front/.env
-*.local
+# =====================================================================
+# Maxfiy ma'lumot — hech qachon commit qilinmasin
+# =====================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets.json
 
-# Python
-back/.venv/
-back/.env
-back/media/
-back/staticfiles/
+
+# =====================================================================
+# Python / Django
+# =====================================================================
+.venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+develop-eggs/
 
-# IDE / OS
+# Django ish paytida hosil bo'ladigan fayllar
+back/media/
+back/staticfiles/
+*.sqlite3
+*.sqlite3-journal
+
+# Testlar va tahlil vositalari
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+
+# =====================================================================
+# Node / Vue
+# =====================================================================
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# Paket menejerlarining loglari
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+
+# =====================================================================
+# Loglar va vaqtinchalik fayllar
+# =====================================================================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*.rej
+
+
+# =====================================================================
+# Muharrir va OS
+# =====================================================================
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
 
-# Read-only ma'lumotnoma (repoga kirmaydi)
+
+# =====================================================================
+# Faqat o'qish uchun ma'lumotnomalar — repoga kirmaydi
+# =====================================================================
+
+# InvenTree manba kodi (MIT). Undan olingan qismlar NOTICE da qayd
+# etilgan; manbaning o'zi repoda saqlanmaydi, chunki u 2770 fayl va
+# bizning kodimiz undan hech qachon import qilmaydi.
 InvenTree-master/
 reference/
+
+# StoreFlow dizayn prototipi. Undan olingan uslublar
+# front/src/assets/app.css va login.css ga ko'chirilgan, ya'ni ilova
+# bu papkasiz ham to'liq ishlaydi. Prototipning o'zi 26 000 qatorlik
+# statik HTML/JS — repoda ikkinchi index.html bo'lib chalkashtiradi.
+store/
