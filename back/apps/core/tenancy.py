@@ -28,7 +28,7 @@ import uuid
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 
-from django.db import connection
+from django.db import connection, transaction
 
 # Joriy so'rov (yoki vazifa) qaysi tenant nomidan bajarilayotgani.
 # `None` — tenant aniqlanmagan; bu holda RLS hech qanday qator qaytarmaydi.
@@ -83,21 +83,41 @@ def apply_tenant_to_connection(tenant_id: uuid.UUID | None) -> None:
 def tenant_context(tenant_id: uuid.UUID | None):
     """Berilgan tenant nomidan kod bajarish uchun kontekst menejeri.
 
-    Fon vazifalari (Celery) va boshqaruv buyruqlarida ishlatiladi, chunki
-    u yerda HTTP so'rov va middleware yo'q.
+    Fon vazifalari (Celery), boshqaruv buyruqlari va testlarda
+    ishlatiladi — u yerda HTTP so'rov va middleware yo'q.
 
     Namuna:
         with tenant_context(tenant.id):
             StockMovement.objects.create(...)
+
+    **Tranzaksiyani o'zi ochadi.** `SET LOCAL` tranzaksiya bilan
+    chegaralangan: tranzaksiyasiz chaqirilsa PostgreSQL uni jimgina
+    e'tiborsiz qoldiradi va RLS hech narsa qaytarmaydi. Bu xavfsiz
+    (fail-closed), lekin juda chalg'ituvchi — "ma'lumot bazada bor,
+    lekin ko'rinmayapti" holati. Shuning uchun ochiq tranzaksiya
+    bo'lmasa, shu yerda ochiladi.
     """
     token = set_current_tenant_id(tenant_id)
 
+    # Allaqachon tranzaksiya ichida bo'lsak, yangisini ochmaymiz:
+    # savepoint ortiqcha yuk beradi va `SET LOCAL` baribir tashqi
+    # tranzaksiya oxirigacha amal qiladi.
+    if connection.in_atomic_block:
+        try:
+            apply_tenant_to_connection(tenant_id)
+            yield
+        finally:
+            reset_current_tenant_id(token)
+            apply_tenant_to_connection(None)
+
+        return
+
     try:
-        apply_tenant_to_connection(tenant_id)
-        yield
+        with transaction.atomic():
+            apply_tenant_to_connection(tenant_id)
+            yield
     finally:
         reset_current_tenant_id(token)
-        apply_tenant_to_connection(None)
 
 
 def check_rls_configuration() -> list[str]:

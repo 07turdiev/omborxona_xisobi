@@ -44,6 +44,7 @@ LOCAL_APPS = [
     "apps.tenants",
     "apps.users",
     "apps.units",
+    "apps.catalog",
     "apps.warehouse",
 ]
 
