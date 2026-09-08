@@ -248,3 +248,100 @@ export interface MovementReasonChoice {
   direction: 'in' | 'out' | 'both'
   is_loss: boolean
 }
+
+// -- Kontragentlar ---------------------------------------------------
+
+export interface Partner {
+  id: number
+  name: string
+  is_supplier: boolean
+  is_customer: boolean
+  role_display: string
+  inn: string
+  phone: string
+  email: string
+  contact: string
+  address: string
+  bank: string
+  note: string
+  is_active: boolean
+  created_at: string
+}
+
+// -- Hujjatlar -------------------------------------------------------
+
+export type DocumentKind = 'purchase' | 'sale' | 'return_in' | 'return_out'
+export type DocumentStatus = 'draft' | 'confirmed' | 'cancelled'
+
+export interface DocumentLine {
+  id: number
+  variant: number
+  product_name: string
+  variant_name: string
+  sku: string
+  batch: number | null
+  batch_code: string | null
+  unit: string
+  base_unit: string
+  /** Decimal — satr sifatida */
+  factor: string
+  quantity: string
+  quantity_base: string
+  unit_price: string
+  unit_price_base: string
+  discount_percent: string
+  line_total: string
+  line_cost: string
+  note: string
+  position: number
+}
+
+/** Hujjat yaratishda yuboriladigan qator */
+export interface DocumentLineInput {
+  variant: number | null
+  batch?: number | null
+  unit?: string
+  quantity: string
+  unit_price: string
+  discount_percent?: string
+  note?: string
+}
+
+export interface Document {
+  id: number
+  kind: DocumentKind
+  kind_display: string
+  number: string
+  date: string
+  status: DocumentStatus
+  status_display: string
+  is_editable: boolean
+  warehouse: number
+  warehouse_name: string
+  partner: number | null
+  partner_name: string | null
+  currency: string
+  external_number: string
+  note: string
+  total_amount: string
+  total_cost: string
+  profit: string
+  confirmed_at: string | null
+  cancelled_at: string | null
+  lines: DocumentLine[]
+  line_count: number
+}
+
+export interface DocumentTotals {
+  count: number
+  amount: string
+  cost: string
+  profit: string
+}
+
+export interface DocumentSummary {
+  purchases: DocumentTotals
+  sales: DocumentTotals
+  profit: string
+  margin_percent: number
+}

@@ -37,6 +37,28 @@ const router = createRouter({
       },
     },
     {
+      path: '/imports',
+      name: 'imports',
+      component: () => import('@/views/DocumentsView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Kirim',
+        subtitle: 'Yetkazib beruvchidan kelgan tovar hujjatlari',
+        documentKind: 'purchase',
+      },
+    },
+    {
+      path: '/sales',
+      name: 'sales',
+      component: () => import('@/views/DocumentsView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Sotuv',
+        subtitle: 'Sotuv hujjatlari, tannarx va foyda',
+        documentKind: 'sale',
+      },
+    },
+    {
       path: '/products',
       name: 'products',
       component: () => import('@/views/ProductsView.vue'),
