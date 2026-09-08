@@ -175,3 +175,70 @@ export interface Product {
 export type ProductInput = Partial<
   Omit<Product, 'id' | 'category_name' | 'effective_unit' | 'variants'>
 > & { sku?: string }
+
+// -- Qoldiqlar -------------------------------------------------------
+
+export interface StockBalance {
+  id: number
+  variant: number
+  product_name: string
+  variant_name: string
+  sku: string
+  unit: string
+  category_name: string
+  warehouse: number
+  warehouse_name: string
+  warehouse_purpose: WarehousePurpose
+  batch: number | null
+  batch_code: string | null
+  expiry_date: string | null
+  is_expired: boolean
+  /** Decimal — satr sifatida keladi, aniqlik yo'qolmasin */
+  quantity: string
+  reserved_quantity: string
+  available_quantity: string
+  is_sellable: boolean
+  is_overallocated: boolean
+  is_low: boolean
+  purchase_price: string | null
+  sale_price: string | null
+}
+
+export interface StockSummary {
+  positions: number
+  units: string
+  reserved: string
+  purchase_value: string
+  retail_value: string
+  low_count: number
+  expired_count: number
+}
+
+export interface StockMovement {
+  id: number
+  variant: number
+  product_name: string
+  sku: string
+  warehouse: number
+  warehouse_name: string
+  batch: number | null
+  batch_code: string | null
+  quantity: string
+  reason: string
+  reason_display: string
+  unit_cost: string | null
+  currency: string
+  document_type: string
+  document_id: number | null
+  note: string
+  meta: Record<string, unknown>
+  occurred_at: string
+  user_name: string
+}
+
+export interface MovementReasonChoice {
+  value: string
+  label: string
+  direction: 'in' | 'out' | 'both'
+  is_loss: boolean
+}

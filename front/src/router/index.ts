@@ -27,6 +27,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/stock',
+      name: 'stock',
+      component: () => import('@/views/StockView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Qoldiqlar',
+        subtitle: 'Ombor, partiya va yaroqlilik muddati kesimida',
+      },
+    },
+    {
       path: '/products',
       name: 'products',
       component: () => import('@/views/ProductsView.vue'),
