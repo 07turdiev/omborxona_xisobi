@@ -132,10 +132,18 @@ def get_units_hash(tenant_id: uuid.UUID) -> str:
 def invalidate_registry(tenant_id: uuid.UUID) -> None:
     """Tashkilotning registrini bekor qiladi (birlik o'zgarganda chaqiriladi).
 
-    Hash bazadan qayta hisoblanib keshga yoziladi — shunda **boshqa
-    process** ham o'zgarishni sezadi va o'z registrini qayta quradi.
+    Hash **o'chiriladi**, qayta hisoblanmaydi. Sabab: `compute_units_hash()`
+    bazaga murojaat qiladi, baza esa RLS ostida — ya'ni natija chaqiruvchi
+    qaysi tenant kontekstida turganiga bog'liq. Bu yerda hashni hisoblab
+    keshga yozsak, noto'g'ri kontekstdan chaqirilgan holatda (masalan
+    tozalash kodida) bo'sh ro'yxatning hashi yozilib qolardi.
+
+    O'chirish esa har doim to'g'ri: keyingi `get_units_hash()` uni
+    konversiya paytida, ya'ni to'g'ri tenant kontekstida qayta hisoblaydi.
+    Kalit umumiy keshda bo'lgani uchun **boshqa processlar** ham
+    o'zgarishni sezadi va o'z registrini qayta quradi.
     """
-    cache.set(_hash_cache_key(tenant_id), compute_units_hash(tenant_id), HASH_CACHE_TTL)
+    cache.delete(_hash_cache_key(tenant_id))
 
     with _lock:
         _registries.pop(tenant_id, None)

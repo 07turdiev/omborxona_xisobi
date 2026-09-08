@@ -114,7 +114,12 @@ class ConversionTests(SimpleTestCase):
 
 
 class CustomUnitTests(TestCase):
-    """Tashkilotning o'z birliklari — baza talab qiladi."""
+    """Tashkilotning o'z birliklari — baza va RLS talab qiladi.
+
+    `units_customunit` jadvali RLS bilan himoyalangan, shuning uchun har
+    bir o'qish va yozish `tenant_context()` ichida bajarilishi kerak.
+    Kontekstsiz so'rov nol qator qaytaradi — bu testlarda ham amal qiladi.
+    """
 
     @classmethod
     def setUpTestData(cls):
@@ -122,6 +127,18 @@ class CustomUnitTests(TestCase):
 
         cls.tenant_a = Tenant.objects.create(name='A do\'kon', slug='a-dokon')
         cls.tenant_b = Tenant.objects.create(name='B do\'kon', slug='b-dokon')
+
+    def make_unit(self, tenant, **kwargs):
+        """Berilgan tashkilot kontekstida birlik yaratadi."""
+        with tenant_context(tenant.id):
+            return CustomUnit.objects.create(tenant=tenant, **kwargs)
+
+    def convert_as(self, tenant, value, unit):
+        """Berilgan tashkilot kontekstida konversiya qiladi."""
+        with tenant_context(tenant.id):
+            return convert_to_unit(value, unit)
+
+    # -- model validatsiyasi -------------------------------------------
 
     def test_definition_string(self):
         unit = CustomUnit(name='mashina', definition='6 * m3', symbol='msh')
@@ -142,70 +159,60 @@ class CustomUnitTests(TestCase):
         with self.assertRaises(ValidationError):
             unit.clean()
 
-    def test_custom_unit_usable_after_save(self):
-        CustomUnit.objects.create(
-            tenant=self.tenant_a, name='mashina', definition='6 * m3', symbol='msh'
-        )
+    # -- registr -------------------------------------------------------
 
-        result = convert_to_unit('2 mashina', 'm3', tenant_id=self.tenant_a.id)
-        self.assertEqual(result, Decimal('12'))
+    def test_custom_unit_usable_after_save(self):
+        self.make_unit(self.tenant_a, name='mashina', definition='6 * m3', symbol='msh')
+
+        self.assertEqual(
+            self.convert_as(self.tenant_a, '2 mashina', 'm3'), Decimal('12')
+        )
 
     def test_custom_unit_does_not_leak_between_tenants(self):
         """Eng muhim test: bir tashkilotning birligi boshqasiga o'tmasligi kerak.
 
-        InvenTree'da registr global (`InvenTree/conversion.py:83`), ya'ni
-        bu holat u yerda buziladi. Tahlil hisobotining 3-bo'limiga qarang.
+        InvenTree'da registr modul darajasidagi global o'zgaruvchi
+        (`InvenTree/conversion.py:83`), ya'ni bu holat u yerda buziladi:
+        A ning ta'rifi jarayon xotirasida qolib, B ning hisobiga tushadi.
+        Tahlil hisobotining 4.1-bo'limiga qarang.
         """
-        CustomUnit.objects.create(tenant=self.tenant_a, name='mashina', definition='6 * m3')
+        self.make_unit(self.tenant_a, name='mashina', definition='6 * m3')
 
-        self.assertEqual(
-            convert_to_unit('1 mashina', 'm3', tenant_id=self.tenant_a.id),
-            Decimal('6'),
-        )
+        self.assertEqual(self.convert_as(self.tenant_a, '1 mashina', 'm3'), Decimal('6'))
 
         with self.assertRaises(ValidationError):
-            convert_to_unit('1 mashina', 'm3', tenant_id=self.tenant_b.id)
+            self.convert_as(self.tenant_b, '1 mashina', 'm3')
 
     def test_same_name_allowed_in_different_tenants(self):
         """Ikki tashkilot bir nomni turlicha ta'riflashi mumkin."""
-        CustomUnit.objects.create(tenant=self.tenant_a, name='mashina', definition='6 * m3')
-        CustomUnit.objects.create(tenant=self.tenant_b, name='mashina', definition='10 * m3')
+        self.make_unit(self.tenant_a, name='mashina', definition='6 * m3')
+        self.make_unit(self.tenant_b, name='mashina', definition='10 * m3')
 
-        self.assertEqual(
-            convert_to_unit('1 mashina', 'm3', tenant_id=self.tenant_a.id),
-            Decimal('6'),
-        )
-        self.assertEqual(
-            convert_to_unit('1 mashina', 'm3', tenant_id=self.tenant_b.id),
-            Decimal('10'),
-        )
+        self.assertEqual(self.convert_as(self.tenant_a, '1 mashina', 'm3'), Decimal('6'))
+        self.assertEqual(self.convert_as(self.tenant_b, '1 mashina', 'm3'), Decimal('10'))
 
     def test_registry_rebuilds_after_change(self):
         """Birlik o'zgarganda registr qayta quriladi."""
-        unit = CustomUnit.objects.create(
-            tenant=self.tenant_a, name='mashina', definition='6 * m3'
-        )
-        self.assertEqual(
-            convert_to_unit('1 mashina', 'm3', tenant_id=self.tenant_a.id), Decimal('6')
-        )
+        unit = self.make_unit(self.tenant_a, name='mashina', definition='6 * m3')
+        self.assertEqual(self.convert_as(self.tenant_a, '1 mashina', 'm3'), Decimal('6'))
 
-        unit.definition = '8 * m3'
-        unit.save()
+        with tenant_context(self.tenant_a.id):
+            unit.definition = '8 * m3'
+            unit.save()
 
-        self.assertEqual(
-            convert_to_unit('1 mashina', 'm3', tenant_id=self.tenant_a.id), Decimal('8')
-        )
+        self.assertEqual(self.convert_as(self.tenant_a, '1 mashina', 'm3'), Decimal('8'))
 
     def test_registry_rebuilds_after_delete(self):
-        unit = CustomUnit.objects.create(
-            tenant=self.tenant_a, name='mashina', definition='6 * m3'
-        )
-        get_registry(self.tenant_a.id)
+        unit = self.make_unit(self.tenant_a, name='mashina', definition='6 * m3')
+        self.assertEqual(self.convert_as(self.tenant_a, '1 mashina', 'm3'), Decimal('6'))
 
-        unit.delete()
+        with tenant_context(self.tenant_a.id):
+            unit.delete()
 
         with self.assertRaises(ValidationError):
-            convert_to_unit('1 mashina', 'm3', tenant_id=self.tenant_a.id)
+            self.convert_as(self.tenant_a, '1 mashina', 'm3')
+
+    # -- tenant konteksti ----------------------------------------------
 
     def test_tenant_assigned_from_context(self):
         """`TenantOwnedModel.save()` tenantni kontekstdan oladi."""
@@ -213,6 +220,27 @@ class CustomUnitTests(TestCase):
             unit = CustomUnit.objects.create(name='mashina', definition='6 * m3')
 
         self.assertEqual(unit.tenant_id, self.tenant_a.id)
+
+    def test_rls_hides_other_tenant_rows(self):
+        """RLS: A ning kontekstida B ning yozuvi umuman ko'rinmaydi."""
+        self.make_unit(self.tenant_a, name='mashina', definition='6 * m3')
+        self.make_unit(self.tenant_b, name='vagon', definition='60 * m3')
+
+        with tenant_context(self.tenant_a.id):
+            self.assertEqual(
+                list(CustomUnit.objects.values_list('name', flat=True)), ['mashina']
+            )
+
+        with tenant_context(self.tenant_b.id):
+            self.assertEqual(
+                list(CustomUnit.objects.values_list('name', flat=True)), ['vagon']
+            )
+
+    def test_rls_is_fail_closed_without_context(self):
+        """Tenant aniqlanmaganda hech narsa ko'rinmaydi (fail-closed)."""
+        self.make_unit(self.tenant_a, name='mashina', definition='6 * m3')
+
+        self.assertEqual(CustomUnit.objects.count(), 0)
 
     def tearDown(self):
         invalidate_registry(self.tenant_a.id)

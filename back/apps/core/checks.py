@@ -30,15 +30,22 @@ def _tenant_owned_models():
     ]
 
 
-def _tables_with_policy() -> set[str] | None:
-    """Bazada `tenant_isolation` policy'si bor jadvallar; baza yo'q bo'lsa None."""
+def _inspect_tables() -> tuple[set[str], set[str]] | None:
+    """(mavjud jadvallar, policy'si bor jadvallar); bazaga ulanib bo'lmasa None."""
     try:
         with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT tablename FROM pg_tables WHERE schemaname = current_schema()
+            """)
+            existing = {row[0] for row in cursor.fetchall()}
+
             cursor.execute(
                 'SELECT tablename FROM pg_policies WHERE policyname = %s',
                 [POLICY_NAME],
             )
-            return {row[0] for row in cursor.fetchall()}
+            with_policy = {row[0] for row in cursor.fetchall()}
+
+        return existing, with_policy
     except (OperationalError, ProgrammingError):
         return None
 
@@ -51,9 +58,9 @@ def check_rls_policies(app_configs, **kwargs):
     if not models:
         return []
 
-    tables = _tables_with_policy()
+    inspected = _inspect_tables()
 
-    if tables is None:
+    if inspected is None:
         return [
             Warning(
                 'Bazaga ulanib bo\'lmadi, RLS policy tekshiruvi o\'tkazib yuborildi.',
@@ -62,12 +69,20 @@ def check_rls_policies(app_configs, **kwargs):
             )
         ]
 
+    existing, with_policy = inspected
     errors = []
 
     for model in models:
         table = model._meta.db_table
 
-        if table not in tables:
+        # Jadval hali yaratilmagan bo'lsa, tekshirishga narsa yo'q. Bu
+        # `migrate` ning birinchi ishga tushishi uchun zarur: policy
+        # migratsiya ichida qo'shiladi, ya'ni u tekshiruv paytida hali
+        # mavjud emas. Jadval paydo bo'lgach keyingi `check` uni ushlaydi.
+        if table not in existing:
+            continue
+
+        if table not in with_policy:
             errors.append(
                 Error(
                     f'"{table}" jadvalida tenant izolyatsiyasi policy\'si yo\'q.',
