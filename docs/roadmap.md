@@ -11,13 +11,20 @@ arxitektura qarorlari — [extraction-plan.md](./extraction-plan.md).
 |---|---|
 | **Poydevor** | Tenant + PostgreSQL RLS izolyatsiyasi, `Decimal` maydonlari, a'zolikka asoslangan ruxsatlar, `manage.py check` da RLS tekshiruvi |
 | **Kirish** | JWT login, token yangilash, `/me` (tashkilot va rol bilan) |
-| **O'lchov birliklari** | Tenant bo'yicha ajratilgan `pint` registri, `Decimal` konversiya, tashkilotning o'z birliklari |
-| **Omborlar** | CRUD, tovar turi + vazifa (tranzit sotuvga chiqmaydi), ixtiyoriy kirish cheklovi, filtr, jamlanma |
-| **Interfeys qobig'i** | Dizayn CSS si, sidebar, topbar, tungi rejim, login sahifasi, boshqaruv paneli |
+| **O'lchov birliklari** | Tenant bo'yicha ajratilgan `pint` registri, `Decimal` konversiya |
+| **Omborlar** | CRUD, tovar turi + vazifa (tranzit sotuvga chiqmaydi), ixtiyoriy kirish cheklovi |
+| **Katalog** | `ltree` kategoriya daraxti, JSONB atributlar (jonli meros), variantlar, «1 qop = 50 kg», shtrix-kodlar |
+| **Qoldiq** | Append-only jurnal (baza triggeri bilan), partiya va yaroqlilik muddati, band qilish, ikki bosqichli ko'chirish, inventarizatsiya |
+| **Narx va tannarx** | FIFO qatlamlari, kurs tarixi, ko'chirishda tannarx tovar bilan yuradi |
+| **Hujjatlar** | Ko'p qatorli kirim va sotuv, FEFO partiya tanlash, tasdiqlash/bekor qilish, avtomatik foyda |
+| **Kontragentlar** | Yetkazib beruvchi va mijoz (bitta modelda, ikki bayroq) |
+| **Hisobotlar** | Davr jamlanmasi, kategoriya/ombor kesimi, yo'qotishlar ajratilgan, sof foyda, qoldiq qiymati |
+| **Interfeys** | Dizayn CSS si, sidebar, topbar, tungi rejim, login, boshqaruv paneli, omborlar, mahsulotlar, qoldiqlar, kirim, sotuv, hisobotlar |
 
-Testlar: **34 ta**, hammasi o'tadi.
+Testlar: **172 ta**, hammasi o'tadi.
 
-Dizayndagi 10 bo'limdan **2 tasi** ulangan (Boshqaruv paneli, Omborlar).
+Dizayndagi 10 bo'limdan **7 tasi** ulangan. Ulanmagani: Kontragentlar,
+Foydalanuvchilar, Sozlamalar (API tayyor, interfeys yo'q).
 
 ---
 

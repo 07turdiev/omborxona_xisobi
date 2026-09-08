@@ -345,3 +345,126 @@ export interface DocumentSummary {
   profit: string
   margin_percent: number
 }
+
+// -- Hisobotlar ------------------------------------------------------
+
+export interface PeriodSummary {
+  purchase_count: number
+  purchase_amount: string
+  sale_count: number
+  revenue: string
+  cost: string
+  gross_profit: string
+  margin_percent: number
+  loss_amount: string
+  /** Yo'qotishlar ayirilgan foyda */
+  net_profit: string
+}
+
+export interface CategoryRow {
+  name: string
+  revenue: string
+  cost: string
+  profit: string
+  quantity: string
+  margin_percent: number
+}
+
+export interface WarehouseRow {
+  warehouse_id: number
+  name: string
+  count: number
+  revenue: string
+  cost: string
+  profit: string
+}
+
+export interface TopProductRow {
+  variant_id: number
+  name: string
+  sku: string
+  revenue: string
+  cost: string
+  profit: string
+  quantity: string
+}
+
+export interface DailySaleRow {
+  date: string
+  revenue: string
+  profit: string
+  count: number
+}
+
+export interface LossRow {
+  reason: string
+  label: string
+  count: number
+  quantity: string
+  amount: string
+}
+
+export interface LossSummary {
+  total: string
+  by_reason: LossRow[]
+}
+
+export interface StockValuation {
+  positions: number
+  units: string
+  reserved: string
+  cost_value: string
+  retail_value: string
+  potential_profit: string
+  margin_percent: number
+}
+
+export interface ReportBundle {
+  summary: PeriodSummary
+  by_category: CategoryRow[]
+  by_warehouse: WarehouseRow[]
+  top_products: TopProductRow[]
+  daily_sales: DailySaleRow[]
+  losses: LossSummary
+  valuation: StockValuation
+}
+
+export interface RecentMovement {
+  id: number
+  occurred_at: string
+  product_name: string
+  warehouse_name: string
+  quantity: string
+  reason: string
+  reason_display: string
+  is_loss: boolean
+}
+
+export interface LowStockRow {
+  variant_id: number
+  product_name: string
+  sku: string
+  warehouse_name: string
+  quantity: string
+  min_stock: string
+  unit: string
+}
+
+export interface ExpiringRow {
+  batch_code: string
+  product_name: string
+  warehouse_name: string
+  quantity: string
+  expiry_date: string
+  days_left: number
+  is_expired: boolean
+}
+
+export interface DashboardBundle {
+  summary: PeriodSummary
+  valuation: StockValuation
+  daily_sales: DailySaleRow[]
+  recent_movements: RecentMovement[]
+  low_stock: LowStockRow[]
+  expiring: ExpiringRow[]
+}

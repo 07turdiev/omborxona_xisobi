@@ -69,6 +69,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/reports',
+      name: 'reports',
+      component: () => import('@/views/ReportsView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Hisobotlar',
+        subtitle: 'Aylanma, tannarx, foyda va yo‘qotishlar',
+      },
+    },
+    {
       path: '/units',
       name: 'units',
       component: () => import('@/views/UnitsView.vue'),
