@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import F, Sum
 from rest_framework import serializers
 
 from apps.stock import services
@@ -53,6 +54,12 @@ class StockBalanceSerializer(serializers.ModelSerializer):
     #: Kam qolgan tovarni ajratish uchun (dizayndagi "lowStock")
     is_low = serializers.SerializerMethodField()
 
+    #: FIFO qatlamlaridan hisoblangan **haqiqiy** tannarx.
+    #: `qoldiq × joriy kirim narxi` dan farq qiladi: turli narxda kelgan
+    #: partiyalar bo'lsa, bu aniqroq javob beradi.
+    cost_value = serializers.SerializerMethodField()
+    avg_unit_cost = serializers.SerializerMethodField()
+
     purchase_price = serializers.DecimalField(
         source='variant.purchase_price', max_digits=18, decimal_places=2,
         read_only=True, allow_null=True,
@@ -70,7 +77,7 @@ class StockBalanceSerializer(serializers.ModelSerializer):
             'batch', 'batch_code', 'expiry_date', 'is_expired',
             'quantity', 'reserved_quantity', 'available_quantity',
             'is_sellable', 'is_overallocated', 'is_low',
-            'purchase_price', 'sale_price',
+            'purchase_price', 'sale_price', 'cost_value', 'avg_unit_cost',
         )
 
     def get_is_expired(self, obj) -> bool:
@@ -80,6 +87,30 @@ class StockBalanceSerializer(serializers.ModelSerializer):
         minimum = obj.variant.min_stock
 
         return bool(minimum is not None and obj.quantity <= minimum)
+
+    def get_cost_value(self, obj) -> str:
+        """Shu qatordagi tovarning FIFO bo'yicha haqiqiy qiymati."""
+        from apps.pricing.models import CostLayer
+
+        total = CostLayer.objects.filter(
+            variant_id=obj.variant_id,
+            warehouse_id=obj.warehouse_id,
+            batch_id=obj.batch_id,
+            quantity_remaining__gt=0,
+        ).aggregate(
+            total=Sum(F('quantity_remaining') * F('unit_cost_base'))
+        )['total']
+
+        return str(total or Decimal('0'))
+
+    def get_avg_unit_cost(self, obj) -> str | None:
+        """O'rtacha birlik tannarxi — qatlamlar bo'yicha vaznlangan."""
+        value = Decimal(self.get_cost_value(obj))
+
+        if obj.quantity <= 0 or value == 0:
+            return None
+
+        return str((value / obj.quantity).quantize(Decimal('0.01')))
 
 
 class StockMovementSerializer(serializers.ModelSerializer):

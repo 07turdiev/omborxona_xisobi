@@ -138,8 +138,15 @@ class StockBalanceViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             batch__expiry_date__lt=timezone.localdate()
         ).count()
 
+        # Haqiqiy tannarx FIFO qatlamlaridan. `qoldiq × joriy narx`
+        # turli narxdagi partiyalar bo'lganda noto'g'ri javob beradi.
+        from apps.pricing.services import stock_value
+
+        cost_value = stock_value()
+
         return Response({
             'positions': queryset.count(),
+            'cost_value': cost_value,
             'units': totals['units'] or Decimal('0'),
             'reserved': totals['reserved'] or Decimal('0'),
             'purchase_value': totals['purchase_value'] or Decimal('0'),

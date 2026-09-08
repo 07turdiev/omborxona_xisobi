@@ -93,7 +93,10 @@ class Command(BaseCommand):
                 tenant, product, 'CEM-M400', cement,
                 {'ishlab_chiqaruvchi': 'Bekabadsement', 'marka': 'M400',
                  'saqlash_muddati': '180'},
-                purchase='45000', sale='52000',
+                # Narx **bazaviy birlikda** (kg), qop uchun emas:
+                # 1 qop = 50 kg, ya'ni 45 000 so'm/qop = 900 so'm/kg.
+                # Qopdagi narxni ProductUnit koeffitsienti bilan chiqaramiz.
+                purchase='900', sale='1040',
             )
 
             for unit, factor, default_purchase in [
@@ -120,7 +123,8 @@ class Command(BaseCommand):
                 tenant, gypsum_product, 'GYP-01', cement,
                 {'ishlab_chiqaruvchi': 'Nurafshon', 'marka': 'M300',
                  'saqlash_muddati': '90'},
-                purchase='28000', sale='34000',
+                # 1 qop gips = 30 kg
+                purchase='930', sale='1130',
             )
             ProductUnit.objects.get_or_create(
                 tenant=tenant, variant=gypsum, unit='qop',

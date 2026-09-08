@@ -158,9 +158,9 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
         <strong>{{ number(store.summary?.reserved) }}</strong>
       </div>
 
-      <div>
-        <span>Kirim qiymati</span>
-        <strong>{{ money(store.summary?.purchase_value) }}</strong>
+      <div class="accent">
+        <span>Tannarx (FIFO)</span>
+        <strong>{{ money(store.summary?.cost_value) }}</strong>
       </div>
 
       <div>
@@ -191,6 +191,7 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
               <th class="num">Qoldiq</th>
               <th class="num">Band</th>
               <th class="num">Mavjud</th>
+              <th class="num">Tannarx</th>
               <th>Holat</th>
               <th></th>
             </tr>
@@ -198,11 +199,11 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 
           <tbody>
             <tr v-if="store.loading">
-              <td colspan="9" class="empty-state">Yuklanmoqda…</td>
+              <td colspan="10" class="empty-state">Yuklanmoqda…</td>
             </tr>
 
             <tr v-else-if="store.isEmpty">
-              <td colspan="9" class="empty-state">
+              <td colspan="10" class="empty-state">
                 Qoldiq topilmadi. Kirim qilinganidan keyin bu yerda paydo bo‘ladi.
               </td>
             </tr>
@@ -236,6 +237,14 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 
               <td class="num">
                 <strong>{{ number(row.available_quantity) }}</strong>
+              </td>
+
+              <td class="num">
+                <span v-if="Number(row.cost_value) > 0">
+                  {{ money(row.cost_value) }}
+                  <small class="cell-sub">{{ money(row.avg_unit_cost) }} / {{ row.unit }}</small>
+                </span>
+                <span v-else class="muted" title="Tannarxsiz kiritilgan tovar">—</span>
               </td>
 
               <td>
@@ -371,6 +380,10 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
   display: block;
   margin-top: 4px;
   font-size: 12px;
+}
+
+.stock-totals .accent strong {
+  color: var(--purple);
 }
 
 .stock-totals .warn strong {

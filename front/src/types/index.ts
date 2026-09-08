@@ -202,12 +202,18 @@ export interface StockBalance {
   is_low: boolean
   purchase_price: string | null
   sale_price: string | null
+  /** FIFO qatlamlaridan hisoblangan haqiqiy qiymat */
+  cost_value: string
+  /** Qatlamlar bo'yicha vaznlangan o'rtacha birlik tannarxi */
+  avg_unit_cost: string | null
 }
 
 export interface StockSummary {
   positions: number
   units: string
   reserved: string
+  /** FIFO bo'yicha haqiqiy tannarx */
+  cost_value: string
   purchase_value: string
   retail_value: string
   low_count: number

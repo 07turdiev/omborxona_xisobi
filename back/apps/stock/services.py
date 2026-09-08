@@ -152,7 +152,25 @@ def record_movement(
     balance.last_movement = movement
     balance.save(update_fields=['quantity', 'last_movement', 'updated_at'])
 
+    _apply_costing(movement)
+
     return movement
+
+
+def _apply_costing(movement: StockMovement) -> None:
+    """Tannarx qatlamlarini yangilaydi.
+
+    Nima uchun signal emas: FIFO yechish xato berishi mumkin va u
+    **jurnal yozuvi bilan bir tranzaksiyada** bajarilishi shart.
+    Signal orqali bunday bog'liqlikni boshqarish qiyin — xato jimgina
+    yo'qolib ketishi mumkin.
+
+    Import funksiya ichida: `apps.pricing` `apps.stock` modellariga
+    tayanadi, ya'ni modul darajasida import qilinsa halqa hosil bo'lardi.
+    """
+    from apps.pricing.services import on_movement_recorded
+
+    on_movement_recorded(movement)
 
 
 def _check_direction(reason: str, quantity: Decimal) -> None:
@@ -211,10 +229,22 @@ def transfer_out(
         quantity=quantity, reason=MovementReason.TRANSFER_IN,
         document_type=document_type, document_id=document_id,
         user=user, note=note,
-        meta={'from_warehouse': warehouse.pk},
+        # `pair_movement` — juftlikning aniq bog'lanishi. Jurnal
+        # append-only bo'lgani uchun bog'lanishni keyin qo'shib
+        # bo'lmaydi; tannarxni qayta qurishda esa u zarur.
+        meta={'from_warehouse': warehouse.pk, 'pair_movement': out.pk},
     )
 
+    _move_layers(out, into)
+
     return out, into
+
+
+def _move_layers(out_movement, in_movement) -> None:
+    """Ko'chirishda tannarxni tovar bilan birga olib o'tadi."""
+    from apps.pricing.services import move_layers
+
+    move_layers(out_movement, in_movement)
 
 
 @transaction.atomic
@@ -257,8 +287,13 @@ def transfer_in(
         quantity=received, reason=MovementReason.TRANSFER_IN,
         document_type=document_type, document_id=document_id,
         user=user, note=note,
-        meta={'from_warehouse': transit_warehouse.pk},
+        meta={
+            'from_warehouse': transit_warehouse.pk,
+            'pair_movement': result['out'].pk,
+        },
     )
+
+    _move_layers(result['out'], result['in'])
 
     shortfall = in_transit - received
 
