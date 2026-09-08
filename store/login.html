@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Система складского учета товаров"
+    >
+
+    <title>Вход — Складской учет</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="login-page">
+
+    <!-- =====================================================
+         ФОНОВЫЕ ЭЛЕМЕНТЫ
+    ====================================================== -->
+
+    <div class="background-grid"></div>
+
+    <div class="background-glow glow-one"></div>
+    <div class="background-glow glow-two"></div>
+    <div class="background-glow glow-three"></div>
+
+
+    <!-- =====================================================
+         СТРАНИЦА
+    ====================================================== -->
+
+    <main class="login-layout">
+
+        <!-- =================================================
+             ЛЕВАЯ ЧАСТЬ
+        ================================================== -->
+
+        <section class="login-showcase">
+
+            <div class="showcase-content">
+
+                <!-- ЛОГОТИП -->
+
+                <a href="#" class="brand">
+
+                    <div class="brand-logo">
+                        <svg
+                            viewBox="0 0 64 64"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M10 18L32 7L54 18V46L32 57L10 46V18Z"
+                                stroke="currentColor"
+                                stroke-width="3"
+                            />
+
+                            <path
+                                d="M10 18L32 30L54 18"
+                                stroke="currentColor"
+                                stroke-width="3"
+                            />
+
+                            <path
+                                d="M32 30V57"
+                                stroke="currentColor"
+                                stroke-width="3"
+                            />
+
+                            <path
+                                d="M21 13L43 25"
+                                stroke="currentColor"
+                                stroke-width="3"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </div>
+
+                    <div class="brand-text">
+                        <strong>STORE<span>FLOW</span></strong>
+                        <small>Warehouse Management</small>
+                    </div>
+
+                </a>
+
+
+                <!-- ТЕКСТ -->
+
+                <div class="showcase-main">
+
+                    <div class="showcase-label">
+                        <span class="label-dot"></span>
+                        Система управления складом
+                    </div>
+
+                    <h1>
+                        Всё движение товаров
+                        <span>под вашим контролем.</span>
+                    </h1>
+
+                    <p>
+                        Приход, продажа, остатки, контрагенты,
+                        пользователи и финансовая отчетность
+                        в единой системе.
+                    </p>
+
+
+                    <!-- ВОЗМОЖНОСТИ -->
+
+                    <div class="feature-list">
+
+                        <div class="feature-item">
+
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M3 9L12 4L21 9L12 14L3 9Z"/>
+                                    <path d="M3 9V15L12 20L21 15V9"/>
+                                </svg>
+                            </div>
+
+                            <div>
+                                <strong>Точный складской учет</strong>
+                                <span>
+                                    Приходы, продажи и остатки в реальном времени
+                                </span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="feature-item">
+
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M4 19V10"/>
+                                    <path d="M10 19V5"/>
+                                    <path d="M16 19V13"/>
+                                    <path d="M22 19V8"/>
+                                    <path d="M2 19H23"/>
+                                </svg>
+                            </div>
+
+                            <div>
+                                <strong>Финансовая аналитика</strong>
+                                <span>
+                                    Себестоимость, выручка, прибыль и отчеты
+                                </span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="feature-item">
+
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <circle cx="9" cy="8" r="4"/>
+                                    <path d="M2 20C2 16 5 13 9 13C13 13 16 16 16 20"/>
+                                    <path d="M17 8H23"/>
+                                    <path d="M20 5V11"/>
+                                </svg>
+                            </div>
+
+                            <div>
+                                <strong>Управление доступом</strong>
+                                <span>
+                                    Пользователи, роли и индивидуальные права
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- НИЗ -->
+
+                <div class="showcase-footer">
+                    <span>© 2026 StoreFlow</span>
+
+                    <span class="system-status">
+                        <i></i>
+                        Система готова к работе
+                    </span>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ПРАВАЯ ЧАСТЬ
+        ================================================== -->
+
+        <section class="login-panel">
+
+            <!-- ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ -->
+
+            <button
+                class="theme-toggle"
+                id="themeToggle"
+                type="button"
+                aria-label="Переключить тему"
+            >
+
+                <svg
+                    class="sun-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                >
+                    <circle cx="12" cy="12" r="4"/>
+                    <path d="M12 2V4"/>
+                    <path d="M12 20V22"/>
+                    <path d="M4.93 4.93L6.34 6.34"/>
+                    <path d="M17.66 17.66L19.07 19.07"/>
+                    <path d="M2 12H4"/>
+                    <path d="M20 12H22"/>
+                    <path d="M4.93 19.07L6.34 17.66"/>
+                    <path d="M17.66 6.34L19.07 4.93"/>
+                </svg>
+
+                <svg
+                    class="moon-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                >
+                    <path
+                        d="M21 12.79A9 9 0 1 1 11.21 3
+                        7 7 0 0 0 21 12.79Z"
+                    />
+                </svg>
+
+            </button>
+
+
+            <div class="login-box">
+
+                <!-- МОБИЛЬНЫЙ ЛОГОТИП -->
+
+                <div class="mobile-brand">
+
+                    <div class="brand-logo">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <path
+                                d="M10 18L32 7L54 18V46L32 57L10 46V18Z"
+                                stroke="currentColor"
+                                stroke-width="3"
+                            />
+
+                            <path
+                                d="M10 18L32 30L54 18"
+                                stroke="currentColor"
+                                stroke-width="3"
+                            />
+
+                            <path
+                                d="M32 30V57"
+                                stroke="currentColor"
+                                stroke-width="3"
+                            />
+                        </svg>
+                    </div>
+
+                    <div class="brand-text">
+                        <strong>STORE<span>FLOW</span></strong>
+                        <small>Warehouse Management</small>
+                    </div>
+
+                </div>
+
+
+                <!-- ЗАГОЛОВОК -->
+
+                <div class="login-heading">
+
+                    <div class="welcome-badge">
+                        Добро пожаловать
+                    </div>
+
+                    <h2>Вход в систему</h2>
+
+                    <p>
+                        Введите логин и пароль вашей учетной записи
+                    </p>
+
+                </div>
+
+
+                <!-- СООБЩЕНИЕ -->
+
+                <div
+                    class="login-message"
+                    id="loginMessage"
+                    role="alert"
+                >
+                    <div class="message-icon">
+
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 8V12"/>
+                            <path d="M12 16H12.01"/>
+                        </svg>
+
+                    </div>
+
+                    <span id="loginMessageText"></span>
+
+                    <button
+                        id="closeMessage"
+                        type="button"
+                        aria-label="Закрыть"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+
+                <!-- ФОРМА -->
+
+                <form
+                    class="login-form"
+                    id="loginForm"
+                    autocomplete="off"
+                >
+
+                    <!-- ЛОГИН -->
+
+                    <div class="form-group">
+
+                        <label for="username">
+                            Логин
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <div class="input-icon">
+
+                                <svg viewBox="0 0 24 24">
+                                    <circle cx="12" cy="8" r="4"/>
+                                    <path d="M4 21C4 16.58 7.58 13 12 13C16.42 13 20 16.58 20 21"/>
+                                </svg>
+
+                            </div>
+
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="Введите логин"
+                                autocomplete="username"
+                                spellcheck="false"
+                                required
+                            >
+
+                        </div>
+
+                        <span
+                            class="field-error"
+                            id="usernameError"
+                        ></span>
+
+                    </div>
+
+
+                    <!-- ПАРОЛЬ -->
+
+                    <div class="form-group">
+
+                        <div class="label-row">
+
+                            <label for="password">
+                                Пароль
+                            </label>
+
+                            <span class="caps-warning" id="capsWarning">
+                                Caps Lock включен
+                            </span>
+
+                        </div>
+
+                        <div class="input-wrapper">
+
+                            <div class="input-icon">
+
+                                <svg viewBox="0 0 24 24">
+                                    <rect
+                                        x="4"
+                                        y="10"
+                                        width="16"
+                                        height="11"
+                                        rx="2"
+                                    />
+
+                                    <path
+                                        d="M8 10V7C8 4.79 9.79 3 12 3C14.21 3 16 4.79 16 7V10"
+                                    />
+
+                                    <path d="M12 14V17"/>
+
+                                </svg>
+
+                            </div>
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Введите пароль"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                            <button
+                                class="password-toggle"
+                                id="passwordToggle"
+                                type="button"
+                                aria-label="Показать пароль"
+                            >
+
+                                <svg
+                                    class="eye-open"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        d="M2 12C4.5 7.5 7.8 5.5 12 5.5C16.2 5.5 19.5 7.5 22 12C19.5 16.5 16.2 18.5 12 18.5C7.8 18.5 4.5 16.5 2 12Z"
+                                    />
+
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+
+                                <svg
+                                    class="eye-closed"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path d="M3 3L21 21"/>
+
+                                    <path
+                                        d="M10.5 5.7C11 5.57 11.5 5.5 12 5.5C16.2 5.5 19.5 7.5 22 12C21.2 13.44 20.3 14.63 19.28 15.58"
+                                    />
+
+                                    <path
+                                        d="M16.5 17.3C15.12 18.1 13.62 18.5 12 18.5C7.8 18.5 4.5 16.5 2 12C3.05 10.11 4.25 8.65 5.61 7.59"
+                                    />
+
+                                    <path
+                                        d="M9.88 9.88C9.34 10.42 9 11.17 9 12C9 13.66 10.34 15 12 15C12.83 15 13.58 14.66 14.12 14.12"
+                                    />
+                                </svg>
+
+                            </button>
+
+                        </div>
+
+                        <span
+                            class="field-error"
+                            id="passwordError"
+                        ></span>
+
+                    </div>
+
+
+                    <!-- ЗАПОМНИТЬ -->
+
+                    <div class="form-options">
+
+                        <label class="remember-checkbox">
+
+                            <input
+                                type="checkbox"
+                                id="rememberMe"
+                            >
+
+                            <span class="custom-checkbox">
+
+                                <svg viewBox="0 0 16 16">
+                                    <path d="M3 8L6.5 11.5L13 4.5"/>
+                                </svg>
+
+                            </span>
+
+                            <span>Запомнить меня</span>
+
+                        </label>
+
+
+                        <div class="security-label">
+
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M12 3L20 6V11C20 16 16.6 19.7 12 21C7.4 19.7 4 16 4 11V6L12 3Z"
+                                />
+                                <path d="M9 12L11 14L15 10"/>
+                            </svg>
+
+                            Защищенный вход
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- КНОПКА -->
+
+                    <button
+                        class="login-button"
+                        id="loginButton"
+                        type="submit"
+                    >
+
+                        <span class="button-content">
+
+                            <span>Войти в систему</span>
+
+                            <svg viewBox="0 0 24 24">
+                                <path d="M5 12H19"/>
+                                <path d="M14 7L19 12L14 17"/>
+                            </svg>
+
+                        </span>
+
+
+                        <span class="button-loading">
+
+                            <span class="spinner"></span>
+
+                            Проверка данных...
+
+                        </span>
+
+                    </button>
+
+
+                    <!-- НИЖНИЙ ТЕКСТ -->
+
+                    <div class="login-security-info">
+
+                        <svg viewBox="0 0 24 24">
+                            <rect
+                                x="4"
+                                y="10"
+                                width="16"
+                                height="11"
+                                rx="2"
+                            />
+                            <path d="M8 10V7A4 4 0 0 1 16 7V10"/>
+                        </svg>
+
+                        <p>
+                            Доступ разрешен только авторизованным
+                            пользователям системы.
+                        </p>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            <!-- НИЖНЯЯ ИНФОРМАЦИЯ -->
+
+            <div class="login-panel-footer">
+                <span>StoreFlow WMS</span>
+                <span>Версия 1.0.0</span>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================================
+         SUCCESS OVERLAY
+    ====================================================== -->
+
+    <div class="success-overlay" id="successOverlay">
+
+        <div class="success-card">
+
+            <div class="success-check">
+
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 12L10 17L19 7"/>
+                </svg>
+
+            </div>
+
+            <h3>Вход выполнен</h3>
+
+            <p id="successUserName">
+                Добро пожаловать
+            </p>
+
+            <div class="redirect-loader">
+                <span></span>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script src="auth.js"></script>
+
+</body>
+</html>

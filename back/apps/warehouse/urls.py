@@ -1,12 +1,11 @@
-from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-app_name = "warehouse"
+from apps.warehouse.api import WarehouseAccessViewSet, WarehouseViewSet
+
+app_name = 'warehouse'
 
 router = DefaultRouter()
-# Bu yerga ViewSet'lar ro'yxatdan o'tkaziladi, masalan:
-# router.register("products", ProductViewSet, basename="product")
+router.register('warehouses', WarehouseViewSet, basename='warehouse')
+router.register('warehouse-access', WarehouseAccessViewSet, basename='warehouse-access')
 
-urlpatterns = [
-    path("", include(router.urls)),
-]
+urlpatterns = router.urls

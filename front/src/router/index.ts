@@ -1,16 +1,40 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import { tokenStorage } from '@/api/client'
-import HomeView from '@/views/HomeView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
-      meta: { requiresAuth: true },
+      name: 'dashboard',
+      component: DashboardView,
+      meta: {
+        requiresAuth: true,
+        title: 'Boshqaruv paneli',
+        subtitle: 'Ombor tizimining asosiy ko‘rsatkichlari',
+      },
+    },
+    {
+      path: '/warehouses',
+      name: 'warehouses',
+      component: () => import('@/views/WarehousesView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Omborlar',
+        subtitle: 'Omborlarni qo‘shish, tahrirlash va boshqarish',
+      },
+    },
+    {
+      path: '/units',
+      name: 'units',
+      component: () => import('@/views/UnitsView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'O‘lchov birliklari',
+        subtitle: 'Tashkilotning o‘z birliklari va konversiya',
+      },
     },
     {
       path: '/login',
@@ -33,8 +57,9 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth && !authenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
+
   if (to.name === 'login' && authenticated) {
-    return { name: 'home' }
+    return { name: 'dashboard' }
   }
 })
 

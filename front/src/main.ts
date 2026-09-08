@@ -1,4 +1,7 @@
 import './assets/main.css'
+// Boshliq bergan StoreFlow dizayni. Tailwind'dan keyin import qilinadi,
+// shunda uning qoidalari ustun bo'ladi.
+import './assets/app.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

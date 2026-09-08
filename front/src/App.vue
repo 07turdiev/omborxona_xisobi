@@ -1,38 +1,74 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 
+import AppIcons from '@/components/AppIcons.vue'
+import AppSidebar from '@/components/AppSidebar.vue'
+import AppTopbar from '@/components/AppTopbar.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
+import { useWarehouseStore } from '@/stores/warehouses'
 
-const auth = useAuthStore()
 const route = useRoute()
-const router = useRouter()
+const auth = useAuthStore()
+const theme = useThemeStore()
+const warehouses = useWarehouseStore()
 
-const showChrome = computed(() => route.meta.public !== true)
+const sidebarOpen = ref(false)
 
-function onLogout() {
-  auth.logout()
-  router.push({ name: 'login' })
-}
+/** Login va 404 sahifalari qobiqsiz ko'rsatiladi. */
+const showShell = computed(() => route.meta.public !== true)
+
+const title = computed(() => (route.meta.title as string) ?? '')
+const subtitle = computed(() => (route.meta.subtitle as string) ?? '')
+
+onMounted(async () => {
+  theme.init()
+
+  if (auth.isAuthenticated && !auth.user) {
+    await auth.fetchMe()
+  }
+})
+
+// Sahifa almashganda mobil menyu yopiladi
+watch(() => route.fullPath, () => (sidebarOpen.value = false))
+
+// Sidebar'dagi ombor soni har doim dolzarb bo'lsin
+watch(
+  () => auth.isAuthenticated,
+  (value) => {
+    if (value) warehouses.loadSummary()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
-  <div v-if="showChrome" class="min-h-screen bg-slate-50">
-    <header class="border-b border-slate-200 bg-white">
-      <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-        <RouterLink to="/" class="font-semibold text-slate-900">Omborxona xisobi</RouterLink>
-        <button
-          type="button"
-          class="text-sm font-medium text-slate-600 hover:text-slate-900"
-          @click="onLogout"
-        >
-          Chiqish
-        </button>
-      </nav>
-    </header>
+  <AppIcons />
 
-    <main class="mx-auto max-w-6xl px-6 py-8">
-      <RouterView />
+  <div v-if="showShell" class="app-shell">
+    <AppSidebar
+      :show="sidebarOpen"
+      :warehouse-count="warehouses.summary?.total ?? 0"
+      @close="sidebarOpen = false"
+    />
+
+    <div
+      class="sidebar-overlay"
+      :class="{ show: sidebarOpen }"
+      @click="sidebarOpen = false"
+    ></div>
+
+    <main class="main-area">
+      <AppTopbar
+        :title="title"
+        :subtitle="subtitle"
+        @toggle-sidebar="sidebarOpen = !sidebarOpen"
+      />
+
+      <div class="content">
+        <RouterView />
+      </div>
     </main>
   </div>
 

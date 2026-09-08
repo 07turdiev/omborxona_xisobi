@@ -22,6 +22,7 @@ from django.db import transaction
 from apps.core.tenancy import tenant_context
 from apps.tenants.models import Membership, Tenant
 from apps.units.models import CustomUnit
+from apps.warehouse.models import Warehouse
 
 User = get_user_model()
 
@@ -42,6 +43,36 @@ DEMO_TENANTS = [
             ('mashina', '6 * m3', 'msh', 'Bir yuk mashinasi qum yoki shag\'al'),
             ('vagon', '60 * m3', '', 'Temir yo\'l vagoni'),
         ],
+        'warehouses': [
+            {
+                'code': 'MARKAZ', 'name': 'Markaziy ombor',
+                'goods_type': Warehouse.GoodsType.CONSTRUCTION,
+                'purpose': Warehouse.Purpose.MAIN,
+                'manager': 'Akmal Karimov', 'phone': '+998 71 200 10 10',
+                'address': 'Toshkent shahri, Sergeli tumani',
+                'area': '1200', 'capacity': '25000',
+                'temperature': '',
+                'notes': 'Asosiy qabul va saqlash ombori.',
+            },
+            {
+                'code': 'DOKON-1', 'name': 'Chilonzor savdo nuqtasi',
+                'goods_type': Warehouse.GoodsType.CONSTRUCTION,
+                'purpose': Warehouse.Purpose.RETAIL,
+                'manager': 'Dilshod Rahimov', 'phone': '+998 71 205 11 44',
+                'address': 'Toshkent shahri, Chilonzor 9-kvartal',
+                'area': '180', 'capacity': '3000',
+                'temperature': '',
+                'notes': 'Chakana savdo zali.',
+            },
+            {
+                'code': 'TRANZIT', 'name': "Yo'ldagi tovar",
+                'goods_type': Warehouse.GoodsType.CONSTRUCTION,
+                'purpose': Warehouse.Purpose.TRANSIT,
+                'manager': '', 'phone': '', 'address': '',
+                'area': None, 'capacity': None, 'temperature': '',
+                'notes': "Omborlar orasida ko'chirilayotgan tovar. Sotuvga chiqmaydi.",
+            },
+        ],
     },
     {
         'slug': 'kiyim',
@@ -53,6 +84,26 @@ DEMO_TENANTS = [
         'units': [
             ('tup', '10 * dona', '', 'O\'n donalik to\'plam'),
             ('top', '50 * meter', '', 'Bir top mato'),
+        ],
+        'warehouses': [
+            {
+                'code': 'SKLAD', 'name': 'Asosiy sklad',
+                'goods_type': Warehouse.GoodsType.CLOTHING,
+                'purpose': Warehouse.Purpose.MAIN,
+                'manager': 'Malika Kiyimova', 'phone': '+998 90 111 22 33',
+                'address': 'Toshkent shahri, Yunusobod',
+                'area': '400', 'capacity': '12000',
+                'temperature': '', 'notes': '',
+            },
+            {
+                'code': 'BUTIK', 'name': 'Butik',
+                'goods_type': Warehouse.GoodsType.CLOTHING,
+                'purpose': Warehouse.Purpose.RETAIL,
+                'manager': 'Nodira Salimova', 'phone': '+998 90 444 55 66',
+                'address': "Toshkent shahri, Amir Temur ko'chasi",
+                'area': '90', 'capacity': '1500',
+                'temperature': '', 'notes': '',
+            },
         ],
     },
 ]
@@ -94,6 +145,7 @@ class Command(BaseCommand):
         for tenant in Tenant.objects.filter(slug__in=slugs):
             # CustomUnit RLS bilan himoyalangan — o'chirish ham kontekstda
             with tenant_context(tenant.id), transaction.atomic():
+                Warehouse.objects.all().delete()
                 CustomUnit.objects.all().delete()
 
         deleted, _ = Tenant.objects.filter(slug__in=slugs).delete()
@@ -146,6 +198,18 @@ class Command(BaseCommand):
                     },
                 )
 
-            count = CustomUnit.objects.count()
+            unit_count = CustomUnit.objects.count()
 
-        self.stdout.write(f'  foydalanuvchi: {user.username}, birliklar: {count}')
+            for warehouse in spec.get('warehouses', []):
+                Warehouse.objects.get_or_create(
+                    tenant=tenant,
+                    code=warehouse['code'],
+                    defaults={k: v for k, v in warehouse.items() if k != 'code'},
+                )
+
+            warehouse_count = Warehouse.objects.count()
+
+        self.stdout.write(
+            f'  foydalanuvchi: {user.username}, '
+            f'birliklar: {unit_count}, omborlar: {warehouse_count}'
+        )

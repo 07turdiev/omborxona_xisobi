@@ -1,1 +1,3 @@
-@import 'tailwindcss';
+/* Boshliq bergan StoreFlow dizayni butun uslubni beradi (app.css).
+   Tailwind olib tashlandi: uning preflight reseti app.css:99 dagi
+   reset bilan to'qnashadi va nozik vizual xatolar beradi. */
