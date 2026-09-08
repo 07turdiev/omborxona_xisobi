@@ -32,6 +32,7 @@ omborxona_xisobi/
 
 | Fayl | Nima |
 |---|---|
+| [docs/roadmap.md](docs/roadmap.md) | Qolgan ish rejasi — nima tayyor, nima qoldi |
 | [docs/development.md](docs/development.md) | Lokal ishga tushirish, testlar, tenant izolyatsiyasini sinash |
 | [docs/inventree-analysis.md](docs/inventree-analysis.md) | InvenTree tahlili — qaysi dizayn qarorlari olindi va nega |
 | [docs/extraction-plan.md](docs/extraction-plan.md) | Ko'chirish rejasi — nusxa olingan kod, qayta yozilgani, rad etilgani |
