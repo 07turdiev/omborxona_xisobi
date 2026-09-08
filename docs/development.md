@@ -26,13 +26,43 @@ psql -U omborxona -c "DROP DATABASE mborxona_xisobi"
 
 Sozlamalar [back/.env](../back/.env) da. U git'ga tushmaydi.
 
-## 2. Backend
+## 2. Ishga tushirish — eng oson yo'li
 
-```bash
-cd back
-.venv/Scripts/python.exe manage.py migrate        # allaqachon bajarilgan
-.venv/Scripts/python.exe manage.py seed_demo      # demo ma'lumot
-.venv/Scripts/python.exe manage.py runserver
+Repo ildizidagi ikkita faylni **ikki marta bosing**:
+
+| Fayl | Nima qiladi |
+|---|---|
+| `backend.bat` | Django serverini ishga tushiradi — http://127.0.0.1:8000 |
+| `frontend.bat` | Vue serverini ishga tushiradi — http://localhost:5173 |
+
+Ikkalasi ham ochiq turishi kerak. Yopish uchun oynada `Ctrl+C`.
+
+## 3. Backend — qo'lda
+
+PowerShell'da:
+
+```powershell
+cd D:\Sites\omborxona_xisobi\back
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+`venv` ni faollashtirib ishlatmoqchi bo'lsangiz:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python manage.py runserver
+```
+
+> `Activate.ps1` "running scripts is disabled" xatosini bersa, yuqoridagi
+> to'g'ridan-to'g'ri `python.exe` chaqiruvidan foydalaning — u hech qanday
+> sozlama talab qilmaydi.
+
+Boshqa foydali buyruqlar:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py migrate      # baza sxemasini yangilash
+.\.venv\Scripts\python.exe manage.py seed_demo    # demo ma'lumot
+.\.venv\Scripts\python.exe manage.py test         # testlar
 ```
 
 Backend: http://127.0.0.1:8000
@@ -59,7 +89,7 @@ Boshqa superuser kerak bo'lsa:
 .venv/Scripts/python.exe manage.py createsuperuser
 ```
 
-## 3. Frontend
+## 4. Frontend
 
 ```bash
 cd front
@@ -72,7 +102,7 @@ Frontend: http://localhost:5173 — `/api` so'rovlari backendga proxy qilinadi.
 > kabi tarmoqqa chiqadigan buyruqlarga `NODE_OPTIONS=--use-system-ca` prefiksi
 > kerak. `npm run dev` va `npm run build` uchun kerak emas.
 
-## 4. Testlar
+## 5. Testlar
 
 ```bash
 cd back
@@ -94,7 +124,7 @@ with tenant_context(tenant.id):
     CustomUnit.objects.create(name='mashina', definition='6 * m3')
 ```
 
-## 5. Tenant izolyatsiyasini o'z ko'zingiz bilan ko'rish
+## 6. Tenant izolyatsiyasini o'z ko'zingiz bilan ko'rish
 
 Backend ishlab turganda:
 
@@ -128,7 +158,7 @@ Bir foydalanuvchi bir nechta tashkilotga a'zo bo'lsa, `X-Tenant-Id`
 sarlavhasi bilan qaysi biri ekanini ko'rsatadi. A'zoligi yo'q tashkilot
 ID si berilsa — hech narsa ko'rinmaydi.
 
-## 6. API hujjatlari
+## 7. API hujjatlari
 
 | Manzil | Nima |
 |---|---|
@@ -136,7 +166,7 @@ ID si berilsa — hech narsa ko'rinmaydi.
 | http://127.0.0.1:8000/api/redoc/ | ReDoc |
 | http://127.0.0.1:8000/admin/ | Django admin |
 
-## 7. Foydali buyruqlar
+## 8. Foydali buyruqlar
 
 ```bash
 # RLS to'g'ri sozlanganini tekshirish (superuser rol, yetishmayotgan policy)
@@ -149,7 +179,7 @@ ID si berilsa — hech narsa ko'rinmaydi.
 .venv/Scripts/python.exe ../scripts/verify_source_digest.py
 ```
 
-## 8. Yangi model qo'shganda — RLS ni unutmang
+## 9. Yangi model qo'shganda — RLS ni unutmang
 
 Tashkilotga tegishli har bir model `apps.core.models.TenantOwnedModel` dan
 meros olishi va migratsiyasida RLS policy'si bo'lishi shart:
