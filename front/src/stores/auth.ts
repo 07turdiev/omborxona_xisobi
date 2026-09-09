@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import api, { tokenStorage } from '@/api/client'
+import api, { tenantStorage, tokenStorage } from '@/api/client'
 import type { TokenPair, User } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -29,8 +29,23 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout() {
     tokenStorage.clear()
+    tenantStorage.clear()
     user.value = null
   }
 
-  return { user, loading, isAuthenticated, login, fetchMe, logout }
+  /**
+   * Boshqa tashkilotga o'tadi.
+   *
+   * Sahifa butunlay qayta yuklanadi. Sabab: o'nlab store da oldingi
+   * tashkilot ma'lumoti qolgan bo'ladi va ularni bittalab tozalash
+   * xatoga yo'l ochadi — bittasi unutilsa, foydalanuvchi begona
+   * ma'lumotni ko'rib qoladi. Server tomondan bunday sizish mumkin
+   * emas (RLS), lekin interfeysda chalkashlik bo'lardi.
+   */
+  function switchTenant(tenantId: string) {
+    tenantStorage.set(tenantId)
+    window.location.reload()
+  }
+
+  return { user, loading, isAuthenticated, login, fetchMe, logout, switchTenant }
 })

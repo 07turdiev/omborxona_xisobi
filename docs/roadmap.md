@@ -27,8 +27,13 @@ arxitektura qarorlari — [extraction-plan.md](./extraction-plan.md).
 
 Testlar: **208 ta**, hammasi o'tadi.
 
-**Dizayndagi 10 bo'limning hammasi ulangan.** Qolgan ish: chek va yorliq
-shablonlari, tashkilot almashtirish, Celery, ishlab chiqarishga chiqarish.
+| **Tashkilot almashtirish** | Bir nechta do'konda ishlaydigan foydalanuvchi uchun, `X-Tenant-Id` orqali |
+| **Hujjatni chop etish** | Brauzer orqali — har qanday printerda ishlaydi |
+
+**Dizayndagi 10 bo'limning hammasi ulangan.**
+
+Qolgan ish: termal chek printeri uchun maxsus format (printer turi
+aniqlangach), Celery + Redis, ishlab chiqarishga chiqarish.
 
 ---
 

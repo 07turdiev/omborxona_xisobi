@@ -3,9 +3,11 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import DocumentModal from '@/components/DocumentModal.vue'
+import DocumentPrint from '@/components/DocumentPrint.vue'
+import { tenantsApi } from '@/api/tenants'
 import { useDocumentStore } from '@/stores/documents'
 import { useWarehouseStore } from '@/stores/warehouses'
-import type { Document, DocumentKind } from '@/types'
+import type { Document, DocumentKind, TenantSettings } from '@/types'
 
 const route = useRoute()
 const store = useDocumentStore()
@@ -16,12 +18,24 @@ const isPurchase = computed(() => kind.value === 'purchase')
 
 const modalOpen = ref(false)
 const editing = ref<Document | null>(null)
+
+// Chop etish
+const printOpen = ref(false)
+const printTarget = ref<Document | null>(null)
+const settings = ref<TenantSettings | null>(null)
 const expanded = ref<Set<number>>(new Set())
 const actionError = ref('')
 
 onMounted(async () => {
   await Promise.all([warehouses.load(), store.loadPartners()])
   await store.load(kind.value)
+
+  // Rekvizitlar chop etiladigan hujjat sarlavhasida chiqadi
+  try {
+    settings.value = await tenantsApi.settings()
+  } catch {
+    // Sozlamalarni o'qish huquqi bo'lmasa ham chop etish ishlayveradi
+  }
 })
 
 // Kirim ↔ sotuv o'tishda ro'yxat qayta yuklanadi
@@ -44,6 +58,11 @@ function openEdit(document: Document) {
   editing.value = document
   actionError.value = ''
   modalOpen.value = true
+}
+
+function openPrint(document: Document) {
+  printTarget.value = document
+  printOpen.value = true
 }
 
 function toggle(id: number) {
@@ -265,6 +284,15 @@ const totals = computed(() =>
                   </button>
 
                   <button
+                    class="button button-outline"
+                    type="button"
+                    title="Chop etish"
+                    @click="openPrint(document)"
+                  >
+                    <svg><use href="#i-print" /></svg>
+                  </button>
+
+                  <button
                     v-if="document.status !== 'cancelled'"
                     class="button button-outline"
                     type="button"
@@ -336,6 +364,13 @@ const totals = computed(() =>
       :document="editing"
       @close="modalOpen = false"
       @saved="store.load(kind)"
+    />
+
+    <DocumentPrint
+      :show="printOpen"
+      :document="printTarget"
+      :settings="settings"
+      @close="printOpen = false"
     />
   </section>
 </template>

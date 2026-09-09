@@ -18,6 +18,20 @@ const menuRoot = ref<HTMLElement | null>(null)
 const initials = computed(() => (auth.user?.full_name ?? 'F').slice(0, 2).toUpperCase())
 const roleName = computed(() => auth.user?.current_tenant?.role_display ?? '')
 
+/** Foydalanuvchi bir nechta tashkilotda ishlasa, almashtirish taklif qilinadi. */
+const memberships = computed(() => auth.user?.memberships ?? [])
+const hasMultiple = computed(() => memberships.value.length > 1)
+const currentTenantId = computed(() => auth.user?.current_tenant?.tenant_id ?? '')
+
+function onSwitch(tenantId: string) {
+  if (tenantId === currentTenantId.value) {
+    menuOpen.value = false
+    return
+  }
+
+  auth.switchTenant(tenantId)
+}
+
 function onDocumentClick(event: MouseEvent) {
   if (menuRoot.value && !menuRoot.value.contains(event.target as Node)) {
     menuOpen.value = false
@@ -75,6 +89,26 @@ function onLogout() {
             <span>{{ auth.user?.current_tenant?.tenant_name }}</span>
           </div>
 
+          <div v-if="hasMultiple" class="tenant-switch">
+            <span class="switch-caption">Tashkilotni almashtirish</span>
+
+            <button
+              v-for="item in memberships"
+              :key="item.tenant_id"
+              class="tenant-option"
+              :class="{ active: item.tenant_id === currentTenantId }"
+              type="button"
+              @click="onSwitch(item.tenant_id)"
+            >
+              <span>
+                <strong>{{ item.tenant_name }}</strong>
+                <small>{{ item.role_display }}</small>
+              </span>
+
+              <b v-if="item.tenant_id === currentTenantId" class="tick">✓</b>
+            </button>
+          </div>
+
           <button class="logout-button" type="button" @click="onLogout">
             <svg><use href="#i-logout" /></svg>
             <span>Chiqish</span>
@@ -84,3 +118,61 @@ function onLogout() {
     </div>
   </header>
 </template>
+
+<style scoped>
+/* Tashkilot almashtirish — dizaynda bunday blok yo'q edi, ranglar
+   app.css o'zgaruvchilaridan olingan. */
+.tenant-switch {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.switch-caption {
+  display: block;
+  padding: 0 12px 6px;
+  color: var(--text-muted);
+  font-size: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tenant-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tenant-option:hover {
+  background: var(--surface-hover);
+}
+
+.tenant-option.active {
+  background: var(--purple-soft);
+}
+
+.tenant-option strong {
+  display: block;
+  font-size: 8px;
+}
+
+.tenant-option small {
+  display: block;
+  margin-top: 1px;
+  color: var(--text-muted);
+  font-size: 6px;
+}
+
+.tick {
+  color: var(--purple);
+  font-size: 9px;
+}
+</style>

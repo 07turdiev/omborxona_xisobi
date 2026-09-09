@@ -136,7 +136,20 @@ with tenant_context(tenant.id):
     CustomUnit.objects.create(name='mashina', definition='6 * m3')
 ```
 
-## 6. Tenant izolyatsiyasini o'z ko'zingiz bilan ko'rish
+## 6. Tashkilot almashtirish
+
+`superadmin` ikkala demo tashkilotga a'zo. Interfeysda o'ng yuqoridagi
+ismni bosing — «Tashkilotni almashtirish» ro'yxati chiqadi.
+
+Tanlov brauzerda saqlanadi va har so'rovga `X-Tenant-Id` sarlavhasi
+bilan yuboriladi. Almashtirilganda sahifa butunlay qayta yuklanadi:
+o'nlab store da oldingi tashkilot ma'lumoti qolgan bo'ladi va ularni
+bittalab tozalash xatoga yo'l ochardi.
+
+**Bu sarlavha ruxsat bermaydi — u faqat tanlov.** A'zoligi yo'q
+tashkilot ID si yuborilsa server 403 qaytaradi.
+
+## 7. Tenant izolyatsiyasini o'z ko'zingiz bilan ko'rish
 
 Backend ishlab turganda:
 
@@ -170,7 +183,7 @@ Bir foydalanuvchi bir nechta tashkilotga a'zo bo'lsa, `X-Tenant-Id`
 sarlavhasi bilan qaysi biri ekanini ko'rsatadi. A'zoligi yo'q tashkilot
 ID si berilsa — hech narsa ko'rinmaydi.
 
-## 7. API hujjatlari
+## 8. API hujjatlari
 
 | Manzil | Nima |
 |---|---|
@@ -178,7 +191,7 @@ ID si berilsa — hech narsa ko'rinmaydi.
 | http://127.0.0.1:8000/api/redoc/ | ReDoc |
 | http://127.0.0.1:8000/admin/ | Django admin |
 
-## 8. Foydali buyruqlar
+## 9. Foydali buyruqlar
 
 ```bash
 # RLS to'g'ri sozlanganini tekshirish (superuser rol, yetishmayotgan policy)
@@ -191,7 +204,7 @@ ID si berilsa — hech narsa ko'rinmaydi.
 .venv/Scripts/python.exe ../scripts/verify_source_digest.py
 ```
 
-## 9. Yangi model qo'shganda — RLS ni unutmang
+## 10. Yangi model qo'shganda — RLS ni unutmang
 
 Tashkilotga tegishli har bir model `apps.core.models.TenantOwnedModel` dan
 meros olishi va migratsiyasida RLS policy'si bo'lishi shart:

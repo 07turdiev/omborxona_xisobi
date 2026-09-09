@@ -6,6 +6,41 @@ import axios, {
 
 const ACCESS_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
+const TENANT_KEY = 'active_tenant'
+
+/**
+ * Tanlangan tashkilot.
+ *
+ * Foydalanuvchi bir nechta do'konda ishlashi mumkin. Server `X-Tenant-Id`
+ * sarlavhasini ko'rsa o'shani ishlatadi, aks holda birinchi a'zolikni
+ * oladi. Tanlov brauzerda saqlanadi — sahifa yangilanganda ham qoladi.
+ *
+ * A'zoligi yo'q tashkilot ID si yuborilsa server hech narsa qaytarmaydi
+ * (fail-closed), ya'ni bu sarlavha ruxsat bermaydi — u faqat tanlov.
+ */
+export const tenantStorage = {
+  get id(): string | null {
+    try {
+      return localStorage.getItem(TENANT_KEY)
+    } catch {
+      return null
+    }
+  },
+  set(id: string) {
+    try {
+      localStorage.setItem(TENANT_KEY, id)
+    } catch {
+      // Shaxsiy oynada localStorage yopiq bo'lishi mumkin
+    }
+  },
+  clear() {
+    try {
+      localStorage.removeItem(TENANT_KEY)
+    } catch {
+      // e'tiborsiz
+    }
+  },
+}
 
 export const tokenStorage = {
   get access() {
@@ -32,6 +67,10 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = tokenStorage.access
   if (token) config.headers.Authorization = `Bearer ${token}`
+
+  const tenant = tenantStorage.id
+  if (tenant) config.headers['X-Tenant-Id'] = tenant
+
   return config
 })
 

@@ -1,3 +1,40 @@
 /* Boshliq bergan StoreFlow dizayni butun uslubni beradi (app.css).
    Tailwind olib tashlandi: uning preflight reseti app.css:99 dagi
    reset bilan to'qnashadi va nozik vizual xatolar beradi. */
+
+/* =====================================================================
+   Chop etish
+   =====================================================================
+
+   Klassik "visibility" usuli: butun sahifa ko'rinmas qilinadi, keyin
+   faqat chop etiladigan varaq qaytariladi. `display: none` bilan
+   qilinganda ota elementlarni bittalab ochish kerak bo'lardi va har
+   yangi sahifada qoida buzilardi.
+
+   `body.printing` sinfi chop etishdan oldin qo'shiladi va keyin
+   olib tashlanadi — shunda oddiy holatda bu qoidalar umuman ta'sir
+   qilmaydi. */
+
+@media print {
+  body.printing * {
+    visibility: hidden;
+  }
+
+  body.printing .print-sheet,
+  body.printing .print-sheet * {
+    visibility: visible;
+  }
+
+  body.printing .print-sheet {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+  }
+
+  /* Sahifa hoshiyasi: A4 uchun qulay, termal printerda brauzer o'zi
+     kichraytiradi */
+  @page {
+    margin: 12mm;
+  }
+}
