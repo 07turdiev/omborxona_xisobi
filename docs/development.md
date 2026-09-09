@@ -136,7 +136,35 @@ with tenant_context(tenant.id):
     CustomUnit.objects.create(name='mashina', definition='6 * m3')
 ```
 
-## 6. Tashkilot almashtirish
+## 6. Shtrix-kod bilan sinash
+
+Skaner yo'q bo'lsa ham sinash mumkin: **Kirim** yoki **Sotuv** formasidagi
+shtrix-kod maydoniga kodni qo'lda yozib **Enter** bosing — skaner ham
+aynan shuni qiladi.
+
+Demo kodlar:
+
+| Kod | Mahsulot | Tashkilot |
+|---|---|---|
+| `4780123456789` | Portlandsement M400 | qurilish |
+| `4780123456796` | Gips qurilish uchun | qurilish |
+| `4780123456802` | Metall profil 60x27 | qurilish |
+| `4780200000010` | Klassik ko'ylak — L / Oq | kiyim |
+| `4780200000011` | Klassik ko'ylak — L / Qora | kiyim |
+| `4780200000014` | Klassik ko'ylak — XL / Oq | kiyim |
+
+Kiyimda **har variantning o'z kodi** bor — kassada aynan qaysi o'lcham
+sotilgani ma'lum bo'lishi kerak.
+
+Tekshirib ko'ring:
+
+- bir kodni **ikki marta** skanerlang — yangi qator qo'shilmaydi,
+  miqdor oshadi;
+- kod atrofida **bo'shliq** qoldiring (`" 4780123456796 "`) — baribir
+  topiladi;
+- boshqa tashkilotning kodini kiriting — topilmaydi.
+
+## 7. Tashkilot almashtirish
 
 `superadmin` ikkala demo tashkilotga a'zo. Interfeysda o'ng yuqoridagi
 ismni bosing — «Tashkilotni almashtirish» ro'yxati chiqadi.
@@ -149,7 +177,7 @@ bittalab tozalash xatoga yo'l ochardi.
 **Bu sarlavha ruxsat bermaydi — u faqat tanlov.** A'zoligi yo'q
 tashkilot ID si yuborilsa server 403 qaytaradi.
 
-## 7. Tenant izolyatsiyasini o'z ko'zingiz bilan ko'rish
+## 8. Tenant izolyatsiyasini o'z ko'zingiz bilan ko'rish
 
 Backend ishlab turganda:
 
@@ -183,7 +211,7 @@ Bir foydalanuvchi bir nechta tashkilotga a'zo bo'lsa, `X-Tenant-Id`
 sarlavhasi bilan qaysi biri ekanini ko'rsatadi. A'zoligi yo'q tashkilot
 ID si berilsa — hech narsa ko'rinmaydi.
 
-## 8. API hujjatlari
+## 9. API hujjatlari
 
 | Manzil | Nima |
 |---|---|
@@ -191,7 +219,7 @@ ID si berilsa — hech narsa ko'rinmaydi.
 | http://127.0.0.1:8000/api/redoc/ | ReDoc |
 | http://127.0.0.1:8000/admin/ | Django admin |
 
-## 9. Foydali buyruqlar
+## 10. Foydali buyruqlar
 
 ```bash
 # RLS to'g'ri sozlanganini tekshirish (superuser rol, yetishmayotgan policy)
@@ -204,7 +232,7 @@ ID si berilsa — hech narsa ko'rinmaydi.
 .venv/Scripts/python.exe ../scripts/verify_source_digest.py
 ```
 
-## 10. Yangi model qo'shganda — RLS ni unutmang
+## 11. Yangi model qo'shganda — RLS ni unutmang
 
 Tashkilotga tegishli har bir model `apps.core.models.TenantOwnedModel` dan
 meros olishi va migratsiyasida RLS policy'si bo'lishi shart:

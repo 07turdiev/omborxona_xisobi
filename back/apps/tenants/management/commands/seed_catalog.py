@@ -130,16 +130,18 @@ class Command(BaseCommand):
                 tenant=tenant, variant=gypsum, unit='qop',
                 defaults={'factor_to_base': Decimal('30'), 'is_default_sale': True},
             )
+            self._barcode(tenant, gypsum, '4780123456796')
 
             # Profil: sonli atributlar
             profile_product = self._product(
                 tenant, profile, 'Metall profil 60x27', brand='Knauf', base_unit='dona'
             )
-            self._variant(
+            profile_variant = self._variant(
                 tenant, profile_product, 'PRF-6027', profile,
                 {'ishlab_chiqaruvchi': 'Knauf', 'qalinlik': '0.6 mm', 'uzunlik': '3 m'},
                 purchase='32000', sale='39000',
             )
+            self._barcode(tenant, profile_variant, '4780123456802')
 
             # Hisoblagich kontekst ichida: RLS tashqarida nol qaytaradi
             summary = (
@@ -184,15 +186,21 @@ class Command(BaseCommand):
                 tenant, men, 'Klassik ko\'ylak', brand='Zamon', base_unit='dona'
             )
 
-            # Bir mahsulot, olti variant — har biri alohida qoldiqqa ega
+            # Bir mahsulot, olti variant — har biri alohida qoldiqqa va
+            # **alohida shtrix-kodga** ega. Kassada skanerlanganda aynan
+            # qaysi o'lcham sotilgani ma'lum bo'lishi kerak.
+            code = 4780200000010
+
             for size in ['M', 'L', 'XL']:
                 for color in ['Oq', 'Qora']:
-                    self._variant(
+                    variant = self._variant(
                         tenant, product, f'SHIRT-{size}-{color[:2].upper()}', men,
                         {'material': 'Paxta', 'olcham': size, 'rang': color},
                         purchase='95000', sale='149000',
                         name=f'{size} / {color}',
                     )
+                    self._barcode(tenant, variant, str(code))
+                    code += 1
 
             summary = (
                 f'Kiyim: {Category.objects.count()} kategoriya, '

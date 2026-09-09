@@ -20,6 +20,12 @@ const warehouses = useWarehouseStore()
 const errors = ref<Record<string, string[]>>({})
 const variants = ref<Variant[]>([])
 
+// Shtrix-kod bilan qo'shish
+const scanCode = ref('')
+const scanInput = ref<HTMLInputElement | null>(null)
+const scanMessage = reactive({ text: '', tone: '' })
+const scanning = ref(false)
+
 const isPurchase = computed(() => props.kind === 'purchase')
 
 /** Qator uchun tanlanishi mumkin bo'lgan o'ram birliklari.
@@ -90,6 +96,70 @@ watch(
 
 function addLine() {
   form.items.push(emptyLine())
+}
+
+/**
+ * Shtrix-kod bo'yicha qator qo'shadi.
+ *
+ * Skanerlar kodni yozib, oxirida Enter yuboradi — shuning uchun forma
+ * yuborilishini to'xtatib, shu funksiyani chaqiramiz. Bo'lmasa har
+ * skanerlashda hujjat saqlanib ketardi.
+ *
+ * Bir xil mahsulot ikkinchi marta skanerlansa yangi qator qo'shilmaydi,
+ * miqdor oshadi — kassada odatiy holat.
+ */
+async function onScan() {
+  const code = scanCode.value.trim()
+
+  if (!code) return
+
+  scanning.value = true
+  scanMessage.text = ''
+
+  try {
+    const variant = await catalogApi.byBarcode(code)
+
+    // Ro'yxatda bo'lmasa qo'shamiz — keyingi skanerlashda topilsin
+    if (!variants.value.some((v) => v.id === variant.id)) {
+      variants.value = [...variants.value, variant]
+    }
+
+    const existing = form.items.find((line) => line.variant === variant.id)
+
+    if (existing) {
+      existing.quantity = String(Number(existing.quantity || 0) + 1)
+      scanMessage.text = `${variant.display_name} — ${existing.quantity} ta`
+    } else {
+      // Bo'sh qator bo'lsa o'shanga yozamiz, aks holda yangisini qo'shamiz
+      const blank = form.items.find((line) => !line.variant)
+      const line = blank ?? emptyLine()
+
+      line.variant = variant.id
+      line.quantity = '1'
+      line.unit = ''
+      line.unit_price =
+        (isPurchase.value ? variant.purchase_price : variant.sale_price) ?? ''
+
+      if (!blank) form.items.push(line)
+
+      scanMessage.text = `${variant.display_name} qo'shildi`
+    }
+
+    scanMessage.tone = 'ok'
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status
+
+    scanMessage.text =
+      status === 404
+        ? `"${code}" — bunday kod topilmadi`
+        : 'Qidiruvda xatolik'
+    scanMessage.tone = 'error'
+  } finally {
+    scanning.value = false
+    scanCode.value = ''
+    // Keyingi skanerlash uchun fokus qaytariladi
+    scanInput.value?.focus()
+  }
 }
 
 function removeLine(index: number) {
@@ -267,11 +337,31 @@ const fieldError = (field: string): string => {
             <div class="lines-head">
               <h4>Pozitsiyalar</h4>
 
-              <button class="button button-soft" type="button" @click="addLine">
-                <svg><use href="#i-plus" /></svg>
-                <span>Qator qo‘shish</span>
-              </button>
+              <div class="lines-tools">
+                <div class="scan-field" :class="scanMessage.tone">
+                  <svg><use href="#i-search" /></svg>
+
+                  <input
+                    ref="scanInput"
+                    v-model="scanCode"
+                    type="text"
+                    placeholder="Shtrix-kodni skanerlang yoki kiriting"
+                    autocomplete="off"
+                    :disabled="scanning"
+                    @keydown.enter.prevent="onScan"
+                  />
+                </div>
+
+                <button class="button button-soft" type="button" @click="addLine">
+                  <svg><use href="#i-plus" /></svg>
+                  <span>Qator qo‘shish</span>
+                </button>
+              </div>
             </div>
+
+            <p v-if="scanMessage.text" class="scan-note" :class="scanMessage.tone">
+              {{ scanMessage.text }}
+            </p>
 
             <p v-if="fieldError('items')" class="form-error">{{ fieldError('items') }}</p>
 
@@ -386,7 +476,65 @@ const fieldError = (field: string): string => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 10px;
+}
+
+.lines-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Skaner maydoni — kiritish tugagach fokus shu yerda qoladi, ya'ni
+   ketma-ket skanerlash uzilmaydi. */
+.scan-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  transition: var(--transition);
+}
+
+.scan-field svg {
+  width: 12px;
+  height: 12px;
+  color: var(--text-muted);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.scan-field input {
+  width: 210px;
+  border: none;
+  background: none;
+  padding: 7px 0;
+}
+
+.scan-field.ok {
+  border-color: var(--green);
+}
+
+.scan-field.error {
+  border-color: var(--red);
+}
+
+.scan-note {
+  margin-bottom: 10px;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.scan-note.ok {
+  color: var(--green);
+}
+
+.scan-note.error {
+  color: var(--red);
 }
 
 .lines-head h4 {
