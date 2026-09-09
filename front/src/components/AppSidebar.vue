@@ -20,20 +20,20 @@ const initials = computed(() => {
 
 /** Menyu tarkibi dizayndagi tartibda (store/index.html). */
 const operations = [
-  { to: '/', icon: 'i-dashboard', tone: 'purple', label: 'Boshqaruv paneli' },
-  { to: '/warehouses', icon: 'i-warehouse', tone: 'teal', label: 'Omborlar', badge: true },
-  { to: '/stock', icon: 'i-stock', tone: 'blue', label: 'Qoldiqlar' },
-  { to: '/imports', icon: 'i-import', tone: 'green', label: 'Kirim' },
-  { to: '/sales', icon: 'i-sale', tone: 'orange', label: 'Sotuv' },
-  { to: '/transfers', icon: 'i-warehouse', tone: 'blue', label: 'Ko‘chirish' },
-  { to: '/products', icon: 'i-company', tone: 'purple', label: 'Mahsulotlar' },
-  { to: '/counterparties', icon: 'i-users', tone: 'teal', label: 'Kontragentlar' },
+  { to: '/', icon: 'i-dashboard', label: 'Boshqaruv paneli' },
+  { to: '/warehouses', icon: 'i-warehouse', label: 'Omborlar', badge: true },
+  { to: '/stock', icon: 'i-stock', label: 'Qoldiqlar' },
+  { to: '/imports', icon: 'i-import', label: 'Kirim' },
+  { to: '/sales', icon: 'i-sale', label: 'Sotuv' },
+  { to: '/transfers', icon: 'i-warehouse', label: 'Ko‘chirish' },
+  { to: '/products', icon: 'i-company', label: 'Mahsulotlar' },
+  { to: '/counterparties', icon: 'i-users', label: 'Kontragentlar' },
 ]
 
 const analytics = [
-  { to: '/reports', icon: 'i-report', tone: 'orange', label: 'Hisobotlar' },
-  { to: '/users', icon: 'i-users', tone: 'blue', label: 'Foydalanuvchilar' },
-  { to: '/settings', icon: 'i-settings', tone: 'purple', label: 'Sozlamalar' },
+  { to: '/reports', icon: 'i-report', label: 'Hisobotlar' },
+  { to: '/users', icon: 'i-users', label: 'Foydalanuvchilar' },
+  { to: '/settings', icon: 'i-settings', label: 'Sozlamalar' },
 ]
 </script>
 
@@ -73,7 +73,7 @@ const analytics = [
         custom
       >
         <button class="menu-item" :class="{ active: isActive }" @click="navigate">
-          <span class="menu-icon" :class="`${item.tone}-menu-icon`">
+          <span class="menu-icon">
             <svg><use :href="`#${item.icon}`" /></svg>
           </span>
 
@@ -93,7 +93,7 @@ const analytics = [
         custom
       >
         <button class="menu-item" :class="{ active: isActive }" @click="navigate">
-          <span class="menu-icon" :class="`${item.tone}-menu-icon`">
+          <span class="menu-icon">
             <svg><use :href="`#${item.icon}`" /></svg>
           </span>
 

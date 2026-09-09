@@ -690,7 +690,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 }
 
 .table-card h3 {
-  font-size: 10px;
+  font-size: 15px;
 }
 
 .tree-card h3 {
@@ -722,19 +722,19 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 }
 
 .tree-node.active {
-  border-color: var(--purple);
-  background: var(--purple-soft);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .tree-name {
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .off {
   margin-left: 5px;
   color: var(--red);
-  font-size: 6px;
+  font-size: 11px;
   font-weight: 400;
 }
 
@@ -749,12 +749,12 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
   border-radius: 999px;
   background: var(--surface-hover);
   color: var(--text-secondary);
-  font-size: 6px;
+  font-size: 11px;
 }
 
 .unit {
   color: var(--text-muted);
-  font-size: 6px;
+  font-size: 11px;
 }
 
 .detail {
@@ -780,7 +780,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 .path {
   margin-top: 3px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
   font-family: monospace;
 }
 
@@ -793,7 +793,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 .meta-grid span {
   display: block;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -801,13 +801,13 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 .meta-grid strong {
   display: block;
   margin-top: 3px;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .hint {
   margin-bottom: 12px;
   color: var(--text-secondary);
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -820,14 +820,14 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 6px;
+  font-size: 11px;
 }
 
 code {
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   background: var(--surface-hover);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .flags {
@@ -840,7 +840,7 @@ code {
   display: inline-block;
   padding: 3px 7px;
   border-radius: 999px;
-  font-size: 6px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -851,8 +851,8 @@ code {
 }
 
 .pill-purple {
-  background: var(--purple-soft);
-  color: var(--purple);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .pill-blue {
@@ -877,7 +877,7 @@ code {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 8px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -889,13 +889,13 @@ code {
 .field-error {
   margin-top: 4px;
   color: var(--red);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .field-hint {
   margin-top: 4px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -906,7 +906,7 @@ code {
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .load-error {

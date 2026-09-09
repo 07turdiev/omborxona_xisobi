@@ -124,13 +124,13 @@ onMounted(load)
 
 .converter h3 {
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .hint {
   margin-bottom: 14px;
   color: var(--text-secondary);
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -144,16 +144,16 @@ onMounted(load)
 .converter-result {
   margin-top: 12px;
   color: var(--green);
-  font-size: 9px;
+  font-size: 14px;
 }
 
 .converter-error {
   margin-top: 12px;
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 code {
-  font-size: 7px;
+  font-size: 12px;
 }
 </style>

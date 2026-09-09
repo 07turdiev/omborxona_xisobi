@@ -65,9 +65,6 @@ const dailyMax = computed(() =>
 <template>
   <section class="app-section active">
     <div class="hero-card">
-      <div class="hero-orb orb-one"></div>
-      <div class="hero-orb orb-two"></div>
-
       <div class="hero-content">
         <span class="hero-date">{{ today }}</span>
         <h2>Xush kelibsiz, {{ firstName }}</h2>
@@ -75,12 +72,12 @@ const dailyMax = computed(() =>
       </div>
 
       <div class="hero-actions">
-        <button class="button button-glass" @click="router.push('/imports')">
+        <button class="button button-outline" @click="router.push('/imports')">
           <svg><use href="#i-import" /></svg>
           <span>Yangi kirim</span>
         </button>
 
-        <button class="button button-white" @click="router.push('/sales')">
+        <button class="button button-gradient" @click="router.push('/sales')">
           <svg><use href="#i-sale" /></svg>
           <span>Yangi sotuv</span>
         </button>
@@ -237,7 +234,7 @@ const dailyMax = computed(() =>
   align-items: center;
   gap: 6px;
   margin-bottom: 12px;
-  font-size: 10px;
+  font-size: 15px;
 }
 
 .count-badge {
@@ -245,7 +242,7 @@ const dailyMax = computed(() =>
   border-radius: 999px;
   background: var(--yellow-soft);
   color: var(--yellow);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .count-badge.danger {
@@ -278,13 +275,13 @@ const dailyMax = computed(() =>
 .day-bar {
   width: 100%;
   max-width: 26px;
-  border-radius: 4px 4px 0 0;
-  background: linear-gradient(180deg, var(--purple-2), var(--purple));
+  border-radius: var(--radius) 4px 0 0;
+  background: var(--accent);
 }
 
 .day-column small {
   color: var(--text-muted);
-  font-size: 6px;
+  font-size: 11px;
 }
 
 .mini-list {
@@ -298,7 +295,7 @@ const dailyMax = computed(() =>
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .mini-list li:last-child {
@@ -313,7 +310,7 @@ const dailyMax = computed(() =>
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .warn {
@@ -330,7 +327,7 @@ const dailyMax = computed(() =>
 
 .dim {
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -338,7 +335,7 @@ const dailyMax = computed(() =>
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .num {
@@ -358,7 +355,7 @@ const dailyMax = computed(() =>
   display: inline-block;
   padding: 3px 8px;
   border-radius: 999px;
-  font-size: 6px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
 }

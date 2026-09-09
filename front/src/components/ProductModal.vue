@@ -301,7 +301,7 @@ function fieldError(field: string): string {
 
 .extras-block h4 {
   margin-bottom: 12px;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -315,7 +315,7 @@ function fieldError(field: string): string {
 
 .attribute-block h4 {
   margin-bottom: 12px;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -331,10 +331,10 @@ function fieldError(field: string): string {
 .unit-tag {
   margin-left: 4px;
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   background: var(--surface-hover);
   color: var(--text-muted);
-  font-size: 6px;
+  font-size: 11px;
 }
 
 .required-mark {
@@ -345,12 +345,12 @@ function fieldError(field: string): string {
 .field-error {
   margin-top: 4px;
   color: var(--red);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .field-hint {
   margin-top: 4px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 </style>

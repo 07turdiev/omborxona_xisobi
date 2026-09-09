@@ -32,11 +32,6 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="background-grid"></div>
-  <div class="background-glow glow-one"></div>
-  <div class="background-glow glow-two"></div>
-  <div class="background-glow glow-three"></div>
-
   <main class="login-layout">
     <section class="login-showcase">
       <div class="showcase-content">

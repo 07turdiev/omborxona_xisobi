@@ -9,47 +9,55 @@
 
 :root {
 
-    --primary: #2f6bff;
-    --primary-hover: #2459db;
-    --primary-soft: rgba(47, 107, 255, 0.10);
+    /* Kirish sahifasi ham asosiy interfeys bilan bir xil tilda
+       gapirishi kerak — qiymatlar `app.css` dagi Mantine
+       shkalasidan olingan. */
 
-    --accent: #64a2ff;
+    --primary: #4c6ef5;
+    --primary-hover: #4263eb;
+    --primary-soft: #edf2ff;
 
-    --bg: #f5f7fb;
+    --accent: #5c7cfa;
+
+    --bg: #f8f9fa;
     --panel: #ffffff;
 
-    --text: #111827;
-    --text-secondary: #667085;
-    --text-muted: #98a2b3;
+    --text: #212529;
+    --text-secondary: #495057;
+    --text-muted: #868e96;
 
-    --border: #e4e7ec;
-    --border-focus: #2f6bff;
+    --border: #e9ecef;
+    --border-focus: #4c6ef5;
 
     --input-bg: #ffffff;
 
-    --danger: #e5484d;
-    --danger-soft: #fff1f1;
+    --danger: #e03131;
+    --danger-soft: #fff5f5;
 
-    --success: #17a673;
-    --success-soft: #eafaf4;
+    --success: #2f9e44;
+    --success-soft: #ebfbee;
 
-    --warning: #f59e0b;
+    --warning: #f08c00;
 
     --shadow-sm:
-        0 1px 2px rgba(16, 24, 40, 0.04);
+        0 1px 3px rgba(0, 0, 0, .05),
+        0 1px 2px rgba(0, 0, 0, .1);
 
     --shadow-md:
-        0 12px 40px rgba(16, 24, 40, 0.08);
+        0 1px 3px rgba(0, 0, 0, .05),
+        0 20px 25px -5px rgba(0, 0, 0, .05),
+        0 10px 10px -5px rgba(0, 0, 0, .04);
 
     --shadow-lg:
-        0 25px 70px rgba(16, 24, 40, 0.14);
+        0 1px 3px rgba(0, 0, 0, .05),
+        0 20px 25px -5px rgba(0, 0, 0, .05),
+        0 10px 10px -5px rgba(0, 0, 0, .04);
 
-    --radius-sm: 10px;
-    --radius-md: 16px;
-    --radius-lg: 24px;
+    --radius-sm: 2px;
+    --radius-md: 4px;
+    --radius-lg: 4px;
 
-    --transition:
-        0.22s cubic-bezier(.4, 0, .2, 1);
+    --transition: .12s ease;
 
 }
 
@@ -58,22 +66,27 @@
    DARK THEME
    ========================================================= */
 
-body.dark-theme {
+body.dark-mode {
 
-    --bg: #0b0f17;
-    --panel: #111722;
+    --bg: #1f1f1f;
+    --panel: #242424;
 
-    --text: #f8fafc;
-    --text-secondary: #98a2b3;
-    --text-muted: #667085;
+    --text: #c9c9c9;
+    --text-secondary: #b8b8b8;
+    --text-muted: #828282;
 
-    --border: #222b3a;
-    --input-bg: #0d131d;
+    --border: #3b3b3b;
+    --input-bg: #2e2e2e;
 
-    --primary-soft: rgba(47, 107, 255, 0.14);
+    --primary: #5c7cfa;
+    --primary-hover: #748ffc;
+    --primary-soft: rgba(92, 124, 250, .15);
 
-    --danger-soft: rgba(229, 72, 77, 0.10);
-    --success-soft: rgba(23, 166, 115, 0.12);
+    --danger: #ff8787;
+    --danger-soft: rgba(250, 82, 82, .15);
+
+    --success: #69db7c;
+    --success-soft: rgba(64, 192, 87, .15);
 
 }
 
@@ -97,14 +110,15 @@ html {
 body {
     min-height: 100vh;
     font-family:
-        Inter,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
         Roboto,
         Helvetica,
         Arial,
-        sans-serif;
+        sans-serif,
+        "Apple Color Emoji",
+        "Segoe UI Emoji";
 
     background: var(--bg);
     color: var(--text);
@@ -156,107 +170,13 @@ svg {
 
 /* =========================================================
    BACKGROUND
+
+   Prototipda sahifa orqasida to'r va uchta rangli "yorug'lik
+   dog'i" bor edi. Ular olib tashlandi: kirish sahifasi ish
+   boshlanadigan joy, reklama sahifasi emas. Belgilash
+   `LoginView.vue` da qoldirilmadi — bu qoidalar ham bo'sh
+   turmasin uchun o'chirildi.
    ========================================================= */
-
-.background-grid {
-
-    position: fixed;
-    inset: 0;
-
-    pointer-events: none;
-
-    background-image:
-
-        linear-gradient(
-            rgba(47, 107, 255, 0.035) 1px,
-            transparent 1px
-        ),
-
-        linear-gradient(
-            90deg,
-            rgba(47, 107, 255, 0.035) 1px,
-            transparent 1px
-        );
-
-    background-size: 48px 48px;
-
-    mask-image:
-        linear-gradient(
-            to bottom,
-            rgba(0, 0, 0, 0.65),
-            transparent 85%
-        );
-
-}
-
-
-.background-glow {
-
-    position: fixed;
-
-    border-radius: 50%;
-
-    pointer-events: none;
-
-    filter: blur(10px);
-
-    opacity: .7;
-
-}
-
-
-.glow-one {
-
-    width: 450px;
-    height: 450px;
-
-    left: -220px;
-    top: -180px;
-
-    background:
-        radial-gradient(
-            circle,
-            rgba(47, 107, 255, .18),
-            transparent 68%
-        );
-
-}
-
-
-.glow-two {
-
-    width: 500px;
-    height: 500px;
-
-    right: -250px;
-    bottom: -230px;
-
-    background:
-        radial-gradient(
-            circle,
-            rgba(81, 163, 255, .14),
-            transparent 68%
-        );
-
-}
-
-
-.glow-three {
-
-    width: 300px;
-    height: 300px;
-
-    left: 48%;
-    top: 34%;
-
-    background:
-        radial-gradient(
-            circle,
-            rgba(47, 107, 255, .07),
-            transparent 70%
-        );
-
-}
 
 
 /* =========================================================
@@ -290,179 +210,13 @@ svg {
 
     padding: 48px 64px;
 
-    background:
-
-        radial-gradient(
-            circle at 15% 0%,
-            rgba(75, 132, 255, .35),
-            transparent 32%
-        ),
-
-        radial-gradient(
-            circle at 95% 80%,
-            rgba(65, 145, 255, .20),
-            transparent 30%
-        ),
-
-        linear-gradient(
-            145deg,
-            #101a32 0%,
-            #111b35 38%,
-            #0d1427 100%
-        );
+    /* Yagona neytral to'q rang — gradient, yorug'lik dog'lari va
+       bezak halqalar olib tashlandi. */
+    background: #212529;
 
     color: #ffffff;
 
     overflow: hidden;
-
-}
-
-
-.login-showcase::before {
-
-    content: "";
-
-    position: absolute;
-
-    width: 620px;
-    height: 620px;
-
-    border-radius: 50%;
-
-    border:
-        1px solid
-        rgba(255, 255, 255, 0.055);
-
-    right: -280px;
-    top: -220px;
-
-}
-
-
-.login-showcase::after {
-
-    content: "";
-
-    position: absolute;
-
-    width: 420px;
-    height: 420px;
-
-    border-radius: 50%;
-
-    border:
-        1px solid
-        rgba(255, 255, 255, 0.045);
-
-    right: -150px;
-    top: -100px;
-
-}
-
-
-.showcase-content {
-
-    position: relative;
-    z-index: 2;
-
-    min-height: calc(100vh - 96px);
-
-    display: flex;
-    flex-direction: column;
-
-}
-
-
-.brand {
-
-    display: inline-flex;
-    align-items: center;
-
-    gap: 14px;
-
-    width: fit-content;
-
-    color: #ffffff;
-    text-decoration: none;
-
-}
-
-
-.brand-logo {
-
-    width: 50px;
-    height: 50px;
-
-    border-radius: 14px;
-
-    display: grid;
-    place-items: center;
-
-    background:
-        linear-gradient(
-            145deg,
-            rgba(255,255,255,.18),
-            rgba(255,255,255,.07)
-        );
-
-    border:
-        1px solid
-        rgba(255,255,255,.16);
-
-    box-shadow:
-        0 12px 30px
-        rgba(0,0,0,.15);
-
-    backdrop-filter: blur(16px);
-
-}
-
-
-.brand-logo svg {
-
-    width: 29px;
-    height: 29px;
-
-}
-
-
-.brand-text {
-
-    display: flex;
-    flex-direction: column;
-
-    gap: 2px;
-
-}
-
-
-.brand-text strong {
-
-    font-size: 20px;
-    font-weight: 800;
-
-    letter-spacing: -.5px;
-
-}
-
-
-.brand-text strong span {
-
-    color: #77a7ff;
-
-}
-
-
-.brand-text small {
-
-    color:
-        rgba(255,255,255,.55);
-
-    font-size: 10px;
-
-    text-transform: uppercase;
-
-    letter-spacing: 1.7px;
 
 }
 
@@ -506,7 +260,7 @@ svg {
     color:
         rgba(255,255,255,.76);
 
-    font-size: 12px;
+    font-size: 17px;
     font-weight: 600;
 
     letter-spacing: .25px;
@@ -564,7 +318,7 @@ svg {
 
     margin-top: 24px;
 
-    font-size: 17px;
+    font-size: 22px;
 
     line-height: 1.7;
 
@@ -609,7 +363,7 @@ svg {
     width: 43px;
     height: 43px;
 
-    border-radius: 12px;
+    border-radius: var(--radius-md);
 
     display: grid;
     place-items: center;
@@ -654,7 +408,7 @@ svg {
 
 .feature-item strong {
 
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
 
 }
@@ -665,7 +419,7 @@ svg {
     color:
         rgba(255,255,255,.48);
 
-    font-size: 12px;
+    font-size: 17px;
 
 }
 
@@ -690,7 +444,7 @@ svg {
     color:
         rgba(255,255,255,.34);
 
-    font-size: 11px;
+    font-size: 16px;
 
 }
 
@@ -772,7 +526,7 @@ svg {
     width: 42px;
     height: 42px;
 
-    border-radius: 12px;
+    border-radius: var(--radius-md);
 
     display: grid;
     place-items: center;
@@ -801,14 +555,7 @@ svg {
     color: var(--primary);
 
     border-color:
-        color-mix(
-            in srgb,
-            var(--primary) 40%,
-            var(--border)
-        );
-
-    transform:
-        translateY(-1px);
+        var(--primary);
 
 }
 
@@ -832,12 +579,12 @@ svg {
 }
 
 
-.dark-theme .sun-icon {
+.dark-mode .sun-icon {
     display: none;
 }
 
 
-.dark-theme .moon-icon {
+.dark-mode .moon-icon {
     display: block;
 }
 
@@ -876,7 +623,7 @@ svg {
 
     padding: 6px 10px;
 
-    border-radius: 7px;
+    border-radius: var(--radius-md);
 
     background:
         var(--primary-soft);
@@ -884,7 +631,7 @@ svg {
     color:
         var(--primary);
 
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 700;
 
     text-transform: uppercase;
@@ -912,7 +659,7 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 13px;
+    font-size: 18px;
 
     line-height: 1.6;
 
@@ -935,7 +682,7 @@ svg {
 
     margin-bottom: 18px;
 
-    border-radius: 11px;
+    border-radius: var(--radius-md);
 
     background:
         var(--danger-soft);
@@ -951,7 +698,7 @@ svg {
     color:
         var(--danger);
 
-    font-size: 12px;
+    font-size: 17px;
 
     animation:
         messageAppear .25s ease;
@@ -1023,7 +770,7 @@ svg {
     width: 22px;
     height: 22px;
 
-    border-radius: 6px;
+    border-radius: var(--radius-md);
 
     background: transparent;
 
@@ -1033,7 +780,7 @@ svg {
 
     opacity: .6;
 
-    font-size: 18px;
+    font-size: 24px;
 
 }
 
@@ -1092,7 +839,7 @@ svg {
     color:
         var(--text);
 
-    font-size: 12px;
+    font-size: 17px;
     font-weight: 600;
 
 }
@@ -1116,7 +863,7 @@ svg {
 
     color: var(--warning);
 
-    font-size: 10px;
+    font-size: 15px;
     font-weight: 600;
 
 }
@@ -1182,7 +929,7 @@ svg {
     padding:
         0 48px 0 45px;
 
-    border-radius: 12px;
+    border-radius: var(--radius-md);
 
     border:
         1px solid
@@ -1194,7 +941,7 @@ svg {
     color:
         var(--text);
 
-    font-size: 13px;
+    font-size: 18px;
 
     transition:
         all var(--transition);
@@ -1273,7 +1020,7 @@ svg {
     color:
         var(--danger);
 
-    font-size: 10px;
+    font-size: 15px;
 
 }
 
@@ -1291,7 +1038,7 @@ svg {
     width: 35px;
     height: 35px;
 
-    border-radius: 9px;
+    border-radius: var(--radius-md);
 
     display: grid;
     place-items: center;
@@ -1410,7 +1157,7 @@ svg {
     width: 18px;
     height: 18px;
 
-    border-radius: 5px;
+    border-radius: var(--radius-md);
 
     border:
         1px solid
@@ -1487,7 +1234,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 10px;
+    font-size: 15px;
 
 }
 
@@ -1516,27 +1263,19 @@ svg {
 .login-button {
 
     width: 100%;
-    height: 53px;
+    height: 40px;
 
-    border-radius: 12px;
+    border-radius: var(--radius-md);
 
     background:
-        linear-gradient(
-            135deg,
-            #3674ff,
-            #2458df
-        );
+        var(--primary);
 
     color: #ffffff;
 
     cursor: pointer;
 
-    box-shadow:
-        0 10px 25px
-        rgba(47,107,255,.22);
-
     transition:
-        all var(--transition);
+        background-color var(--transition);
 
     overflow: hidden;
 
@@ -1545,12 +1284,8 @@ svg {
 
 .login-button:hover {
 
-    transform:
-        translateY(-1px);
-
-    box-shadow:
-        0 14px 30px
-        rgba(47,107,255,.29);
+    background:
+        var(--primary-hover);
 
 }
 
@@ -1574,7 +1309,7 @@ svg {
 
     gap: 10px;
 
-    font-size: 13px;
+    font-size: 18px;
     font-weight: 600;
 
 }
@@ -1620,7 +1355,7 @@ svg {
 
     gap: 10px;
 
-    font-size: 12px;
+    font-size: 17px;
     font-weight: 600;
 
 }
@@ -1697,7 +1432,7 @@ svg {
 
     gap: 10px;
 
-    border-radius: 10px;
+    border-radius: var(--radius-md);
 
     background:
         color-mix(
@@ -1741,7 +1476,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 10px;
+    font-size: 15px;
 
     line-height: 1.55;
 
@@ -1768,7 +1503,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 9px;
+    font-size: 14px;
 
     text-transform: uppercase;
 
@@ -1827,7 +1562,7 @@ svg {
 
     padding: 42px 35px;
 
-    border-radius: 22px;
+    border-radius: var(--radius-md);
 
     text-align: center;
 
@@ -1922,7 +1657,7 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 12px;
+    font-size: 17px;
 
 }
 

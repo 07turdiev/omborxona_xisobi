@@ -390,7 +390,7 @@ function onPrint() {
   border-radius: var(--radius-small);
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
@@ -401,9 +401,9 @@ function onPrint() {
 }
 
 .period-button.active {
-  border-color: var(--purple);
-  background: var(--purple-soft);
-  color: var(--purple);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .net-row {
@@ -425,7 +425,7 @@ function onPrint() {
 .net-card span {
   display: block;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -433,14 +433,14 @@ function onPrint() {
 .net-card strong {
   display: block;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .net-card small {
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .net-card.loss strong {
@@ -455,7 +455,7 @@ function onPrint() {
   display: flex;
   align-items: center;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 700;
 }
 
@@ -472,7 +472,7 @@ function onPrint() {
 
 .table-card h3 {
   margin-bottom: 14px;
-  font-size: 10px;
+  font-size: 15px;
 }
 
 .chart-card {
@@ -487,7 +487,7 @@ function onPrint() {
   display: flex;
   justify-content: space-between;
   margin-bottom: 4px;
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .bar-track {
@@ -500,14 +500,14 @@ function onPrint() {
 .bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--purple), var(--purple-2));
+  background: var(--accent);
 }
 
 .bar-row small {
   display: block;
   margin-top: 3px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .day-chart {
@@ -531,13 +531,13 @@ function onPrint() {
 .day-bar {
   width: 100%;
   max-width: 26px;
-  border-radius: 4px 4px 0 0;
-  background: linear-gradient(180deg, var(--teal), var(--blue));
+  border-radius: var(--radius) 4px 0 0;
+  background: var(--accent);
 }
 
 .day-column small {
   color: var(--text-muted);
-  font-size: 6px;
+  font-size: 11px;
 }
 
 .valuation-grid {
@@ -549,7 +549,7 @@ function onPrint() {
 .valuation-grid span {
   display: block;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -557,12 +557,12 @@ function onPrint() {
 .valuation-grid strong {
   display: block;
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 17px;
 }
 
 .valuation-grid small {
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .valuation-grid .accent strong {
@@ -589,7 +589,7 @@ function onPrint() {
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 @media print {

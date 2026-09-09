@@ -687,7 +687,7 @@ const formError = (field: string): string => {
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .expand-toggle {
@@ -695,10 +695,10 @@ const formError = (field: string): string => {
   height: 16px;
   margin-right: 6px;
   border: 1px solid var(--border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 9px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
 }
@@ -716,8 +716,7 @@ const formError = (field: string): string => {
 .inner-table th {
   padding: 6px 8px;
   color: var(--text-muted);
-  font-size: 7px;
-  text-transform: uppercase;
+  font-size: 12px;
   letter-spacing: 0.05em;
   text-align: left;
 }
@@ -729,14 +728,14 @@ const formError = (field: string): string => {
 .inner-table td {
   padding: 6px 8px;
   border-top: 1px solid var(--border);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .pill {
   display: inline-block;
   padding: 4px 9px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -781,7 +780,7 @@ const formError = (field: string): string => {
 }
 
 .lines-head h4 {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -803,7 +802,7 @@ const formError = (field: string): string => {
   border-radius: var(--radius-small);
   background: var(--orange-soft);
   color: var(--text);
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -813,20 +812,20 @@ const formError = (field: string): string => {
   border-radius: var(--radius-small);
   background: var(--orange-soft);
   color: var(--orange);
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
 .field-error {
   margin-top: 4px;
   color: var(--red);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .field-hint {
   margin-top: 4px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .form-error,
@@ -836,7 +835,7 @@ const formError = (field: string): string => {
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .load-error {

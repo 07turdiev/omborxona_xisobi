@@ -10,9 +10,6 @@ const store = useWarehouseStore()
 const modalOpen = ref(false)
 const editing = ref<Warehouse | null>(null)
 
-/** Kartochka rangi — dizayndagi ro'yxat (store/script.js:8770). */
-const accents = ['#7156e5', '#13a899', '#ed8c36', '#397be6', '#1ba66d']
-
 onMounted(() => {
   store.loadChoices()
   store.load()
@@ -97,10 +94,9 @@ function formatNumber(value: string | null): string {
 
     <div class="warehouse-cards">
       <article
-        v-for="(warehouse, index) in store.items"
+        v-for="warehouse in store.items"
         :key="warehouse.id"
         class="warehouse-card"
-        :style="{ '--warehouse-accent': accents[index % accents.length] }"
       >
         <div class="warehouse-card-header">
           <div class="warehouse-card-icon">
@@ -210,20 +206,20 @@ function formatNumber(value: string | null): string {
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .pill {
   display: inline-block;
   padding: 4px 9px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .pill-main {
-  background: var(--purple-soft);
-  color: var(--purple);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .pill-retail {
@@ -258,6 +254,6 @@ function formatNumber(value: string | null): string {
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 </style>

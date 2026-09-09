@@ -2,58 +2,104 @@
    STOREFLOW MULTI-WAREHOUSE WMS
 ========================================================= */
 
+/* ---------------------------------------------------------
+   Ranglar va shakl
+
+   Manba: InvenTree'ning veb-interfeysi. Uning o'z temasi
+   deyarli bo'sh (`createTheme({})`), ya'ni u sof Mantine
+   default ko'rinishidan foydalanadi:
+   InvenTree-master/src/frontend/src/theme.ts
+   InvenTree-master/src/frontend/src/states/LocalState.tsx:107-111
+   (primaryColor: 'indigo', radius: 'xs', white/black default).
+
+   Shuning uchun bu yerdagi qiymatlar Mantine shkalasidan
+   olingan: kulrang 0-9, indigo 0-9 va holat ranglari. Bir
+   nechta rangni aralashtirmaydi — rang faqat **ma'no**
+   tashiganda ishlatiladi: faol menyu, asosiy tugma, holat
+   belgisi. Qolgani kulrang.
+   --------------------------------------------------------- */
+
 :root {
-    --bg: #f4f5f9;
+    /* Kulrang shkala — Mantine gray[0..9] */
+    --gray-0: #f8f9fa;
+    --gray-1: #f1f3f5;
+    --gray-2: #e9ecef;
+    --gray-3: #dee2e6;
+    --gray-4: #ced4da;
+    --gray-5: #adb5bd;
+    --gray-6: #868e96;
+    --gray-7: #495057;
+    --gray-8: #343a40;
+    --gray-9: #212529;
+
+    --bg: var(--gray-0);
     --surface: #ffffff;
-    --surface-soft: #fafafd;
-    --surface-hover: #f7f6fb;
+    --surface-soft: var(--gray-0);
+    --surface-hover: var(--gray-1);
 
-    --sidebar: #14121d;
-    --sidebar-2: #1a1725;
+    /* Chap panel ham ochiq: InvenTree'da butun qobiq ochiq,
+       to'q rejim faqat foydalanuvchi tanlaganda yoqiladi. */
+    --sidebar: #ffffff;
+    --sidebar-2: var(--gray-0);
+    --sidebar-text: var(--gray-7);
+    --sidebar-muted: var(--gray-6);
+    --sidebar-hover: var(--gray-1);
+    --sidebar-border: var(--gray-2);
 
-    --text: #1b1926;
-    --text-secondary: #666476;
-    --text-muted: #9b99a9;
+    --text: var(--gray-9);
+    --text-secondary: var(--gray-7);
+    --text-muted: var(--gray-6);
 
-    --border: #e7e5ed;
-    --border-strong: #d7d4df;
+    --border: var(--gray-2);
+    --border-strong: var(--gray-3);
 
-    --purple: #7156e5;
-    --purple-2: #9b78ff;
-    --purple-soft: #f1edff;
+    /* Asosiy rang — indigo, InvenTree defaulti */
+    --accent: #4c6ef5;
+    --accent-hover: #4263eb;
+    --accent-strong: #3b5bdb;
+    --accent-soft: #edf2ff;
+    --accent-soft-2: #dbe4ff;
+    --accent-text: #ffffff;
 
-    --blue: #397be6;
-    --blue-soft: #edf5ff;
+    /* Holat ranglari — faqat status uchun */
+    --blue: #228be6;
+    --blue-soft: #e7f5ff;
 
-    --teal: #13a899;
-    --teal-soft: #eafaf7;
+    --teal: #0ca678;
+    --teal-soft: #e6fcf5;
 
-    --orange: #ed8c36;
-    --orange-soft: #fff3e8;
+    --orange: #e8590c;
+    --orange-soft: #fff4e6;
 
-    --green: #1ba66d;
-    --green-soft: #eaf9f2;
+    --green: #2f9e44;
+    --green-soft: #ebfbee;
 
-    --red: #df4f59;
-    --red-soft: #fff0f1;
+    --red: #e03131;
+    --red-soft: #fff5f5;
 
-    --yellow: #d69623;
-    --yellow-soft: #fff7e7;
+    --yellow: #f08c00;
+    --yellow-soft: #fff9db;
 
+    /* Soyalar — Mantine xs va md. Prototipdagi
+       `0 12px 35px` kabi qalin soyalar olib tashlandi:
+       ish quroli emas, taqdimot slaydi ko'rinishini berardi. */
     --shadow:
-        0 1px 2px rgba(30, 25, 50, .02),
-        0 12px 35px rgba(30, 25, 50, .045);
+        0 1px 3px rgba(0, 0, 0, .05),
+        0 1px 2px rgba(0, 0, 0, .1);
 
     --shadow-large:
-        0 30px 90px rgba(12, 10, 24, .22);
+        0 1px 3px rgba(0, 0, 0, .05),
+        0 20px 25px -5px rgba(0, 0, 0, .05),
+        0 10px 10px -5px rgba(0, 0, 0, .04);
 
     --sidebar-width: 252px;
 
-    --radius: 15px;
-    --radius-small: 10px;
+    /* InvenTree `radius: 'xs'` dan foydalanadi — deyarli
+       to'g'ri burchak. Prototipdagi 15px juda yumshoq edi. */
+    --radius: 4px;
+    --radius-small: 2px;
 
-    --transition:
-        .22s cubic-bezier(.4, 0, .2, 1);
+    --transition: .12s ease;
 }
 
 
@@ -62,33 +108,67 @@
 ========================================================= */
 
 body.dark-mode {
-    --bg: #0e0d14;
+    /* Mantine dark[0..9] */
+    --dark-0: #c9c9c9;
+    --dark-1: #b8b8b8;
+    --dark-2: #828282;
+    --dark-3: #696969;
+    --dark-4: #424242;
+    --dark-5: #3b3b3b;
+    --dark-6: #2e2e2e;
+    --dark-7: #242424;
+    --dark-8: #1f1f1f;
+    --dark-9: #141414;
 
-    --surface: #17161f;
-    --surface-soft: #1b1a24;
-    --surface-hover: #201f29;
+    --bg: var(--dark-8);
+    --surface: var(--dark-7);
+    --surface-soft: var(--dark-6);
+    --surface-hover: var(--dark-5);
 
-    --sidebar: #0c0b11;
-    --sidebar-2: #111019;
+    --sidebar: var(--dark-8);
+    --sidebar-2: var(--dark-7);
+    --sidebar-text: var(--dark-0);
+    --sidebar-muted: var(--dark-2);
+    --sidebar-hover: var(--dark-6);
+    --sidebar-border: var(--dark-5);
 
-    --text: #f5f3fb;
-    --text-secondary: #b1afbf;
-    --text-muted: #787586;
+    --text: var(--dark-0);
+    --text-secondary: var(--dark-1);
+    --text-muted: var(--dark-2);
 
-    --border: #292733;
-    --border-strong: #3a3745;
+    --border: var(--dark-5);
+    --border-strong: var(--dark-4);
 
-    --purple-soft: rgba(113, 86, 229, .15);
-    --blue-soft: rgba(57, 123, 230, .14);
-    --teal-soft: rgba(19, 168, 153, .13);
-    --orange-soft: rgba(237, 140, 54, .13);
-    --green-soft: rgba(27, 166, 109, .13);
-    --red-soft: rgba(223, 79, 89, .13);
-    --yellow-soft: rgba(214, 150, 35, .13);
+    --accent: #5c7cfa;
+    --accent-hover: #748ffc;
+    --accent-strong: #91a7ff;
+    --accent-soft: rgba(92, 124, 250, .15);
+    --accent-soft-2: rgba(92, 124, 250, .25);
+
+    /* To'q fonda to'yingan rang ko'zni og'ritadi —
+       Mantine ham to'q rejimda ochiqroq pog'onani oladi. */
+    --blue: #74c0fc;
+    --teal: #38d9a9;
+    --orange: #ffa94d;
+    --green: #69db7c;
+    --red: #ff8787;
+    --yellow: #ffd43b;
+
+    --blue-soft: rgba(34, 139, 230, .15);
+    --teal-soft: rgba(18, 184, 134, .15);
+    --orange-soft: rgba(253, 126, 20, .15);
+    --green-soft: rgba(64, 192, 87, .15);
+    --red-soft: rgba(250, 82, 82, .15);
+    --yellow-soft: rgba(250, 176, 5, .15);
 
     --shadow:
-        0 1px 2px rgba(0, 0, 0, .2),
-        0 15px 40px rgba(0, 0, 0, .2);
+        0 1px 3px rgba(0, 0, 0, .3),
+        0 1px 2px rgba(0, 0, 0, .4);
+
+    --shadow-large:
+        0 1px 3px rgba(0, 0, 0, .3),
+        0 20px 25px -5px rgba(0, 0, 0, .3),
+        0 10px 10px -5px rgba(0, 0, 0, .2);
 }
 
 
@@ -113,13 +193,15 @@ body {
     min-height: 100vh;
 
     font-family:
-        Inter,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
         Roboto,
+        Helvetica,
         Arial,
-        sans-serif;
+        sans-serif,
+        "Apple Color Emoji",
+        "Segoe UI Emoji";
 
     background:
         var(--bg);
@@ -127,7 +209,7 @@ body {
     color:
         var(--text);
 
-    font-size: 14px;
+    font-size: 19px;
 
     overflow-x: hidden;
 
@@ -197,6 +279,11 @@ svg {
 
 /* =========================================================
    SIDEBAR
+
+   InvenTree'da qobiq ochiq rangda: oq fon, 1px kulrang
+   chegara, gradient va yorug'lik effektlari yo'q. Prototipdagi
+   to'q binafsha panel chiroyli edi, lekin kun bo'yi ishlaydigan
+   quroldan ko'ra taqdimotga o'xshardi.
 ========================================================= */
 
 .sidebar {
@@ -215,69 +302,55 @@ svg {
     display: flex;
     flex-direction: column;
 
-    color: white;
+    color:
+        var(--sidebar-text);
 
     background:
-        radial-gradient(
-            circle at 0 0,
-            rgba(113, 86, 229, .24),
-            transparent 29%
-        ),
-        linear-gradient(
-            180deg,
-            var(--sidebar),
-            var(--sidebar-2)
-        );
+        var(--sidebar);
 
     border-right:
         1px solid
-        rgba(255,255,255,.04);
+        var(--sidebar-border);
 }
 
 
 .sidebar-brand {
-    height: 78px;
+    height: 56px;
 
     padding:
-        0 18px;
+        0 14px;
 
     display: flex;
     align-items: center;
 
-    gap: 11px;
+    gap: 10px;
 
     border-bottom:
         1px solid
-        rgba(255,255,255,.05);
+        var(--sidebar-border);
 }
 
 
 .brand-symbol {
-    width: 41px;
-    height: 41px;
+    width: 30px;
+    height: 30px;
 
     flex-shrink: 0;
 
     display: grid;
     place-items: center;
 
-    border-radius: 13px;
+    border-radius:
+        var(--radius);
 
-    color: white;
+    color:
+        var(--accent-text);
 
     background:
-        linear-gradient(
-            145deg,
-            #9777ff,
-            #5841c2
-        );
+        var(--accent);
 
-    box-shadow:
-        0 12px 30px
-        rgba(113,86,229,.30);
-
-    font-size: 16px;
-    font-weight: 850;
+    font-size: 15px;
+    font-weight: 700;
 }
 
 
@@ -288,21 +361,25 @@ svg {
 
 
 .brand-copy strong {
+    color:
+        var(--text);
+
     font-size: 15px;
-    letter-spacing: -.4px;
+    font-weight: 600;
+    letter-spacing: -.2px;
 }
 
 
 .brand-copy span {
-    margin-top: 2px;
+    margin-top: 1px;
 
     color:
-        rgba(255,255,255,.34);
+        var(--sidebar-muted);
 
-    font-size: 7px;
+    font-size: 11px;
 
     text-transform: uppercase;
-    letter-spacing: 1.8px;
+    letter-spacing: .4px;
 }
 
 
@@ -311,15 +388,22 @@ svg {
 
     margin-left: auto;
 
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
 
-    border-radius: 9px;
+    border-radius:
+        var(--radius);
 
-    color: white;
+    color:
+        var(--sidebar-text);
 
+    background: transparent;
+}
+
+
+.sidebar-close:hover {
     background:
-        rgba(255,255,255,.05);
+        var(--sidebar-hover);
 }
 
 
@@ -341,23 +425,20 @@ svg {
 
 .workspace-card {
     margin:
-        15px 13px 9px;
+        12px 12px 6px;
 
     padding:
-        12px;
+        10px;
 
-    border-radius: 11px;
+    border-radius:
+        var(--radius);
 
     border:
         1px solid
-        rgba(255,255,255,.055);
+        var(--sidebar-border);
 
     background:
-        linear-gradient(
-            145deg,
-            rgba(255,255,255,.045),
-            rgba(255,255,255,.015)
-        );
+        var(--sidebar-2);
 }
 
 
@@ -365,37 +446,38 @@ svg {
     display: block;
 
     color:
-        rgba(255,255,255,.28);
+        var(--sidebar-muted);
 
-    font-size: 7px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 1.15px;
+    letter-spacing: .4px;
 }
 
 
 .workspace-card > strong {
     display: block;
 
-    margin-top: 5px;
+    margin-top: 3px;
 
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
 
     color:
-        rgba(255,255,255,.87);
+        var(--text);
 
-    font-size: 10px;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 
 .workspace-status {
-    margin-top: 8px;
+    margin-top: 6px;
 
     display: flex;
     align-items: center;
 
-    gap: 7px;
+    gap: 6px;
 }
 
 
@@ -406,19 +488,15 @@ svg {
     border-radius: 50%;
 
     background:
-        #4bd7a2;
-
-    box-shadow:
-        0 0 0 4px
-        rgba(75,215,162,.08);
+        var(--green);
 }
 
 
 .workspace-status small {
     color:
-        rgba(255,255,255,.34);
+        var(--sidebar-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -430,7 +508,7 @@ svg {
     flex: 1;
 
     padding:
-        5px 12px 14px;
+        4px 8px 12px;
 
     overflow-y: auto;
 }
@@ -440,159 +518,140 @@ svg {
     display: block;
 
     padding:
-        11px 11px 7px;
+        12px 8px 6px;
 
     color:
-        rgba(255,255,255,.22);
+        var(--sidebar-muted);
 
-    font-size: 7px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
 
-    letter-spacing: 1.2px;
+    letter-spacing: .4px;
     text-transform: uppercase;
 }
 
 
 .menu-caption.second {
-    margin-top: 11px;
+    margin-top: 6px;
 }
 
 
 .menu-item {
     width: 100%;
-    height: 43px;
+    height: 34px;
 
-    margin-bottom: 3px;
+    margin-bottom: 1px;
 
     padding:
-        0 10px;
+        0 8px;
 
     display: flex;
     align-items: center;
 
-    gap: 10px;
+    gap: 9px;
 
-    border-radius: 10px;
+    border-radius:
+        var(--radius);
 
     color:
-        rgba(255,255,255,.53);
+        var(--sidebar-text);
 
     background: transparent;
 
     text-align: left;
 
-    font-size: 10px;
+    font-size: 14px;
 
     transition:
-        all var(--transition);
+        background var(--transition),
+        color var(--transition);
 }
 
 
 .menu-item:hover {
     color:
-        rgba(255,255,255,.92);
+        var(--text);
 
     background:
-        rgba(255,255,255,.04);
+        var(--sidebar-hover);
 }
 
 
+/* Faol bo'lim — InvenTree'da tanlangan yorliq asosiy rangning
+   ochiq pog'onasi bilan belgilanadi, gradient bilan emas. */
 .menu-item.active {
-    color: white;
+    color:
+        var(--accent);
 
     background:
-        linear-gradient(
-            90deg,
-            rgba(113,86,229,.19),
-            rgba(113,86,229,.06)
-        );
+        var(--accent-soft);
 
-    box-shadow:
-        inset 2px 0 0
-        #9d81ff;
+    font-weight: 500;
 }
 
 
 .menu-icon {
-    width: 29px;
-    height: 29px;
+    width: 20px;
+    height: 20px;
 
     flex-shrink: 0;
 
     display: grid;
     place-items: center;
 
-    border-radius: 8px;
+    color:
+        var(--text-muted);
+}
+
+
+.menu-item:hover .menu-icon,
+.menu-item.active .menu-icon {
+    color: inherit;
 }
 
 
 .menu-icon svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
 
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.8;
+    stroke-width: 1.7;
 
     stroke-linecap: round;
     stroke-linejoin: round;
 }
 
 
-.menu-item.active
-.purple-menu-icon {
-    color: #ad94ff;
-    background: rgba(113,86,229,.12);
-}
-
-
-.menu-item.active
-.blue-menu-icon {
-    color: #6ca4ff;
-    background: rgba(57,123,230,.12);
-}
-
-
-.menu-item.active
-.teal-menu-icon {
-    color: #4ad0c1;
-    background: rgba(19,168,153,.12);
-}
-
-
-.menu-item.active
-.green-menu-icon {
-    color: #55d69c;
-    background: rgba(27,166,109,.12);
-}
-
-
-.menu-item.active
-.orange-menu-icon {
-    color: #ffae65;
-    background: rgba(237,140,54,.12);
-}
-
-
 .menu-badge {
     margin-left: auto;
 
-    min-width: 23px;
+    min-width: 20px;
 
     padding:
-        3px 6px;
+        1px 6px;
 
     text-align: center;
 
-    border-radius: 6px;
+    border-radius: 999px;
 
     color:
-        rgba(255,255,255,.44);
+        var(--text-secondary);
 
     background:
-        rgba(255,255,255,.055);
+        var(--surface-hover);
 
-    font-size: 7px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+.menu-item.active .menu-badge {
+    color:
+        var(--accent);
+
+    background:
+        var(--accent-soft-2);
 }
 
 
@@ -602,7 +661,7 @@ svg {
 
 .sidebar-footer {
     padding:
-        12px 14px;
+        10px 12px;
 
     display: flex;
     align-items: center;
@@ -611,32 +670,29 @@ svg {
 
     border-top:
         1px solid
-        rgba(255,255,255,.05);
+        var(--sidebar-border);
 }
 
 
 .sidebar-avatar {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
 
     flex-shrink: 0;
 
     display: grid;
     place-items: center;
 
-    border-radius: 10px;
+    border-radius: 50%;
 
-    color: white;
+    color:
+        var(--accent-text);
 
     background:
-        linear-gradient(
-            145deg,
-            #ef9141,
-            #bb5d22
-        );
+        var(--accent);
 
-    font-size: 8px;
-    font-weight: 750;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 
@@ -655,17 +711,21 @@ svg {
     white-space: nowrap;
     text-overflow: ellipsis;
 
-    font-size: 8.5px;
+    color:
+        var(--text);
+
+    font-size: 13px;
+    font-weight: 600;
 }
 
 
 .sidebar-user-copy span {
-    margin-top: 3px;
+    margin-top: 1px;
 
     color:
-        rgba(255,255,255,.32);
+        var(--sidebar-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -691,30 +751,23 @@ svg {
 
     z-index: 40;
 
-    height: 78px;
+    height: 56px;
 
     padding:
-        0 27px;
+        0 20px;
 
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    gap: 25px;
+    gap: 20px;
 
     border-bottom:
         1px solid
         var(--border);
 
     background:
-        color-mix(
-            in srgb,
-            var(--surface) 92%,
-            transparent
-        );
-
-    backdrop-filter:
-        blur(18px);
+        var(--surface);
 }
 
 
@@ -736,29 +789,29 @@ svg {
 
 
 .page-heading h1 {
-    font-size: 18px;
-    font-weight: 720;
-    letter-spacing: -.5px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.2px;
 }
 
 
 .page-heading p {
-    margin-top: 3px;
+    margin-top: 1px;
 
     color:
         var(--text-muted);
 
-    font-size: 8px;
+    font-size: 12px;
 }
 
 
 .mobile-menu {
     display: none;
 
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
 
-    border-radius: 9px;
+    border-radius: var(--radius);
 
     color:
         var(--text-secondary);
@@ -789,17 +842,17 @@ svg {
 ========================================================= */
 
 .global-search {
-    width: 270px;
-    height: 39px;
+    width: 240px;
+    height: 32px;
 
     display: flex;
     align-items: center;
 
     border:
         1px solid
-        var(--border);
+        var(--border-strong);
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     background:
         var(--surface-soft);
@@ -835,7 +888,7 @@ svg {
 
     background: transparent;
 
-    font-size: 8.5px;
+    font-size: 13px;
 }
 
 
@@ -850,13 +903,13 @@ svg {
 ========================================================= */
 
 .header-icon-button {
-    width: 39px;
-    height: 39px;
+    width: 32px;
+    height: 32px;
 
     display: grid;
     place-items: center;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     color:
         var(--text-secondary);
@@ -875,12 +928,12 @@ svg {
 
 .header-icon-button:hover {
     color:
-        var(--purple);
+        var(--accent);
 
     border-color:
         color-mix(
             in srgb,
-            var(--purple) 30%,
+            var(--accent) 30%,
             var(--border)
         );
 }
@@ -929,7 +982,7 @@ svg {
 
 
 .language-button {
-    height: 39px;
+    height: 32px;
 
     padding:
         0 11px;
@@ -939,7 +992,7 @@ svg {
 
     gap: 7px;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     color:
         var(--text-secondary);
@@ -951,7 +1004,7 @@ svg {
         1px solid
         var(--border);
 
-    font-size: 8.5px;
+    font-size: 13px;
     font-weight: 700;
 }
 
@@ -973,7 +1026,7 @@ svg {
         1px solid
         var(--border);
 
-    border-radius: 11px;
+    border-radius: var(--radius);
 
     background:
         var(--surface);
@@ -1014,7 +1067,7 @@ svg {
 
     gap: 10px;
 
-    border-radius: 8px;
+    border-radius: var(--radius);
 
     color:
         var(--text-secondary);
@@ -1033,14 +1086,14 @@ svg {
     min-width: 26px;
 
     color:
-        var(--purple);
+        var(--accent);
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
 .language-dropdown span {
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -1049,7 +1102,7 @@ svg {
 ========================================================= */
 
 .user-button {
-    height: 43px;
+    height: 36px;
 
     padding:
         0 7px;
@@ -1059,7 +1112,7 @@ svg {
 
     gap: 8px;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     color:
         var(--text);
@@ -1081,19 +1134,16 @@ svg {
     display: grid;
     place-items: center;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
-    color: white;
+    color:
+        var(--accent-text);
 
     background:
-        linear-gradient(
-            145deg,
-            #7356e8,
-            #4c38b5
-        );
+        var(--accent);
 
-    font-size: 8px;
-    font-weight: 750;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 
@@ -1114,7 +1164,7 @@ svg {
     white-space: nowrap;
     text-overflow: ellipsis;
 
-    font-size: 8.5px;
+    font-size: 13px;
 }
 
 
@@ -1124,7 +1174,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.8px;
+    font-size: 12px;
 }
 
 
@@ -1148,7 +1198,7 @@ svg {
 
 
 .dropdown-profile strong {
-    font-size: 9px;
+    font-size: 14px;
 }
 
 
@@ -1158,7 +1208,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -1176,14 +1226,14 @@ svg {
 
     gap: 8px;
 
-    border-radius: 8px;
+    border-radius: var(--radius);
 
     color:
         var(--red);
 
     background: transparent;
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -1209,7 +1259,7 @@ svg {
 
 .content {
     padding:
-        25px 27px 55px;
+        16px 20px 48px;
 }
 
 
@@ -1243,19 +1293,20 @@ svg {
 
 /* =========================================================
    HERO
+
+   Prototipda bu binafsha gradientli banner edi, ichida ikkita
+   bezak "shar" bilan. Ish quroli uchun bunday narsa ekranning
+   eng qimmatli joyini bezakka beradi — endi oddiy karta:
+   sana, salom va ikkita amal.
 ========================================================= */
 
 .hero-card {
     position: relative;
 
-    min-height: 122px;
-
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 
     padding:
-        22px;
-
-    overflow: hidden;
+        16px;
 
     display: flex;
     align-items: center;
@@ -1263,92 +1314,55 @@ svg {
 
     gap: 20px;
 
-    border-radius: 18px;
+    border-radius: var(--radius);
 
-    color: white;
-
-    background:
-        linear-gradient(
-            115deg,
-            #302661 0%,
-            #5643bb 48%,
-            #8069e3 100%
-        );
-
-    box-shadow:
-        0 18px 45px
-        rgba(74,54,165,.18);
-}
-
-
-.hero-orb {
-    position: absolute;
-
-    border-radius: 50%;
-
-    pointer-events: none;
-}
-
-
-.orb-one {
-    width: 250px;
-    height: 250px;
-
-    right: -70px;
-    top: -150px;
+    color:
+        var(--text);
 
     background:
-        rgba(255,255,255,.12);
-}
+        var(--surface);
 
-
-.orb-two {
-    width: 180px;
-    height: 180px;
-
-    right: 210px;
-    bottom: -145px;
-
-    background:
-        rgba(23,207,182,.16);
+    border:
+        1px solid
+        var(--border);
 }
 
 
 .hero-content,
 .hero-actions {
     position: relative;
-    z-index: 2;
 }
 
 
 .hero-date {
     display: block;
 
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 
     color:
-        rgba(255,255,255,.62);
+        var(--text-muted);
 
-    font-size: 7.5px;
+    font-size: 12px;
 
     text-transform: uppercase;
-    letter-spacing: .9px;
+    letter-spacing: .4px;
 }
 
 
 .hero-content h2 {
-    font-size: 21px;
-    letter-spacing: -.6px;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -.2px;
 }
 
 
 .hero-content p {
-    margin-top: 5px;
+    margin-top: 3px;
 
     color:
-        rgba(255,255,255,.58);
+        var(--text-muted);
 
-    font-size: 8.5px;
+    font-size: 13px;
 }
 
 
@@ -1360,10 +1374,16 @@ svg {
 
 /* =========================================================
    BUTTONS
+
+   Prototipda har bo'limning o'z gradientli tugmasi bor edi —
+   binafsha, teal, to'q sariq, ko'k. Endi asosiy amal hamma
+   joyda bitta rangda: foydalanuvchi "asosiy tugma qaysi
+   biri" degan savolni har sahifada qaytadan yechmasin.
+   Gradient va rangli soyalar olib tashlandi.
 ========================================================= */
 
 .button {
-    min-height: 39px;
+    min-height: 32px;
 
     padding:
         0 14px;
@@ -1374,19 +1394,21 @@ svg {
 
     gap: 7px;
 
-    border-radius: 9px;
+    border-radius: var(--radius);
 
-    font-size: 8.5px;
-    font-weight: 650;
+    font-size: 13px;
+    font-weight: 500;
 
     transition:
-        all var(--transition);
+        background-color var(--transition),
+        border-color var(--transition),
+        color var(--transition);
 }
 
 
 .button svg {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
 
     fill: none;
     stroke: currentColor;
@@ -1397,73 +1419,33 @@ svg {
 }
 
 
-.button:hover {
-    transform:
-        translateY(-1px);
+.button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
 }
 
 
-.button-gradient {
-    color: white;
-
-    background:
-        linear-gradient(
-            135deg,
-            #8061ed,
-            #5942c4
-        );
-
-    box-shadow:
-        0 8px 20px
-        rgba(113,86,229,.18);
-}
-
-
-.warehouse-gradient {
-    background:
-        linear-gradient(
-            135deg,
-            #25b7a7,
-            #0c8d82
-        );
-
-    box-shadow:
-        0 8px 20px
-        rgba(19,168,153,.17);
-}
-
-
-.sales-gradient {
-    background:
-        linear-gradient(
-            135deg,
-            #f4a04e,
-            #db7425
-        );
-
-    box-shadow:
-        0 8px 20px
-        rgba(237,140,54,.17);
-}
-
-
-.counterparty-gradient {
-    background:
-        linear-gradient(
-            135deg,
-            #25b7a7,
-            #0b8d82
-        );
-}
-
-
+/* Asosiy amal. Sinf nomi tarixiy — gradient endi yo'q. */
+.button-gradient,
+.warehouse-gradient,
+.sales-gradient,
+.counterparty-gradient,
 .users-gradient {
+    color:
+        var(--accent-text);
+
     background:
-        linear-gradient(
-            135deg,
-            #4d8df2,
-            #3165c7
-        );
+        var(--accent);
+}
+
+
+.button-gradient:hover:not(:disabled),
+.warehouse-gradient:hover:not(:disabled),
+.sales-gradient:hover:not(:disabled),
+.counterparty-gradient:hover:not(:disabled),
+.users-gradient:hover:not(:disabled) {
+    background:
+        var(--accent-hover);
 }
 
 
@@ -1476,81 +1458,81 @@ svg {
 
     border:
         1px solid
-        var(--border);
+        var(--border-strong);
 }
 
 
-.button-outline:hover {
+.button-outline:hover:not(:disabled) {
     color:
         var(--text);
 
-    border-color:
-        var(--border-strong);
+    background:
+        var(--surface-hover);
 }
 
 
 .button-soft {
     color:
-        var(--purple);
+        var(--accent);
 
     background:
-        var(--purple-soft);
+        var(--accent-soft);
+}
+
+
+.button-soft:hover:not(:disabled) {
+    background:
+        var(--accent-soft-2);
 }
 
 
 .button-print {
-    color: white;
-
-    background:
-        linear-gradient(
-            135deg,
-            #23222e,
-            #3a394a
-        );
-}
-
-
-.dark-mode
-.button-print {
-    background:
-        linear-gradient(
-            135deg,
-            #6751cf,
-            #49399d
-        );
-}
-
-
-.button-white {
     color:
-        #352b72;
+        var(--text-secondary);
 
-    background: white;
-}
-
-
-.button-glass {
-    color: white;
+    background:
+        var(--surface);
 
     border:
         1px solid
-        rgba(255,255,255,.14);
+        var(--border-strong);
+}
+
+
+.button-print:hover:not(:disabled) {
+    color:
+        var(--text);
 
     background:
-        rgba(255,255,255,.09);
+        var(--surface-hover);
 }
 
 
 .button-danger {
-    color: white;
+    color:
+        var(--accent-text);
 
     background:
         var(--red);
 }
 
 
+.button-danger:hover:not(:disabled) {
+    filter: brightness(.94);
+}
+
+
 /* =========================================================
    KPI
+
+   Prototipda to'rtta karta to'rt xil rangda edi — binafsha,
+   teal, to'q sariq, yashil bir qatorda. Rang hech narsani
+   bildirmasdi, faqat bezak edi. Endi belgi neytral kulrang,
+   e'tibor esa sonning o'zida.
+
+   `.kpi-purple` va shunga o'xshash sinflar sahifalarda hali
+   beriladi va shu yerda ataylab ta'sirsiz qoldirildi: keyin
+   biror ko'rsatkichga rang berish kerak bo'lsa, joyi shu.
 ========================================================= */
 
 .kpi-grid {
@@ -1582,40 +1564,31 @@ svg {
     border:
         1px solid
         var(--border);
-
-    box-shadow:
-        var(--shadow);
-
-    transition:
-        all var(--transition);
-}
-
-
-.kpi-card:hover {
-    transform:
-        translateY(-2px);
-
-    border-color:
-        var(--border-strong);
 }
 
 
 .kpi-icon {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
 
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 
     display: grid;
     place-items: center;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
+
+    color:
+        var(--text-muted);
+
+    background:
+        var(--surface-hover);
 }
 
 
 .kpi-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
 
     fill: none;
     stroke: currentColor;
@@ -1623,73 +1596,39 @@ svg {
 }
 
 
-.kpi-purple
-.kpi-icon {
-    color: var(--purple);
-    background: var(--purple-soft);
-}
-
-
-.kpi-blue
-.kpi-icon {
-    color: var(--blue);
-    background: var(--blue-soft);
-}
-
-
-.kpi-teal
-.kpi-icon {
-    color: var(--teal);
-    background: var(--teal-soft);
-}
-
-
-.kpi-orange
-.kpi-icon {
-    color: var(--orange);
-    background: var(--orange-soft);
-}
-
-
-.kpi-green
-.kpi-icon {
-    color: var(--green);
-    background: var(--green-soft);
-}
-
-
 .kpi-card p {
     color:
         var(--text-secondary);
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
 .kpi-card > strong {
     display: block;
 
-    margin-top: 7px;
+    margin-top: 6px;
 
     font-size: 22px;
-    letter-spacing: -.7px;
+    font-weight: 600;
+    letter-spacing: -.3px;
 }
 
 
 .kpi-card > strong.money-value {
-    font-size: 16px;
+    font-size: 18px;
 }
 
 
 .kpi-card small {
     display: block;
 
-    margin-top: 5px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -1730,9 +1669,6 @@ svg {
     border:
         1px solid
         var(--border);
-
-    box-shadow:
-        var(--shadow);
 }
 
 
@@ -1748,7 +1684,7 @@ svg {
 
 
 .card-heading h3 {
-    font-size: 10.5px;
+    font-size: 15px;
     letter-spacing: -.2px;
 }
 
@@ -1759,7 +1695,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -1771,16 +1707,16 @@ svg {
 
     text-align: center;
 
-    border-radius: 6px;
+    border-radius: var(--radius);
 
-    font-size: 6.5px;
-    font-weight: 750;
+    font-size: 11px;
+    font-weight: 700;
 }
 
 
 .purple-pill {
-    color: var(--purple);
-    background: var(--purple-soft);
+    color: var(--accent);
+    background: var(--accent-soft);
 }
 
 
@@ -1840,7 +1776,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
@@ -1850,20 +1786,10 @@ svg {
     max-width: 34px;
     min-height: 4px;
 
-    border-radius:
-        6px 6px 2px 2px;
+    border-radius: 2px 2px 0 0;
 
     background:
-        linear-gradient(
-            180deg,
-            #9c7aff,
-            #7051dd 60%,
-            #4937a8
-        );
-
-    box-shadow:
-        0 6px 14px
-        rgba(113,86,229,.13);
+        var(--accent);
 }
 
 
@@ -1873,7 +1799,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
@@ -1904,7 +1830,7 @@ svg {
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    font-size: 7.5px;
+    font-size: 12px;
 }
 
 
@@ -1928,12 +1854,7 @@ svg {
     border-radius: inherit;
 
     background:
-        linear-gradient(
-            90deg,
-            #7455e4,
-            #13a899,
-            #ed8c36
-        );
+        var(--accent);
 }
 
 
@@ -1943,7 +1864,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -1966,7 +1887,7 @@ svg {
 
     gap: 9px;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     background:
         var(--surface-soft);
@@ -1986,7 +1907,7 @@ svg {
 
     object-fit: cover;
 
-    border-radius: 9px;
+    border-radius: var(--radius);
 
     background:
         var(--surface-hover);
@@ -2002,16 +1923,16 @@ svg {
     display: grid;
     place-items: center;
 
-    border-radius: 9px;
+    border-radius: var(--radius);
 
     color:
-        var(--purple);
+        var(--accent);
 
     background:
-        var(--purple-soft);
+        var(--accent-soft);
 
-    font-size: 7px;
-    font-weight: 750;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 
@@ -2028,7 +1949,7 @@ svg {
     white-space: nowrap;
     text-overflow: ellipsis;
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -2040,7 +1961,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
@@ -2048,8 +1969,8 @@ svg {
     color:
         var(--orange);
 
-    font-size: 9px;
-    font-weight: 750;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 
@@ -2079,16 +2000,16 @@ svg {
 
 .search-field {
     width: 245px;
-    height: 39px;
+    height: 34px;
 
     display: flex;
     align-items: center;
 
     border:
         1px solid
-        var(--border);
+        var(--border-strong);
 
-    border-radius: 9px;
+    border-radius: var(--radius);
 
     background:
         var(--surface);
@@ -2124,7 +2045,7 @@ svg {
 
     background: transparent;
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -2135,16 +2056,16 @@ svg {
 
 
 .filters select {
-    height: 39px;
+    height: 34px;
 
     padding:
         0 10px;
 
     border:
         1px solid
-        var(--border);
+        var(--border-strong);
 
-    border-radius: 9px;
+    border-radius: var(--radius);
 
     color:
         var(--text-secondary);
@@ -2152,7 +2073,7 @@ svg {
     background:
         var(--surface);
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -2180,9 +2101,7 @@ svg {
     padding:
         15px;
 
-    overflow: hidden;
-
-    border-radius: 14px;
+    border-radius: var(--radius);
 
     background:
         var(--surface);
@@ -2190,29 +2109,6 @@ svg {
     border:
         1px solid
         var(--border);
-
-    box-shadow:
-        var(--shadow);
-}
-
-
-.warehouse-card::after {
-    content: "";
-
-    position: absolute;
-
-    width: 85px;
-    height: 85px;
-
-    right: -42px;
-    top: -42px;
-
-    border-radius: 50%;
-
-    background:
-        var(--warehouse-accent, var(--purple));
-
-    opacity: .08;
 }
 
 
@@ -2232,17 +2128,13 @@ svg {
     display: grid;
     place-items: center;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     color:
-        var(--warehouse-accent, var(--purple));
+        var(--text-muted);
 
     background:
-        color-mix(
-            in srgb,
-            var(--warehouse-accent, var(--purple)) 12%,
-            transparent
-        );
+        var(--surface-hover);
 }
 
 
@@ -2260,7 +2152,7 @@ svg {
     padding:
         4px 6px;
 
-    border-radius: 6px;
+    border-radius: var(--radius);
 
     color:
         var(--text-muted);
@@ -2268,8 +2160,8 @@ svg {
     background:
         var(--surface-soft);
 
-    font-size: 6px;
-    font-weight: 750;
+    font-size: 11px;
+    font-weight: 700;
 }
 
 
@@ -2280,7 +2172,7 @@ svg {
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    font-size: 10px;
+    font-size: 15px;
 }
 
 
@@ -2294,7 +2186,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
@@ -2314,7 +2206,7 @@ svg {
     padding:
         8px;
 
-    border-radius: 8px;
+    border-radius: var(--radius);
 
     background:
         var(--surface-soft);
@@ -2327,7 +2219,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6px;
+    font-size: 11px;
 }
 
 
@@ -2336,7 +2228,7 @@ svg {
 
     margin-top: 4px;
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -2381,7 +2273,7 @@ svg {
 
     gap: 12px;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     background:
         var(--surface);
@@ -2392,57 +2284,24 @@ svg {
 }
 
 
-.metric::before {
-    content: "";
-
-    position: absolute;
-
-    width: 4px;
-
-    inset:
-        0 auto 0 0;
-}
-
-
-.metric-purple::before {
-    background: var(--purple);
-}
-
-
-.metric-blue::before {
-    background: var(--blue);
-}
-
-
-.metric-teal::before {
-    background: var(--teal);
-}
-
-
-.metric-orange::before {
-    background: var(--orange);
-}
-
-
-.metric-green::before {
-    background: var(--green);
-}
-
+/* Prototipda har ko'rsatkichning chap chetida 4px rangli
+   chiziq bor edi — beshta rang bir qatorda, ma'nosiz. Endi
+   ko'rsatkichlar bir xil ko'rinishda va farq faqat sonda.
+   `.metric-purple` kabi sinflar sahifalarda hali beriladi. */
 
 .metric span {
-    padding-left: 4px;
-
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
 .metric strong {
     text-align: right;
 
-    font-size: 8.5px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 
@@ -2471,36 +2330,17 @@ svg {
         var(--radius);
 
     background:
-        linear-gradient(
-            110deg,
-            var(--surface),
-            color-mix(
-                in srgb,
-                var(--teal-soft) 40%,
-                var(--surface)
-            )
-        );
+        var(--surface);
 
     border:
         1px solid
         var(--border);
-
-    box-shadow:
-        var(--shadow);
 }
 
 
 .sales-period-card {
     background:
-        linear-gradient(
-            110deg,
-            var(--surface),
-            color-mix(
-                in srgb,
-                var(--orange-soft) 42%,
-                var(--surface)
-            )
-        );
+        var(--surface);
 }
 
 
@@ -2521,7 +2361,7 @@ svg {
     display: grid;
     place-items: center;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 }
 
 
@@ -2548,7 +2388,7 @@ svg {
 
 
 .period-report-heading h3 {
-    font-size: 9px;
+    font-size: 14px;
 }
 
 
@@ -2558,7 +2398,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
@@ -2574,7 +2414,7 @@ svg {
     padding:
         0 9px;
 
-    border-radius: 8px;
+    border-radius: var(--radius);
 
     color:
         var(--text-secondary);
@@ -2586,7 +2426,7 @@ svg {
         1px solid
         var(--border);
 
-    font-size: 7px;
+    font-size: 12px;
 
     transition:
         all var(--transition);
@@ -2595,19 +2435,16 @@ svg {
 
 .period-button:hover {
     color:
-        var(--purple);
+        var(--accent);
 }
 
 
 .period-button.active {
-    color: white;
+    color:
+        var(--accent-text);
 
     background:
-        linear-gradient(
-            135deg,
-            #795be6,
-            #5541ba
-        );
+        var(--accent);
 
     border-color: transparent;
 }
@@ -2633,7 +2470,7 @@ svg {
         1px solid
         var(--border);
 
-    border-radius: 8px;
+    border-radius: var(--radius);
 
     color:
         var(--text-secondary);
@@ -2641,7 +2478,7 @@ svg {
     background:
         var(--surface);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -2649,7 +2486,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -2669,9 +2506,6 @@ svg {
     border:
         1px solid
         var(--border);
-
-    box-shadow:
-        var(--shadow);
 }
 
 
@@ -2689,7 +2523,7 @@ svg {
 
 
 .data-table th {
-    height: 41px;
+    height: 36px;
 
     padding:
         0 12px;
@@ -2699,7 +2533,7 @@ svg {
     text-align: left;
 
     color:
-        var(--text-muted);
+        var(--text-secondary);
 
     background:
         var(--surface-soft);
@@ -2708,19 +2542,16 @@ svg {
         1px solid
         var(--border);
 
-    font-size: 6.3px;
-    font-weight: 750;
-
-    text-transform: uppercase;
-    letter-spacing: .45px;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 
 .data-table td {
-    height: 56px;
+    height: 40px;
 
     padding:
-        9px 12px;
+        7px 12px;
 
     white-space: nowrap;
 
@@ -2731,7 +2562,7 @@ svg {
         1px solid
         var(--border);
 
-    font-size: 7.5px;
+    font-size: 13px;
 }
 
 
@@ -2750,15 +2581,15 @@ svg {
     color:
         var(--text);
 
-    font-weight: 650;
+    font-weight: 500;
 }
 
 
 .document-number {
     color:
-        var(--purple);
+        var(--accent);
 
-    font-weight: 700;
+    font-weight: 500;
 }
 
 
@@ -2794,7 +2625,7 @@ svg {
     color:
         var(--text);
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -2804,7 +2635,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
@@ -2822,7 +2653,7 @@ svg {
     padding:
         4px 6px;
 
-    border-radius: 5px;
+    border-radius: var(--radius);
 
     color:
         var(--teal);
@@ -2830,7 +2661,7 @@ svg {
     background:
         var(--teal-soft);
 
-    font-size: 6px;
+    font-size: 11px;
 }
 
 
@@ -2847,10 +2678,10 @@ svg {
     padding:
         4px 7px;
 
-    border-radius: 6px;
+    border-radius: var(--radius);
 
-    font-size: 6.5px;
-    font-weight: 650;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 
@@ -2891,15 +2722,15 @@ svg {
     padding:
         4px 7px;
 
-    border-radius: 6px;
+    border-radius: var(--radius);
 
     color:
-        var(--teal);
+        var(--text-secondary);
 
     background:
-        var(--teal-soft);
+        var(--surface-hover);
 
-    font-size: 6.5px;
+    font-size: 12px;
 }
 
 
@@ -2922,7 +2753,7 @@ svg {
     display: grid;
     place-items: center;
 
-    border-radius: 7px;
+    border-radius: var(--radius);
 
     color:
         var(--text-muted);
@@ -2933,10 +2764,10 @@ svg {
 
 .icon-button:hover {
     color:
-        var(--purple);
+        var(--accent);
 
     background:
-        var(--purple-soft);
+        var(--accent-soft);
 }
 
 
@@ -2986,21 +2817,17 @@ svg {
 
     gap: 20px;
 
-    border-radius: 16px;
+    border-radius: var(--radius);
 
-    color: white;
+    color:
+        var(--text);
 
     background:
-        radial-gradient(
-            circle at 88% 8%,
-            rgba(20,190,168,.22),
-            transparent 28%
-        ),
-        linear-gradient(
-            120deg,
-            #282335,
-            #45386a
-        );
+        var(--surface);
+
+    border:
+        1px solid
+        var(--border);
 }
 
 
@@ -3010,18 +2837,19 @@ svg {
     margin-bottom: 6px;
 
     color:
-        #bcaeff;
+        var(--text-muted);
 
-    font-size: 6px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 600;
 
-    letter-spacing: 1.5px;
+    letter-spacing: .4px;
 }
 
 
 .full-report-header h2 {
     font-size: 18px;
-    letter-spacing: -.5px;
+    font-weight: 600;
+    letter-spacing: -.2px;
 }
 
 
@@ -3029,9 +2857,9 @@ svg {
     margin-top: 5px;
 
     color:
-        rgba(255,255,255,.52);
+        var(--text-muted);
 
-    font-size: 7.5px;
+    font-size: 12px;
 }
 
 
@@ -3071,7 +2899,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
@@ -3087,7 +2915,7 @@ svg {
         1px solid
         var(--border);
 
-    border-radius: 8px;
+    border-radius: var(--radius);
 
     color:
         var(--text-secondary);
@@ -3095,7 +2923,7 @@ svg {
     background:
         var(--surface-soft);
 
-    font-size: 7.5px;
+    font-size: 12px;
 }
 
 
@@ -3132,7 +2960,7 @@ svg {
     white-space: nowrap;
     text-overflow: ellipsis;
 
-    font-size: 7.5px;
+    font-size: 12px;
 }
 
 
@@ -3156,19 +2984,14 @@ svg {
     border-radius: inherit;
 
     background:
-        linear-gradient(
-            90deg,
-            #7356e5,
-            #13a899,
-            #ed8c36
-        );
+        var(--accent);
 }
 
 
 .report-bar-row strong {
     text-align: right;
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -3201,12 +3024,12 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 7.5px;
+    font-size: 12px;
 }
 
 
 .report-summary-list strong {
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -3241,24 +3064,21 @@ svg {
     border-radius:
         var(--radius);
 
-    color: white;
+    color:
+        var(--text);
 
     background:
-        radial-gradient(
-            circle at 100% 0,
-            rgba(255,255,255,.11),
-            transparent 25%
-        ),
-        linear-gradient(
-            145deg,
-            #5640ba,
-            #302858
-        );
+        var(--surface);
+
+    border:
+        1px solid
+        var(--border);
 }
 
 
 .settings-info h2 {
-    font-size: 15px;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 
@@ -3266,9 +3086,9 @@ svg {
     margin-top: 7px;
 
     color:
-        rgba(255,255,255,.52);
+        var(--text-muted);
 
-    font-size: 7.5px;
+    font-size: 12px;
     line-height: 1.6;
 }
 
@@ -3286,9 +3106,6 @@ svg {
     border:
         1px solid
         var(--border);
-
-    box-shadow:
-        var(--shadow);
 }
 
 
@@ -3338,8 +3155,8 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 7.3px;
-    font-weight: 650;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 
@@ -3348,27 +3165,28 @@ svg {
 .field textarea {
     width: 100%;
 
-    min-height: 39px;
+    min-height: 34px;
 
     padding:
         0 10px;
 
     border:
         1px solid
-        var(--border);
+        var(--border-strong);
 
-    border-radius: 9px;
+    border-radius: var(--radius);
 
     color:
         var(--text);
 
     background:
-        var(--surface-soft);
+        var(--surface);
 
-    font-size: 8px;
+    font-size: 13px;
 
     transition:
-        all var(--transition);
+        border-color var(--transition),
+        box-shadow var(--transition);
 }
 
 
@@ -3383,18 +3201,11 @@ svg {
 .field select:focus,
 .field textarea:focus {
     border-color:
-        color-mix(
-            in srgb,
-            var(--purple) 55%,
-            var(--border)
-        );
-
-    background:
-        var(--surface);
+        var(--accent);
 
     box-shadow:
         0 0 0 3px
-        var(--purple-soft);
+        var(--accent-soft);
 }
 
 
@@ -3428,7 +3239,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 
     pointer-events: none;
 }
@@ -3457,22 +3268,14 @@ svg {
 
     gap: 13px;
 
-    border-radius: 11px;
+    border-radius: var(--radius);
 
     border:
         1px solid
         var(--border);
 
     background:
-        linear-gradient(
-            120deg,
-            var(--surface-soft),
-            color-mix(
-                in srgb,
-                var(--purple-soft) 40%,
-                var(--surface-soft)
-            )
-        );
+        var(--surface-soft);
 }
 
 
@@ -3491,13 +3294,13 @@ svg {
 
     gap: 6px;
 
-    border-radius: 11px;
+    border-radius: var(--radius);
 
     border:
         1px dashed
         color-mix(
             in srgb,
-            var(--purple) 30%,
+            var(--accent) 30%,
             var(--border)
         );
 
@@ -3528,7 +3331,7 @@ svg {
 
 
 .photo-preview span {
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
@@ -3541,7 +3344,7 @@ svg {
 
 
 .photo-copy strong {
-    font-size: 8.5px;
+    font-size: 13px;
 }
 
 
@@ -3552,7 +3355,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -3571,7 +3374,7 @@ svg {
     padding:
         12px;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     background:
         var(--surface-soft);
@@ -3599,32 +3402,16 @@ svg {
         1px solid
         var(--border);
 
-    border-radius: 11px;
+    border-radius: var(--radius);
 
     background:
-        linear-gradient(
-            100deg,
-            var(--surface-soft),
-            color-mix(
-                in srgb,
-                var(--teal-soft) 35%,
-                var(--surface-soft)
-            )
-        );
+        var(--surface-soft);
 }
 
 
 .sales-calculation-strip {
     background:
-        linear-gradient(
-            100deg,
-            var(--surface-soft),
-            color-mix(
-                in srgb,
-                var(--orange-soft) 40%,
-                var(--surface-soft)
-            )
-        );
+        var(--surface-soft);
 }
 
 
@@ -3640,12 +3427,12 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
 .calculation-strip strong {
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -3674,7 +3461,7 @@ svg {
         1px solid
         var(--border);
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     background:
         var(--surface-soft);
@@ -3690,13 +3477,13 @@ svg {
 
     gap: 4px;
 
-    border-radius: 8px;
+    border-radius: var(--radius);
 }
 
 
 .sale-summary-purple {
     background:
-        var(--purple-soft);
+        var(--accent-soft);
 }
 
 
@@ -3716,12 +3503,12 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 6.5px;
+    font-size: 11px;
 }
 
 
 .sale-product-summary strong {
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -3762,10 +3549,7 @@ svg {
     inset: 0;
 
     background:
-        rgba(8,7,14,.65);
-
-    backdrop-filter:
-        blur(8px);
+        rgba(0, 0, 0, .55);
 }
 
 
@@ -3784,7 +3568,7 @@ svg {
 
     overflow: hidden;
 
-    border-radius: 16px;
+    border-radius: var(--radius);
 
     background:
         var(--surface);
@@ -3845,17 +3629,18 @@ svg {
     margin-bottom: 4px;
 
     color:
-        var(--purple);
+        var(--text-muted);
 
-    font-size: 5.8px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 600;
 
-    letter-spacing: 1.3px;
+    letter-spacing: .4px;
 }
 
 
 .modal-header h3 {
-    font-size: 12px;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 
@@ -3865,7 +3650,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
 }
 
 
@@ -3878,7 +3663,7 @@ svg {
     display: grid;
     place-items: center;
 
-    border-radius: 8px;
+    border-radius: var(--radius);
 
     color:
         var(--text-muted);
@@ -3962,12 +3747,12 @@ svg {
     background:
         var(--red-soft);
 
-    font-weight: 800;
+    font-weight: 700;
 }
 
 
 .confirm-dialog h3 {
-    font-size: 11px;
+    font-size: 16px;
 }
 
 
@@ -3980,7 +3765,7 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 7.5px;
+    font-size: 12px;
     line-height: 1.55;
 }
 
@@ -4022,7 +3807,7 @@ svg {
 
     gap: 9px;
 
-    border-radius: 10px;
+    border-radius: var(--radius);
 
     background:
         var(--surface);
@@ -4048,7 +3833,7 @@ svg {
     display: grid;
     place-items: center;
 
-    border-radius: 7px;
+    border-radius: var(--radius);
 
     color:
         var(--green);
@@ -4056,8 +3841,8 @@ svg {
     background:
         var(--green-soft);
 
-    font-size: 9px;
-    font-weight: 800;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 
@@ -4074,7 +3859,7 @@ svg {
 .toast-copy strong {
     display: block;
 
-    font-size: 8px;
+    font-size: 13px;
 }
 
 
@@ -4086,7 +3871,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 7px;
+    font-size: 12px;
     line-height: 1.45;
 }
 

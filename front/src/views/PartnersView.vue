@@ -309,7 +309,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
 .address {
   max-width: 220px;
   color: var(--text-secondary);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .pill {
@@ -317,7 +317,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   margin-right: 4px;
   padding: 4px 9px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -352,7 +352,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 8px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -370,7 +370,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
 .field-error {
   margin-top: 4px;
   color: var(--red);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .form-error,
@@ -380,7 +380,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .load-error {

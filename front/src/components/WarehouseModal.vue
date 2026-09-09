@@ -222,13 +222,13 @@ function fieldError(field: string): string {
 .field-error {
   margin-top: 4px;
   color: var(--red);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .field-hint {
   margin-top: 4px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .form-error {
@@ -237,6 +237,6 @@ function fieldError(field: string): string {
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 </style>

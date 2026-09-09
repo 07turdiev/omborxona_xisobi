@@ -510,7 +510,7 @@ const fieldError = (field: string): string => {
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 13px;
   text-decoration: underline;
 }
 
@@ -528,7 +528,7 @@ const fieldError = (field: string): string => {
   display: inline-block;
   padding: 4px 9px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -564,20 +564,20 @@ const fieldError = (field: string): string => {
   border-radius: var(--radius-small);
   background: var(--surface-soft);
   color: var(--text-secondary);
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
 .field-error {
   margin-top: 4px;
   color: var(--red);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .field-hint {
   margin-top: 4px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .form-error,
@@ -587,7 +587,7 @@ const fieldError = (field: string): string => {
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .load-error {

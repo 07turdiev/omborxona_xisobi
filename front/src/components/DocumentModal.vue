@@ -525,7 +525,7 @@ const fieldError = (field: string): string => {
 
 .scan-note {
   margin-bottom: 10px;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -538,7 +538,7 @@ const fieldError = (field: string): string => {
 }
 
 .lines-head h4 {
-  font-size: 9px;
+  font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -574,18 +574,18 @@ const fieldError = (field: string): string => {
 
 .lines-total span {
   color: var(--text-muted);
-  font-size: 8px;
+  font-size: 13px;
   text-transform: uppercase;
 }
 
 .lines-total strong {
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .field-error {
   margin-top: 4px;
   color: var(--red);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .form-error {
@@ -594,6 +594,6 @@ const fieldError = (field: string): string => {
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 </style>

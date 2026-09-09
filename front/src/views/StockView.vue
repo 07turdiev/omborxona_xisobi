@@ -415,7 +415,7 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 .stock-totals span {
   display: block;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -423,11 +423,11 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 .stock-totals strong {
   display: block;
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 17px;
 }
 
 .stock-totals .accent strong {
-  color: var(--purple);
+  color: var(--accent);
 }
 
 .stock-totals .warn strong {
@@ -455,14 +455,14 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .pill {
   display: inline-block;
   padding: 4px 9px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -501,7 +501,7 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 .hint {
   margin-bottom: 14px;
   color: var(--text-secondary);
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -512,7 +512,7 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .load-error {

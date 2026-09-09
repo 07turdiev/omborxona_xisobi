@@ -249,7 +249,7 @@ async function onRemoveBarcode(barcode: Barcode) {
 
 .block h4 {
   margin-bottom: 8px;
-  font-size: 9px;
+  font-size: 14px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -258,22 +258,21 @@ async function onRemoveBarcode(barcode: Barcode) {
 .hint {
   margin-bottom: 10px;
   color: var(--text-muted);
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.6;
 }
 
 .mini-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .mini-table th {
   padding: 5px 7px;
   border-bottom: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 6px;
-  text-transform: uppercase;
+  font-size: 12px;
   letter-spacing: 0.05em;
   text-align: left;
 }
@@ -294,7 +293,7 @@ async function onRemoveBarcode(barcode: Barcode) {
 .empty {
   color: var(--text-muted);
   text-align: center;
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .actions {
@@ -315,9 +314,9 @@ async function onRemoveBarcode(barcode: Barcode) {
 
 code {
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   background: var(--surface-hover);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .form-error {
@@ -326,6 +325,6 @@ code {
   border-radius: var(--radius-small);
   background: var(--red-soft);
   color: var(--red);
-  font-size: 8px;
+  font-size: 13px;
 }
 </style>

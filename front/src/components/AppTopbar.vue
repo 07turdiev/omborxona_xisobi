@@ -131,7 +131,7 @@ function onLogout() {
   display: block;
   padding: 0 12px 6px;
   color: var(--text-muted);
-  font-size: 6px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -156,23 +156,23 @@ function onLogout() {
 }
 
 .tenant-option.active {
-  background: var(--purple-soft);
+  background: var(--accent-soft);
 }
 
 .tenant-option strong {
   display: block;
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .tenant-option small {
   display: block;
   margin-top: 1px;
   color: var(--text-muted);
-  font-size: 6px;
+  font-size: 11px;
 }
 
 .tick {
-  color: var(--purple);
-  font-size: 9px;
+  color: var(--accent);
+  font-size: 14px;
 }
 </style>

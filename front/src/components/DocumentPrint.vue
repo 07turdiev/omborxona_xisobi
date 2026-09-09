@@ -197,28 +197,28 @@ function onPrint() {
 
 .company {
   display: block;
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .company-line {
   margin-top: 2px;
-  font-size: 8px;
+  font-size: 13px;
   color: #555;
 }
 
 .doc-meta {
   text-align: right;
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .doc-meta strong {
   display: block;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .doc-number {
   margin-top: 2px;
-  font-size: 10px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -231,7 +231,7 @@ function onPrint() {
 .parties span {
   display: block;
   color: #666;
-  font-size: 7px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -239,20 +239,20 @@ function onPrint() {
 .parties strong {
   display: block;
   margin-top: 2px;
-  font-size: 9px;
+  font-size: 14px;
 }
 
 .sheet-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .sheet-table th {
   padding: 6px 7px;
   border-bottom: 1px solid #111;
   color: #333;
-  font-size: 7px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   text-align: left;
@@ -268,7 +268,7 @@ function onPrint() {
   display: block;
   margin-top: 1px;
   color: #777;
-  font-size: 6px;
+  font-size: 11px;
 }
 
 .sheet-table .sku {
@@ -292,20 +292,20 @@ function onPrint() {
 .total-label {
   padding-top: 10px;
   text-align: right;
-  font-size: 9px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .total {
   padding-top: 10px;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .sheet-note {
   margin-top: 12px;
   color: #555;
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .sheet-foot {
@@ -322,7 +322,7 @@ function onPrint() {
 .sign span {
   display: block;
   color: #666;
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .sign i {
