@@ -62,7 +62,7 @@ def next_number(tenant, kind: str, on_date=None) -> str:
     o'nlab, ya'ni `MAX()` so'rovi arzon va bitta jadvalni kam qiladi.
     """
     on_date = on_date or timezone.localdate()
-    prefix = f'{Document.PREFIXES[kind]}-{on_date.year}-'
+    prefix = f'{_prefix_for(tenant, kind)}-{on_date.year}-'
 
     last = (
         Document.objects.filter(kind=kind, number__startswith=prefix)
@@ -72,6 +72,36 @@ def next_number(tenant, kind: str, on_date=None) -> str:
     counter = int(last.rsplit('-', 1)[1]) + 1 if last else 1
 
     return f'{prefix}{counter:06d}'
+
+
+def _prefix_for(tenant, kind: str) -> str:
+    """Hujjat prefiksi — tashkilot sozlamasidan.
+
+    Sozlama o'zgarsa **eski hujjatlar o'z raqamini saqlaydi**: raqam
+    yaratilishda bir marta yoziladi va keyin tegilmaydi. Ya'ni prefiksni
+    almashtirish tarixni buzmaydi.
+
+    `tenant` `UUID` yoki `Tenant` bo'lishi mumkin — chaqiruvchilar
+    ikkalasini ham beradi.
+    """
+    from apps.tenants.models import Tenant
+
+    fields = {
+        Document.Kind.PURCHASE: 'purchase_prefix',
+        Document.Kind.SALE: 'sale_prefix',
+    }
+
+    field = fields.get(kind)
+
+    if field is None:
+        return Document.PREFIXES[kind]
+
+    if not isinstance(tenant, Tenant):
+        tenant = Tenant.objects.filter(pk=tenant).first()
+
+    value = getattr(tenant, field, '') if tenant else ''
+
+    return value or Document.PREFIXES[kind]
 
 
 def recalculate_totals(document: Document) -> Document:

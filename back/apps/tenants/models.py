@@ -74,6 +74,32 @@ class Tenant(TimeStampedModel):
 
     is_active = models.BooleanField(_('Faol'), default=True)
 
+    # -- Rekvizitlar (hujjat va cheklarda chiqadi) ---------------------
+
+    inn = models.CharField(_('INN'), max_length=20, blank=True)
+    phone = models.CharField(_('Telefon'), max_length=30, blank=True)
+    address = models.CharField(_('Manzil'), max_length=300, blank=True)
+
+    # -- Hujjat raqamlari ----------------------------------------------
+    #
+    # Dizayndagi `importPrefix` / `salePrefix` sozlamalariga mos.
+    # Prefiks o'zgarsa **eski hujjatlar o'z raqamini saqlaydi** — raqam
+    # yaratilganda bir marta yoziladi va keyin tegilmaydi.
+
+    purchase_prefix = models.CharField(_('Kirim prefiksi'), max_length=10, default='KIR')
+    sale_prefix = models.CharField(_('Sotuv prefiksi'), max_length=10, default='SOT')
+    transfer_prefix = models.CharField(
+        _("Ko'chirish prefiksi"), max_length=10, default='KOCH'
+    )
+
+    # -- Ogohlantirish chegaralari -------------------------------------
+
+    expiry_warning_days = models.PositiveSmallIntegerField(
+        _('Yaroqlilik ogohlantirishi, kun'),
+        default=30,
+        help_text=_('Muddat tugashiga shuncha kun qolganda ogohlantiriladi'),
+    )
+
     class Meta:
         verbose_name = _('Tashkilot')
         verbose_name_plural = _('Tashkilotlar')

@@ -79,9 +79,16 @@ Demo foydalanuvchilar (parol ikkalasida ham `demo12345`):
 | `qurilish` | `demo12345` | Baraka qurilish mollari — `mashina` (6 m³), `vagon` (60 m³) |
 | `kiyim` | `demo12345` | Zamon kiyim-kechak — `tup` (10 dona), `top` (50 m) |
 | `superadmin` | `admin12345` | Ikkala tashkilotning egasi + Django admin paneli |
+| `omborchi` | `omborchi12345` | Omborchi — **faqat Chilonzor savdo nuqtasini ko‘radi** |
 
 Ikkita tashkilot ataylab: tenant izolyatsiyasini brauzerda o'zingiz
 tekshirib ko'rishingiz uchun.
+
+`omborchi` hisobi esa **ombor darajasidagi cheklovni** ko'rsatadi.
+`WarehouseAccess` ixtiyoriy: cheklov yozilmagan foydalanuvchi barcha
+omborlarni ko'radi (`qurilish` va `superadmin` shunday). `omborchi` da
+bitta qator bor, shuning uchun u faqat bitta omborni va faqat o'sha
+ombordagi qoldiqni ko'radi.
 
 `superadmin` `seed_demo` tomonidan yaratiladi va ikkala tashkilotga ega
 qilib qo'shiladi. **Django superuser huquqi faqat `/admin/` ga taalluqli** —

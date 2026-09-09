@@ -21,10 +21,14 @@ arxitektura qarorlari — [extraction-plan.md](./extraction-plan.md).
 | **Hisobotlar** | Davr jamlanmasi, kategoriya/ombor kesimi, yo'qotishlar ajratilgan, sof foyda, qoldiq qiymati |
 | **Interfeys** | Dizayn CSS si, sidebar, topbar, tungi rejim, login, boshqaruv paneli, omborlar, mahsulotlar, qoldiqlar, kirim, sotuv, hisobotlar |
 
-Testlar: **172 ta**, hammasi o'tadi.
+| **Ko'chirish** | Ikki bosqichli hujjat, kamomad alohida yoziladi, tannarx tovar bilan yuradi |
+| **Xodimlar** | Rollar, ombor darajasidagi ixtiyoriy cheklov |
+| **Sozlamalar** | Tashkilot rekvizitlari, hujjat prefikslari, valyuta kurslari |
 
-Dizayndagi 10 bo'limdan **7 tasi** ulangan. Ulanmagani: Kontragentlar,
-Foydalanuvchilar, Sozlamalar (API tayyor, interfeys yo'q).
+Testlar: **208 ta**, hammasi o'tadi.
+
+**Dizayndagi 10 bo'limning hammasi ulangan.** Qolgan ish: chek va yorliq
+shablonlari, tashkilot almashtirish, Celery, ishlab chiqarishga chiqarish.
 
 ---
 

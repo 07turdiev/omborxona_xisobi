@@ -99,6 +99,26 @@ const router = createRouter({
       },
     },
     {
+      path: '/users',
+      name: 'users',
+      component: () => import('@/views/UsersView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Foydalanuvchilar',
+        subtitle: 'Xodimlar, rollar va ombor huquqlari',
+      },
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/views/SettingsView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Sozlamalar',
+        subtitle: 'Tashkilot rekvizitlari, hujjat raqamlari va kurslar',
+      },
+    },
+    {
       path: '/units',
       name: 'units',
       component: () => import('@/views/UnitsView.vue'),

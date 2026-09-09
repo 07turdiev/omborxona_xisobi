@@ -524,3 +524,57 @@ export interface Transfer {
   lines: TransferLine[]
   line_count: number
 }
+
+// -- Xodimlar va sozlamalar ------------------------------------------
+
+export interface MembershipRow {
+  id: number
+  user: number
+  username: string
+  full_name: string
+  email: string
+  phone: string
+  role: string
+  role_display: string
+  is_active: boolean
+  can_write: boolean
+  is_admin: boolean
+  /** Nechta omborga cheklangan. Nol — hammasi ochiq. */
+  warehouse_count: number
+  created_at: string
+}
+
+export interface RoleChoice {
+  value: string
+  label: string
+  can_write: boolean
+  is_admin: boolean
+}
+
+export interface TenantSettings {
+  id: string
+  name: string
+  slug: string
+  business_type: string
+  business_type_display: string
+  base_currency: string
+  inn: string
+  phone: string
+  address: string
+  purchase_prefix: string
+  sale_prefix: string
+  transfer_prefix: string
+  expiry_warning_days: number
+  is_active: boolean
+  member_count: number
+}
+
+export interface WarehouseAccessRow {
+  id: number
+  warehouse: number
+  warehouse_name: string
+  user: number
+  user_name: string
+  level: string
+  level_display: string
+}

@@ -33,6 +33,19 @@ DEMO_PASSWORD = 'demo12345'
 SUPERUSER_NAME = 'superadmin'
 SUPERUSER_PASSWORD = 'admin12345'
 
+# Ombor darajasidagi cheklovni ko'rsatish uchun xodim: u faqat bitta
+# omborni ko'radi. Qolgan demo foydalanuvchilarda cheklov yo'q, ya'ni
+# ular hamma narsani ko'radi — standart holat shunday.
+RESTRICTED_STAFF = {
+    'tenant_slug': 'qurilish',
+    'username': 'omborchi',
+    'password': 'omborchi12345',
+    'first_name': 'Sardor',
+    'last_name': 'Omborov',
+    'phone': '+998 90 111 22 33',
+    'warehouse_code': 'DOKON-1',
+}
+
 DEMO_TENANTS = [
     {
         'slug': 'qurilish',
@@ -132,6 +145,7 @@ class Command(BaseCommand):
             self._create_tenant(spec)
 
         self._create_superuser()
+        self._create_restricted_staff()
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('Demo ma\'lumot tayyor.'))
@@ -146,6 +160,60 @@ class Command(BaseCommand):
         self.stdout.write(
             f'  {SUPERUSER_NAME:12} / {SUPERUSER_PASSWORD}   '
             '— superadmin (Django admin + ikkala tashkilot)'
+        )
+        self.stdout.write(
+            f'  {RESTRICTED_STAFF["username"]:12} / {RESTRICTED_STAFF["password"]}   '
+            f'— omborchi, faqat {RESTRICTED_STAFF["warehouse_code"]} omborini koradi'
+        )
+
+    def _create_restricted_staff(self):
+        """Faqat bitta omborni ko'radigan xodim yaratadi.
+
+        `WarehouseAccess` **ixtiyoriy cheklov**: qator yozilmagan
+        foydalanuvchi barcha omborlarni ko'radi. Bitta qator paydo
+        bo'lishi bilan cheklov kuchga kiradi — bu xodim shuni
+        ko'rsatadi.
+        """
+        from apps.warehouse.models import Warehouse, WarehouseAccess
+
+        spec = RESTRICTED_STAFF
+        tenant = Tenant.objects.filter(slug=spec['tenant_slug']).first()
+
+        if tenant is None:
+            return
+
+        user, created = User.objects.get_or_create(
+            username=spec['username'],
+            defaults={
+                'first_name': spec['first_name'],
+                'last_name': spec['last_name'],
+                'phone': spec['phone'],
+                'email': f'{spec["username"]}@example.uz',
+            },
+        )
+
+        if created:
+            user.set_password(spec['password'])
+            user.save(update_fields=['password'])
+
+        Membership.objects.get_or_create(
+            tenant=tenant, user=user,
+            defaults={'role': Membership.Role.STOREKEEPER},
+        )
+
+        with tenant_context(tenant.id):
+            warehouse = Warehouse.objects.filter(code=spec['warehouse_code']).first()
+
+            if warehouse is not None:
+                WarehouseAccess.objects.get_or_create(
+                    tenant=tenant, warehouse=warehouse, user=user,
+                    defaults={'level': WarehouseAccess.Level.OPERATE},
+                )
+
+        verb = 'yaratildi' if created else 'mavjud'
+        self.stdout.write(
+            f'Cheklangan xodim {verb}: {user.username} '
+            f'(faqat {spec["warehouse_code"]})'
         )
 
     def _create_superuser(self):
@@ -186,7 +254,10 @@ class Command(BaseCommand):
 
     def _reset(self):
         slugs = [spec['slug'] for spec in DEMO_TENANTS]
-        usernames = [spec['username'] for spec in DEMO_TENANTS] + [SUPERUSER_NAME]
+        usernames = (
+            [spec['username'] for spec in DEMO_TENANTS]
+            + [SUPERUSER_NAME, RESTRICTED_STAFF['username']]
+        )
 
         for tenant in Tenant.objects.filter(slug__in=slugs):
             # CustomUnit RLS bilan himoyalangan — o'chirish ham kontekstda

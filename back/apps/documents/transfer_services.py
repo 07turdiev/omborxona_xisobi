@@ -30,10 +30,24 @@ DOCUMENT_TYPE = 'transfer'
 
 
 @transaction.atomic
-def next_number(on_date=None) -> str:
-    """Keyingi ko'chirish raqami: `KOCH-2026-000042`."""
+def next_number(on_date=None, tenant=None) -> str:
+    """Keyingi ko'chirish raqami: `KOCH-2026-000042`.
+
+    Prefiks tashkilot sozlamasidan olinadi; berilmasa standart `KOCH`.
+    """
+    from apps.core.tenancy import get_current_tenant_id
+    from apps.tenants.models import Tenant
+
     on_date = on_date or timezone.localdate()
-    prefix = f'{Transfer.PREFIX}-{on_date.year}-'
+
+    if tenant is None:
+        tenant = get_current_tenant_id()
+
+    if tenant is not None and not isinstance(tenant, Tenant):
+        tenant = Tenant.objects.filter(pk=tenant).first()
+
+    prefix_value = getattr(tenant, 'transfer_prefix', '') if tenant else ''
+    prefix = f'{prefix_value or Transfer.PREFIX}-{on_date.year}-'
 
     last = (
         Transfer.objects.filter(number__startswith=prefix)
