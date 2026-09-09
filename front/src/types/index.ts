@@ -468,3 +468,59 @@ export interface DashboardBundle {
   low_stock: LowStockRow[]
   expiring: ExpiringRow[]
 }
+
+// -- Omborlararo ko'chirish ------------------------------------------
+
+export type TransferStatus = 'draft' | 'sent' | 'received' | 'cancelled'
+
+export interface TransferLine {
+  id: number
+  variant: number
+  product_name: string
+  sku: string
+  batch: number | null
+  batch_code: string | null
+  unit: string
+  base_unit: string
+  factor: string
+  quantity_sent: string
+  quantity_sent_base: string
+  quantity_received: string | null
+  quantity_received_base: string | null
+  shortfall: string
+  is_complete: boolean
+  note: string
+  position: number
+}
+
+export interface TransferLineInput {
+  variant: number | null
+  batch?: number | null
+  unit?: string
+  quantity: string
+  note?: string
+}
+
+export interface Transfer {
+  id: number
+  number: string
+  date: string
+  status: TransferStatus
+  status_display: string
+  from_warehouse: number
+  from_warehouse_name: string
+  to_warehouse: number
+  to_warehouse_name: string
+  transit_warehouse: number
+  transit_warehouse_name: string
+  note: string
+  is_editable: boolean
+  in_transit: boolean
+  has_shortfall: boolean
+  total_shortfall: string
+  sent_at: string | null
+  received_at: string | null
+  cancelled_at: string | null
+  lines: TransferLine[]
+  line_count: number
+}

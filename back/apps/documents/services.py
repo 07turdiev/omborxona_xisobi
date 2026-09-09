@@ -75,8 +75,14 @@ def next_number(tenant, kind: str, on_date=None) -> str:
 
 
 def recalculate_totals(document: Document) -> Document:
-    """Hujjat summasini qatorlardan qayta hisoblaydi."""
-    lines = list(document.lines.all())
+    """Hujjat summasini qatorlardan qayta hisoblaydi.
+
+    Qatorlar **yangi so'rov bilan** olinadi, `document.lines.all()` orqali
+    emas. Sabab: hujjat `prefetch_related` bilan yuklangan bo'lsa,
+    `.all()` keshdagi eski nusxalarni qaytaradi — ular tasdiqlash paytida
+    yangilangan `line_cost` ni bilmaydi va summa nol bo'lib chiqadi.
+    """
+    lines = list(DocumentLine.objects.filter(document=document))
 
     document.total_amount = sum((line.line_total for line in lines), ZERO)
     document.total_cost = sum((line.line_cost for line in lines), ZERO)

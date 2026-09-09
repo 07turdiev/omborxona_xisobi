@@ -75,7 +75,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
 
-        return Response(self.get_serializer(document).data)
+        return Response(self.get_serializer(self._reload(document)).data)
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
@@ -89,7 +89,16 @@ class DocumentViewSet(viewsets.ModelViewSet):
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
 
-        return Response(self.get_serializer(document).data)
+        return Response(self.get_serializer(self._reload(document)).data)
+
+    def _reload(self, document):
+        """Obyektni bazadan qayta o'qiydi.
+
+        `get_object()` `prefetch_related` bilan keladi; amal bajarilgach
+        keshdagi qatorlar eskirgan bo'ladi va javobda eski summalar
+        ko'rinadi.
+        """
+        return self.get_queryset().get(pk=document.pk)
 
     @action(detail=False, methods=['get'])
     def summary(self, request):

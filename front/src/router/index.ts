@@ -69,6 +69,26 @@ const router = createRouter({
       },
     },
     {
+      path: '/transfers',
+      name: 'transfers',
+      component: () => import('@/views/TransfersView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Ko‘chirish',
+        subtitle: 'Omborlar orasida: jo‘natildi → qabul qilindi',
+      },
+    },
+    {
+      path: '/counterparties',
+      name: 'counterparties',
+      component: () => import('@/views/PartnersView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Kontragentlar',
+        subtitle: 'Yetkazib beruvchilar va mijozlar',
+      },
+    },
+    {
       path: '/reports',
       name: 'reports',
       component: () => import('@/views/ReportsView.vue'),

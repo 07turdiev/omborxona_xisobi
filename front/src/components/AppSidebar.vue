@@ -25,6 +25,7 @@ const operations = [
   { to: '/stock', icon: 'i-stock', tone: 'blue', label: 'Qoldiqlar' },
   { to: '/imports', icon: 'i-import', tone: 'green', label: 'Kirim' },
   { to: '/sales', icon: 'i-sale', tone: 'orange', label: 'Sotuv' },
+  { to: '/transfers', icon: 'i-warehouse', tone: 'blue', label: 'Ko‘chirish' },
   { to: '/products', icon: 'i-company', tone: 'purple', label: 'Mahsulotlar' },
   { to: '/counterparties', icon: 'i-users', tone: 'teal', label: 'Kontragentlar' },
 ]

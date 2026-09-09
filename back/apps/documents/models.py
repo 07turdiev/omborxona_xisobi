@@ -271,3 +271,8 @@ class DocumentLine(TenantOwnedModel):
             return self.unit_price
 
         return (self.unit_price / self.factor).quantize(Decimal('0.01'))
+
+
+# Ko'chirish hujjati alohida faylda — u ikki bosqichli va o'z holat
+# oqimiga ega, shuning uchun kirim/sotuv mantig'i bilan aralashmasin.
+from apps.documents.transfer_models import Transfer, TransferLine  # noqa: E402,F401
