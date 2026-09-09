@@ -11,6 +11,17 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.catalog.models import Category
+from apps.core.export import (
+    DATE,
+    DATETIME,
+    MONEY,
+    QUANTITY,
+    TEXT,
+    Column,
+    build_workbook,
+    context_meta,
+    excel_response,
+)
 from apps.core.permissions import IsTenantMemberOrReadOnly
 from apps.stock.enums import MovementReason
 from apps.stock.models import Batch, StockBalance, StockMovement
@@ -23,7 +34,10 @@ from apps.stock.serializers import (
 )
 from apps.warehouse.models import WarehouseAccess
 
-MONEY = DecimalField(max_digits=18, decimal_places=2)
+#: SQL yig'indisi uchun chiqish turi. Nomi `MONEY`dan farq qiladi:
+#: eksport ustunining turi ham shunday atalgan va ular aralashib
+#: ketsa, hisobotdagi sonlar matn bo'lib qolar edi.
+MONEY_OUTPUT = DecimalField(max_digits=18, decimal_places=2)
 
 
 class StockBalanceViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -120,12 +134,14 @@ class StockBalanceViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             reserved=Sum('reserved_quantity'),
             purchase_value=Sum(
                 ExpressionWrapper(
-                    F('quantity') * F('variant__purchase_price'), output_field=MONEY
+                    F('quantity') * F('variant__purchase_price'),
+                    output_field=MONEY_OUTPUT,
                 )
             ),
             retail_value=Sum(
                 ExpressionWrapper(
-                    F('quantity') * F('variant__sale_price'), output_field=MONEY
+                    F('quantity') * F('variant__sale_price'),
+                    output_field=MONEY_OUTPUT,
                 )
             ),
         )
@@ -181,6 +197,41 @@ class StockBalanceViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         return Response(StockMovementSerializer(movement).data, status=201)
 
     @action(detail=False, methods=['get'])
+    def export(self, request):
+        """Qoldiqlarni Excel'ga chiqaradi — joriy filtrlar bilan."""
+        rows = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(rows, many=True)
+
+        columns = [
+            Column('product_name', 'Mahsulot', TEXT, width=30),
+            Column('sku', 'SKU', TEXT, width=16),
+            Column('variant_name', 'Variant', TEXT, width=16),
+            Column('category_name', 'Kategoriya', TEXT),
+            Column('warehouse_name', 'Ombor', TEXT),
+            Column('batch_code', 'Partiya', TEXT, width=16),
+            Column('expiry_date', 'Yaroqlilik muddati', DATE),
+            Column('quantity', 'Qoldiq', QUANTITY),
+            Column('unit', 'Birlik', TEXT, width=10),
+            Column('reserved_quantity', 'Band', QUANTITY),
+            Column('available_quantity', 'Mavjud', QUANTITY),
+            Column('avg_unit_cost', 'Birlik tannarxi', MONEY),
+            Column('cost_value', 'Tannarx (FIFO)', MONEY),
+            Column('sale_price', 'Sotuv narxi', MONEY),
+        ]
+
+        workbook = build_workbook(
+            columns,
+            serializer.data,
+            sheet_name='Qoldiqlar',
+            title='Ombor qoldiqlari',
+            meta=context_meta(
+                request, warehouse_id=request.query_params.get('warehouse')
+            ),
+        )
+
+        return excel_response(workbook, 'qoldiqlar')
+
+    @action(detail=False, methods=['get'])
     def reasons(self, request):
         """Harakat sabablari ro'yxati — formalar uchun."""
         return Response([
@@ -198,7 +249,45 @@ class StockBalanceViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         ])
 
 
-class StockMovementViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class _MovementExportMixin:
+    """Jurnalni Excel'ga chiqarish."""
+
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        rows = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(rows, many=True)
+
+        columns = [
+            Column('occurred_at', 'Sana', DATETIME),
+            Column('product_name', 'Mahsulot', TEXT, width=30),
+            Column('sku', 'SKU', TEXT, width=16),
+            Column('warehouse_name', 'Ombor', TEXT),
+            Column('batch_code', 'Partiya', TEXT, width=16),
+            Column('quantity', 'Miqdor', QUANTITY),
+            Column('reason_display', 'Sababi', TEXT, width=28),
+            Column('unit_cost', 'Birlik tannarxi', MONEY),
+            Column('document_type', 'Hujjat turi', TEXT, width=14),
+            Column('document_id', 'Hujjat', TEXT, width=10),
+            Column('user_name', 'Kim', TEXT),
+            Column('note', 'Izoh', TEXT, width=30),
+        ]
+
+        workbook = build_workbook(
+            columns,
+            serializer.data,
+            sheet_name='Harakatlar',
+            title='Qoldiq harakatlari jurnali',
+            meta=context_meta(
+                request, warehouse_id=request.query_params.get('warehouse')
+            ),
+        )
+
+        return excel_response(workbook, 'harakatlar')
+
+
+class StockMovementViewSet(
+    _MovementExportMixin, mixins.ListModelMixin, viewsets.GenericViewSet
+):
     """Harakatlar jurnali — faqat o'qish.
 
     Yozuvni o'zgartirish va o'chirish baza triggeri bilan taqiqlangan,

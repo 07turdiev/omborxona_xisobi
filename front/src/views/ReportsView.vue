@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 
 import { reportsApi, type ReportPeriod } from '@/api/reports'
+import { useExport } from '@/composables/useExport'
 import { useWarehouseStore } from '@/stores/warehouses'
 import type { ReportBundle } from '@/types'
 
@@ -23,6 +24,11 @@ const presets = [
 ]
 
 const activePreset = ref<string>('30 kun')
+
+// Ekrandagi davr bilan bir xil — raqamlar mos kelishi kerak
+const { exporting, exportError, onExport } = useExport(() =>
+  reportsApi.exportExcel(period.value),
+)
 
 function iso(date: Date): string {
   return date.toISOString().slice(0, 10)
@@ -124,13 +130,26 @@ function onPrint() {
         </select>
       </div>
 
-      <button class="button button-outline no-print" type="button" @click="onPrint">
-        <svg><use href="#i-print" /></svg>
-        <span>Chop etish</span>
-      </button>
+      <div class="toolbar-actions no-print">
+        <button
+          class="button button-outline"
+          type="button"
+          :disabled="exporting"
+          @click="onExport"
+        >
+          <svg><use href="#i-download" /></svg>
+          <span>{{ exporting ? 'Tayyorlanmoqda…' : 'Excel' }}</span>
+        </button>
+
+        <button class="button button-outline" type="button" @click="onPrint">
+          <svg><use href="#i-print" /></svg>
+          <span>Chop etish</span>
+        </button>
+      </div>
     </div>
 
     <p v-if="error" class="load-error">{{ error }}</p>
+    <p v-if="exportError" class="load-error no-print">{{ exportError }}</p>
     <p v-if="loading" class="empty-state">Yuklanmoqda…</p>
 
     <template v-if="data && !loading">
@@ -356,6 +375,10 @@ function onPrint() {
 </template>
 
 <style scoped>
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
 .period-buttons {
   display: flex;
   gap: 4px;

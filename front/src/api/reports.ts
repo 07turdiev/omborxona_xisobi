@@ -1,4 +1,4 @@
-import api from '@/api/client'
+import api, { downloadFile } from '@/api/client'
 import type { DashboardBundle, ReportBundle } from '@/types'
 
 export interface ReportPeriod {
@@ -24,5 +24,10 @@ export const reportsApi = {
       params: clean(period),
     })
     return data
+  },
+
+  /** Butun hisobotni ko'p varaqli Excel fayl sifatida yuklab oladi. */
+  exportExcel(period: ReportPeriod = {}) {
+    return downloadFile('/reports/export/', clean(period), 'hisobot.xlsx')
   },
 }

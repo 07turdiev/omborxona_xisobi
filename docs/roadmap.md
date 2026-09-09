@@ -25,12 +25,13 @@ arxitektura qarorlari — [extraction-plan.md](./extraction-plan.md).
 | **Xodimlar** | Rollar, ombor darajasidagi ixtiyoriy cheklov |
 | **Sozlamalar** | Tashkilot rekvizitlari, hujjat prefikslari, valyuta kurslari |
 
-Testlar: **208 ta**, hammasi o'tadi.
+Testlar: **229 ta**, hammasi o'tadi.
 
 | **Kategoriyalar sahifasi** | Daraxt, atribut ta'riflari (o'ziniki va meros olganlari alohida) |
 | **O'ram va shtrix-kod** | Mahsulot formasidan boshqariladi |
 | **Tashkilot almashtirish** | Bir nechta do'konda ishlaydigan foydalanuvchi uchun, `X-Tenant-Id` orqali |
 | **Hujjatni chop etish** | Brauzer orqali — har qanday printerda ishlaydi |
+| **Excel'ga chiqarish** | Qoldiq, harakatlar jurnali, hujjatlar va hisobot; sonlar **son sifatida** yoziladi, ya'ni Excel'da qo'shsa bo'ladi |
 
 **Dizayndagi 10 bo'limning hammasi ulangan.**
 

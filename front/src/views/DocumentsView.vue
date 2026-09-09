@@ -4,7 +4,9 @@ import { useRoute } from 'vue-router'
 
 import DocumentModal from '@/components/DocumentModal.vue'
 import DocumentPrint from '@/components/DocumentPrint.vue'
+import { documentsApi } from '@/api/documents'
 import { tenantsApi } from '@/api/tenants'
+import { useExport } from '@/composables/useExport'
 import { useDocumentStore } from '@/stores/documents'
 import { useWarehouseStore } from '@/stores/warehouses'
 import type { Document, DocumentKind, TenantSettings } from '@/types'
@@ -18,6 +20,11 @@ const isPurchase = computed(() => kind.value === 'purchase')
 
 const modalOpen = ref(false)
 const editing = ref<Document | null>(null)
+
+// Turi sahifadan olinadi: kirim sahifasida sotuvlar chiqmasligi kerak
+const { exporting, exportError, onExport } = useExport(() =>
+  documentsApi.exportExcel({ ...store.filters, kind: kind.value }),
+)
 
 // Chop etish
 const printOpen = ref(false)
@@ -162,14 +169,27 @@ const totals = computed(() =>
         </select>
       </div>
 
-      <button class="button button-gradient" @click="openCreate">
-        <svg><use href="#i-plus" /></svg>
-        <span>{{ isPurchase ? 'Yangi kirim' : 'Yangi sotuv' }}</span>
-      </button>
+      <div class="toolbar-actions">
+        <button
+          class="button button-outline"
+          type="button"
+          :disabled="exporting"
+          @click="onExport"
+        >
+          <svg><use href="#i-download" /></svg>
+          <span>{{ exporting ? 'Tayyorlanmoqda…' : 'Excel' }}</span>
+        </button>
+
+        <button class="button button-gradient" @click="openCreate">
+          <svg><use href="#i-plus" /></svg>
+          <span>{{ isPurchase ? 'Yangi kirim' : 'Yangi sotuv' }}</span>
+        </button>
+      </div>
     </div>
 
     <p v-if="store.error" class="load-error">{{ store.error }}</p>
     <p v-if="actionError" class="load-error">{{ actionError }}</p>
+    <p v-if="exportError" class="load-error">{{ exportError }}</p>
 
     <div class="kpi-grid">
       <article class="kpi-card kpi-purple">
@@ -376,6 +396,10 @@ const totals = computed(() =>
 </template>
 
 <style scoped>
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
 .num {
   text-align: right;
 }

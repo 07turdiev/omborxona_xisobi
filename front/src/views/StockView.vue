@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 
+import { stockApi } from '@/api/stock'
+import { useExport } from '@/composables/useExport'
 import { useCatalogStore } from '@/stores/catalog'
 import { useStockStore } from '@/stores/stock'
 import { useWarehouseStore } from '@/stores/warehouses'
@@ -9,6 +11,17 @@ import type { StockBalance } from '@/types'
 const store = useStockStore()
 const warehouses = useWarehouseStore()
 const catalog = useCatalogStore()
+
+// Ekrandagi filtrlar bilan bir xil kesim yuklab olinadi
+const { exporting, exportError, onExport } = useExport(() =>
+  stockApi.exportBalances(store.filters),
+)
+
+// Jurnal — qoldiq qanday shakllangani. Buxgalter qoldiqni tekshirganda
+// «bu son qayerdan chiqdi?» degan savolga javob shu faylda bo'ladi.
+const journal = useExport(() =>
+  stockApi.exportMovements({ warehouse: store.filters.warehouse }),
+)
 
 const adjustOpen = ref(false)
 const target = ref<StockBalance | null>(null)
@@ -137,7 +150,34 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
           <option value="sellable">Sotuvga tayyor</option>
         </select>
       </div>
+
+      <div class="toolbar-actions">
+        <button
+          class="button button-outline"
+          type="button"
+          :disabled="journal.exporting.value"
+          @click="journal.onExport"
+        >
+          <svg><use href="#i-download" /></svg>
+          <span>{{ journal.exporting.value ? 'Tayyorlanmoqda…' : 'Jurnal' }}</span>
+        </button>
+
+        <button
+          class="button button-outline"
+          type="button"
+          :disabled="exporting"
+          @click="onExport"
+        >
+          <svg><use href="#i-download" /></svg>
+          <span>{{ exporting ? 'Tayyorlanmoqda…' : 'Qoldiqlar' }}</span>
+        </button>
+      </div>
     </div>
+
+    <p v-if="exportError" class="load-error">{{ exportError }}</p>
+    <p v-if="journal.exportError.value" class="load-error">
+      {{ journal.exportError.value }}
+    </p>
 
     <p v-if="store.error" class="load-error">{{ store.error }}</p>
 
@@ -356,6 +396,10 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 </template>
 
 <style scoped>
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
 .stock-totals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));

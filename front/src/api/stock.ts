@@ -1,4 +1,4 @@
-import api from '@/api/client'
+import api, { downloadFile } from '@/api/client'
 import type {
   MovementReasonChoice,
   Paginated,
@@ -70,5 +70,15 @@ export const stockApi = {
   }) {
     const { data } = await api.post<StockMovement>('/stock/stocktake/', payload)
     return data
+  },
+
+  /** Qoldiqlarni joriy filtrlar bilan Excel'ga chiqaradi. */
+  exportBalances(filters: StockFilters = {}) {
+    return downloadFile('/stock/export/', clean(filters), 'qoldiqlar.xlsx')
+  },
+
+  /** Harakatlar jurnalini Excel'ga chiqaradi. */
+  exportMovements(filters: Record<string, unknown> = {}) {
+    return downloadFile('/stock-movements/export/', clean(filters), 'harakatlar.xlsx')
   },
 }

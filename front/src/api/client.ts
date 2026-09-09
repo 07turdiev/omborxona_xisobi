@@ -112,4 +112,51 @@ api.interceptors.response.use(
   },
 )
 
+/**
+ * Serverdan fayl yuklab oladi.
+ *
+ * Oddiy havola bilan bo'lmaydi: yuklashda ham `Authorization` va
+ * `X-Tenant-Id` sarlavhalari kerak, ular esa `<a href>` da yuborilmaydi.
+ * Shuning uchun faylni `blob` sifatida olib, vaqtinchalik havola
+ * yaratamiz.
+ *
+ * Fayl nomi serverdan `Content-Disposition` orqali keladi — sana va
+ * kengaytma o'sha yerda belgilangan.
+ */
+export async function downloadFile(
+  url: string,
+  params: Record<string, unknown> = {},
+  fallbackName = 'export.xlsx',
+): Promise<void> {
+  const response = await api.get<Blob>(url, { params, responseType: 'blob' })
+
+  const disposition = String(response.headers['content-disposition'] ?? '')
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1]
+  const plain = /filename="?([^";]+)"?/i.exec(disposition)?.[1]
+
+  let name = fallbackName
+
+  if (encoded) {
+    try {
+      name = decodeURIComponent(encoded)
+    } catch {
+      name = encoded
+    }
+  } else if (plain) {
+    name = plain
+  }
+
+  const href = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+
+  link.href = href
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+
+  // Brauzer yuklashni boshlaguncha havola kerak — darhol tozalamaymiz
+  setTimeout(() => URL.revokeObjectURL(href), 10_000)
+}
+
 export default api

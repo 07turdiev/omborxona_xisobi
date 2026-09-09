@@ -84,6 +84,12 @@
           <path d="M5 18H3V10H21V18H19"/>
       </symbol>
   
+      <symbol id="i-download" viewBox="0 0 24 24">
+          <path d="M12 3V15"/>
+          <path d="M7 10L12 15L17 10"/>
+          <path d="M4 20H20"/>
+      </symbol>
+
       <symbol id="i-trash" viewBox="0 0 24 24">
           <path d="M4 7H20"/>
           <path d="M9 7V4H15V7"/>

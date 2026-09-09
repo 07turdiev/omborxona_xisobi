@@ -381,3 +381,73 @@ class ReportIsolationTests(TestCase):
 
         with tenant_context(self.tenant_b.id):
             self.assertEqual(reports.period_summary()['revenue'], D('4995'))
+
+
+class ReportExportTests(ReportTestBase):
+    """Hisobotning Excel varianti.
+
+    Ekrandagi raqam bilan fayldagi raqam bir xil bo'lishi kerak —
+    aks holda buxgalter qaysi biriga ishonishni bilmaydi.
+    """
+
+    PERIOD = {'date_from': None, 'date_to': None, 'warehouse': None}
+
+    def build(self):
+        from apps.reports.export import build_report_workbook
+
+        return build_report_workbook(self.PERIOD, [('Tashkilot', 'Do\'kon')])
+
+    def test_barcha_bolimlar_alohida_varaqda(self):
+        workbook = self.build()
+
+        self.assertEqual(
+            workbook.sheetnames,
+            [
+                'Umumiy', 'Kategoriya', 'Omborlar', 'Mahsulotlar',
+                'Kunlik', 'Yo‘qotishlar', 'Qoldiq qiymati',
+            ],
+        )
+
+    def test_sof_foyda_songa_yoziladi(self):
+        self.buy('10', '100')
+        self.sell('5', '200')
+
+        summary = reports.period_summary()
+        sheet = self.build()['Umumiy']
+
+        values = {
+            sheet.cell(row=row, column=1).value: sheet.cell(row=row, column=2).value
+            for row in range(1, sheet.max_row + 1)
+        }
+
+        self.assertEqual(values['Sof foyda'], float(summary['net_profit']))
+        self.assertIsInstance(values['Sof foyda'], float)
+
+    def test_kategoriya_varagi_ildiz_nomini_beradi(self):
+        self.buy('10', '100')
+        self.sell('5', '200')
+
+        sheet = self.build()['Kategoriya']
+        header_row = next(
+            row for row in range(1, sheet.max_row + 1)
+            if sheet.cell(row=row, column=1).value == 'Kategoriya'
+        )
+
+        self.assertEqual(sheet.cell(row=header_row + 1, column=1).value, 'Qurilish')
+        self.assertEqual(sheet.cell(row=header_row + 1, column=3).value, 1000.0)
+
+    def test_yoqotish_varagida_summa_bor(self):
+        self.buy('10', '100')
+
+        stock.record_movement(
+            variant=self.variant, warehouse=self.main, quantity=D('-2'),
+            reason=MovementReason.WRITE_OFF_DAMAGED,
+        )
+
+        sheet = self.build()['Yo‘qotishlar']
+        header_row = next(
+            row for row in range(1, sheet.max_row + 1)
+            if sheet.cell(row=row, column=1).value == 'Sababi'
+        )
+
+        self.assertEqual(sheet.cell(row=header_row + 1, column=4).value, 200.0)

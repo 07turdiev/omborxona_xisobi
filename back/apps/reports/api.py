@@ -14,8 +14,13 @@ PERIOD_PARAMS = [
     OpenApiParameter('warehouse', int, description='Ombor ID si'),
 ]
 
+from apps.core.export import context_meta, excel_response
 from apps.core.permissions import HasTenantMembership
 from apps.reports import services
+from apps.reports.export import build_report_workbook
+
+#: Excel fayl turi — sxemada javob shu tarzda e'lon qilinadi
+XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 
 @extend_schema_view(
@@ -89,6 +94,34 @@ class ReportViewSet(ViewSet):
     def valuation(self, request):
         return Response(
             services.stock_valuation(request.query_params.get('warehouse') or None)
+        )
+
+    @extend_schema(
+        parameters=PERIOD_PARAMS,
+        responses={(200, XLSX_MIME): bytes},
+        description="Butun hisobotni ko'p varaqli Excel fayl sifatida yuklab olish.",
+    )
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        """Hisobotni Excel'ga chiqaradi.
+
+        Ekrandagi filtrlar bilan bir xil davr olinadi — foydalanuvchi
+        ko'rib turgan raqamlar bilan fayldagi raqamlar mos kelishi kerak.
+        """
+        period = self._period(request)
+        workbook = build_report_workbook(period, self._export_meta(request, period))
+
+        return excel_response(workbook, 'hisobot')
+
+    def _export_meta(self, request, period: dict) -> list[tuple[str, str]]:
+        """Fayl qaysi shartlarda olinganini yozib qo'yadi."""
+        date_from = period['date_from'] or '—'
+        date_to = period['date_to'] or '—'
+
+        return context_meta(
+            request,
+            warehouse_id=period['warehouse'],
+            extra=[('Davr', f'{date_from} … {date_to}')],
         )
 
     @action(detail=False, methods=['get'])

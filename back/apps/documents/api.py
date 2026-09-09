@@ -6,10 +6,22 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Count, Q, Sum
+from openpyxl import Workbook
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.core.export import (
+    DATE,
+    MONEY,
+    NUMBER,
+    QUANTITY,
+    TEXT,
+    Column,
+    add_sheet,
+    context_meta,
+    excel_response,
+)
 from apps.core.permissions import IsTenantMemberOrReadOnly
 from apps.documents import services
 from apps.documents.models import Document
@@ -102,6 +114,108 @@ class DocumentViewSet(viewsets.ModelViewSet):
         ko'rinadi.
         """
         return self.get_queryset().get(pk=document.pk)
+
+    #: Hujjatlar ro'yxati varag'i
+    DOCUMENT_COLUMNS = [
+        Column('number', 'Raqam', TEXT, width=16),
+        Column('date', 'Sana', DATE),
+        Column('kind_display', 'Turi', TEXT, width=14),
+        Column('status_display', 'Holati', TEXT, width=14),
+        Column('warehouse_name', 'Ombor', TEXT),
+        Column('partner_name', 'Kontragent', TEXT, width=26),
+        Column('external_number', 'Tashqi raqam', TEXT, width=16),
+        Column('line_count', 'Qatorlar', NUMBER),
+        Column('total_amount', 'Summa', MONEY),
+        Column('total_cost', 'Tannarx', MONEY),
+        Column('profit', 'Foyda', MONEY),
+        Column('currency', 'Valyuta', TEXT, width=10),
+        Column('note', 'Izoh', TEXT, width=30),
+    ]
+
+    #: Qatorlar varag'i — buxgalterga aynan shu kesim kerak bo'ladi
+    LINE_COLUMNS = [
+        Column('number', 'Hujjat', TEXT, width=16),
+        Column('date', 'Sana', DATE),
+        Column('kind_display', 'Turi', TEXT, width=14),
+        Column('warehouse_name', 'Ombor', TEXT),
+        Column('partner_name', 'Kontragent', TEXT, width=26),
+        Column('product_name', 'Mahsulot', TEXT, width=30),
+        Column('sku', 'SKU', TEXT, width=16),
+        Column('batch_code', 'Partiya', TEXT, width=16),
+        Column('quantity', 'Miqdor', QUANTITY),
+        Column('unit', 'Birlik', TEXT, width=10),
+        Column('quantity_base', 'Bazaviy miqdor', QUANTITY),
+        Column('base_unit', 'Bazaviy birlik', TEXT, width=12),
+        Column('unit_price', 'Narx', MONEY),
+        Column('discount_percent', 'Chegirma, %', MONEY),
+        Column('line_total', 'Qator summasi', MONEY),
+        Column('line_cost', 'Qator tannarxi', MONEY),
+    ]
+
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        """Hujjatlarni Excel'ga chiqaradi.
+
+        Ikki varaq: hujjatlar ro'yxati va **qatorlar**. Ro'yxatning
+        o'zi yetarli emas — buxgalter odatda qaysi mahsulot qanchadan
+        o'tganini ko'rishi kerak.
+        """
+        documents = self.filter_queryset(self.get_queryset())
+        rows = self.get_serializer(documents, many=True).data
+
+        workbook = Workbook()
+        meta = self._export_meta(request)
+
+        add_sheet(
+            workbook,
+            self.DOCUMENT_COLUMNS,
+            rows,
+            sheet_name='Hujjatlar',
+            title='Hujjatlar',
+            meta=meta,
+            sheet=workbook.active,
+        )
+
+        add_sheet(
+            workbook,
+            self.LINE_COLUMNS,
+            self._flatten_lines(rows),
+            sheet_name='Qatorlar',
+            title='Hujjat qatorlari',
+            meta=meta,
+        )
+
+        return excel_response(workbook, 'hujjatlar')
+
+    @staticmethod
+    def _flatten_lines(rows):
+        """Har qatorga hujjat ma'lumotini qo'shib yassilaydi."""
+        header_keys = (
+            'number', 'date', 'kind_display', 'warehouse_name', 'partner_name'
+        )
+
+        for document in rows:
+            header = {key: document.get(key) for key in header_keys}
+
+            for line in document.get('lines') or []:
+                yield {**line, **header}
+
+    def _export_meta(self, request):
+        """Fayl qaysi filtrlar bilan olinganini yozadi."""
+        params = request.query_params
+
+        date_from = params.get('date_from') or '—'
+        date_to = params.get('date_to') or '—'
+
+        return context_meta(
+            request,
+            warehouse_id=params.get('warehouse'),
+            extra=[
+                ('Davr', f'{date_from} … {date_to}'),
+                ('Turi', params.get('kind') or 'barchasi'),
+                ('Holati', params.get('status') or 'barchasi'),
+            ],
+        )
 
     @action(detail=False, methods=['get'])
     def summary(self, request):

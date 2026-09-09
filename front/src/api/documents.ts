@@ -1,4 +1,4 @@
-import api from '@/api/client'
+import api, { downloadFile } from '@/api/client'
 import type {
   Document,
   DocumentKind,
@@ -77,6 +77,11 @@ export const documentsApi = {
       params: clean(filters),
     })
     return data
+  },
+
+  /** Hujjatlar va ularning qatorlarini Excel'ga chiqaradi. */
+  exportExcel(filters: DocumentFilters = {}) {
+    return downloadFile('/documents/export/', clean(filters), 'hujjatlar.xlsx')
   },
 }
 
