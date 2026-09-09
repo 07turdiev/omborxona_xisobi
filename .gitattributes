@@ -1,0 +1,52 @@
+# Qator oxiri belgilari.
+#
+# Loyiha Windows'da yoziladi, Linux serverda ishlaydi. Windows CRLF
+# (\r\n) ishlatadi — bu ba'zi fayllar uchun **halokatli**:
+#
+#   ./scripts/backup.sh
+#   bash: ./scripts/backup.sh: /usr/bin/env bash^M: bad interpreter
+#
+# Shuning uchun quyidagi fayllar har doim LF bilan saqlanadi va
+# chiqariladi, kim qaysi tizimda tahrirlashidan qat'i nazar.
+
+# Standart: matn fayllarni git o'zi aniqlaydi
+* text=auto
+
+# Linuxda bajariladigan yoki Linux tomonidan o'qiladigan fayllar —
+# har doim LF
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+*.dockerfile    text eol=lf
+.dockerignore   text eol=lf
+docker-compose*.yml text eol=lf
+*.conf          text eol=lf
+Procfile        text eol=lf
+
+# Python va veb fayllari ham LF — muharrirlar ikkalasini ham tushunadi,
+# lekin diff toza bo'ladi
+*.py            text eol=lf
+*.ts            text eol=lf
+*.vue           text eol=lf
+*.js            text eol=lf
+*.css           text eol=lf
+*.html          text eol=lf
+*.json          text eol=lf
+*.md            text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+
+# Windows uchun mo'ljallangan fayllar — CRLF
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+
+# Ikkilik fayllar — tegilmasin
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.pdf           binary
+*.woff          binary
+*.woff2         binary
+*.ttf           binary
+*.dump          binary
