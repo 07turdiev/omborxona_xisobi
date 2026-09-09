@@ -59,6 +59,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/categories',
+      name: 'categories',
+      component: () => import('@/views/CategoriesView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Kategoriyalar',
+        subtitle: 'Kategoriya daraxti va atribut ta’riflari',
+      },
+    },
+    {
       path: '/products',
       name: 'products',
       component: () => import('@/views/ProductsView.vue'),

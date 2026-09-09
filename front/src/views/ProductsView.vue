@@ -109,10 +109,17 @@ const totalVariants = computed(() =>
         </select>
       </div>
 
-      <button class="button button-gradient" @click="openCreate">
-        <svg><use href="#i-plus" /></svg>
-        <span>Mahsulot qo‘shish</span>
-      </button>
+      <div class="toolbar-actions">
+        <RouterLink to="/categories" class="button button-soft">
+          <svg><use href="#i-settings" /></svg>
+          <span>Kategoriyalar</span>
+        </RouterLink>
+
+        <button class="button button-gradient" @click="openCreate">
+          <svg><use href="#i-plus" /></svg>
+          <span>Mahsulot qo‘shish</span>
+        </button>
+      </div>
     </div>
 
     <p v-if="store.error" class="load-error">{{ store.error }}</p>
@@ -257,6 +264,11 @@ const totalVariants = computed(() =>
 </template>
 
 <style scoped>
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .kpi-grid.compact {
   margin-bottom: 16px;
 }

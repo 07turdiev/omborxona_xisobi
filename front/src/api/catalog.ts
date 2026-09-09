@@ -37,10 +37,36 @@ export const catalogApi = {
     await api.delete(`/categories/${id}/`)
   },
 
-  /** Kategoriyada amal qiladigan atributlar — meros bilan. */
+  /** Kategoriyada amal qiladigan atributlar — **meros bilan**. */
   async categoryAttributes(id: number) {
     const { data } = await api.get<AttributeDefinition[]>(`/categories/${id}/attributes/`)
     return data
+  },
+
+  /** Faqat shu kategoriyaning **o'z** atributlari — meros olganlarisiz. */
+  async attributeDefinitions(category: number) {
+    const { data } = await api.get<Paginated<AttributeDefinition>>(
+      '/attribute-definitions/',
+      { params: { category } },
+    )
+    return data.results
+  },
+
+  async createAttributeDefinition(payload: Partial<AttributeDefinition>) {
+    const { data } = await api.post<AttributeDefinition>('/attribute-definitions/', payload)
+    return data
+  },
+
+  async updateAttributeDefinition(id: number, payload: Partial<AttributeDefinition>) {
+    const { data } = await api.patch<AttributeDefinition>(
+      `/attribute-definitions/${id}/`,
+      payload,
+    )
+    return data
+  },
+
+  async removeAttributeDefinition(id: number) {
+    await api.delete(`/attribute-definitions/${id}/`)
   },
 
   async products(filters: ProductFilters = {}) {
@@ -63,6 +89,11 @@ export const catalogApi = {
 
   async removeProduct(id: number) {
     await api.delete(`/products/${id}/`)
+  },
+
+  async variant(id: number) {
+    const { data } = await api.get<Variant>(`/variants/${id}/`)
+    return data
   },
 
   async updateVariant(id: number, payload: Partial<Variant>) {

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 import { catalogApi } from '@/api/catalog'
+import VariantExtras from '@/components/VariantExtras.vue'
 import { useCatalogStore } from '@/stores/catalog'
-import type { AttributeDefinition, Product, ProductInput } from '@/types'
+import type { AttributeDefinition, Product, ProductInput, Variant } from '@/types'
 
 const props = defineProps<{ show: boolean; product: Product | null }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
@@ -13,6 +14,15 @@ const store = useCatalogStore()
 const errors = ref<Record<string, string[]>>({})
 const definitions = ref<AttributeDefinition[]>([])
 const loadingAttributes = ref(false)
+
+/** O'ram va shtrix-kod uchun: mavjud mahsulotning birinchi varianti. */
+const firstVariant = computed<Variant | null>(
+  () => props.product?.variants?.[0] ?? null,
+)
+
+const baseUnit = computed(
+  () => props.product?.effective_unit ?? String(form.base_unit ?? ''),
+)
 
 /** Atribut qiymatlari — xom holicha (`{"qalinlik": "12 mm"}`). */
 const attributeValues = reactive<Record<string, string | boolean>>({})
@@ -210,6 +220,13 @@ function fieldError(field: string): string {
             </div>
           </div>
 
+          <!-- O'ram birliklari va shtrix-kodlar -->
+          <div v-if="product" class="extras-block">
+            <h4>O‘ram va shtrix-kodlar</h4>
+
+            <VariantExtras :variant="firstVariant" :base-unit="baseUnit" />
+          </div>
+
           <!-- Kategoriyaga bog'liq atributlar -->
           <div v-if="form.category" class="attribute-block">
             <h4>
@@ -276,6 +293,20 @@ function fieldError(field: string): string {
 </template>
 
 <style scoped>
+.extras-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.extras-block h4 {
+  margin-bottom: 12px;
+  font-size: 9px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .attribute-block {
   margin-top: 18px;
   padding-top: 16px;

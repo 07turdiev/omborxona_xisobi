@@ -27,6 +27,8 @@ arxitektura qarorlari — [extraction-plan.md](./extraction-plan.md).
 
 Testlar: **208 ta**, hammasi o'tadi.
 
+| **Kategoriyalar sahifasi** | Daraxt, atribut ta'riflari (o'ziniki va meros olganlari alohida) |
+| **O'ram va shtrix-kod** | Mahsulot formasidan boshqariladi |
 | **Tashkilot almashtirish** | Bir nechta do'konda ishlaydigan foydalanuvchi uchun, `X-Tenant-Id` orqali |
 | **Hujjatni chop etish** | Brauzer orqali — har qanday printerda ishlaydi |
 
