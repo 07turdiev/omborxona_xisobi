@@ -180,6 +180,7 @@ class TransferViewSet(viewsets.ModelViewSet):
 
     serializer_class = TransferSerializer
     permission_classes = [IsTenantMemberOrReadOnly]
+    queryset = Transfer.objects.none()
 
     def get_queryset(self):
         queryset = (

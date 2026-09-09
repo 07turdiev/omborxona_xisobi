@@ -26,6 +26,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     serializer_class = DocumentSerializer
     permission_classes = [IsTenantMemberOrReadOnly]
+    # Sxema generatori so'rovsiz ishlaydi va `get_queryset()` u yerda
+    # yiqiladi — model tipi shu atributdan aniqlanadi
+    queryset = Document.objects.none()
 
     def get_queryset(self):
         queryset = (

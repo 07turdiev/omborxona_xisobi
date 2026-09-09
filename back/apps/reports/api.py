@@ -2,14 +2,30 @@
 
 from __future__ import annotations
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
+
+#: Barcha hisobot endpointlariga umumiy parametrlar
+PERIOD_PARAMS = [
+    OpenApiParameter('date_from', str, description='Davr boshi (YYYY-MM-DD)'),
+    OpenApiParameter('date_to', str, description='Davr oxiri (YYYY-MM-DD)'),
+    OpenApiParameter('warehouse', int, description='Ombor ID si'),
+]
 
 from apps.core.permissions import HasTenantMembership
 from apps.reports import services
 
 
+@extend_schema_view(
+    list=extend_schema(
+        parameters=PERIOD_PARAMS,
+        responses={200: dict},
+        description="Barcha asosiy hisobotlar bir so'rovda.",
+    ),
+)
+@extend_schema(parameters=PERIOD_PARAMS, responses={200: dict})
 class ReportViewSet(ViewSet):
     """Hisobotlar.
 

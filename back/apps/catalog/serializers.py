@@ -42,6 +42,10 @@ class CategorySerializer(serializers.ModelSerializer):
     depth = serializers.IntegerField(read_only=True)
     product_count = serializers.IntegerField(read_only=True)
 
+    #: `ltree` maydoni — DRF va drf-spectacular uni bilmaydi, shuning
+    #: uchun ochiq matn sifatida e'lon qilinadi
+    path = serializers.CharField(read_only=True)
+
     class Meta:
         model = Category
         fields = (

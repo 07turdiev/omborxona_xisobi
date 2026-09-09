@@ -27,6 +27,7 @@ class TenantSettingsViewSet(
 
     serializer_class = TenantSettingsSerializer
     permission_classes = [IsTenantAdminOrReadOnly]
+    queryset = Tenant.objects.none()
 
     def get_queryset(self):
         return Tenant.objects.filter(pk=self.request.tenant_id)
@@ -58,6 +59,7 @@ class MembershipViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsTenantAdminOrReadOnly]
+    queryset = Membership.objects.none()
 
     def get_queryset(self):
         queryset = (

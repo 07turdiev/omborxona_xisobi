@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 User = get_user_model()
@@ -43,6 +44,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj) -> str:
         return obj.get_full_name() or obj.username
 
+    @extend_schema_field(MembershipBriefSerializer(many=True))
     def get_memberships(self, obj):
         query = obj.memberships.filter(
             is_active=True, tenant__is_active=True
@@ -50,6 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         return MembershipBriefSerializer(query, many=True).data
 
+    @extend_schema_field(MembershipBriefSerializer(allow_null=True))
     def get_current_tenant(self, obj):
         request = self.context.get('request')
         tenant_id = getattr(request, 'tenant_id', None)

@@ -1,0 +1,80 @@
+# Ishlab chiqarish uchun tarkib.
+#
+# Ishga tushirish:
+#   cp .env.production.example .env.production
+#   # .env.production ni to'ldiring (parollar, domen)
+#   docker compose up -d --build
+#   docker compose exec backend python manage.py migrate
+#   docker compose exec backend python manage.py createsuperuser
+#
+# HTTPS bu yerda yo'q: sertifikatni tashqi reverse proxy (Caddy,
+# Traefik yoki nginx + certbot) bergani ma'qul. Sabab — sertifikat
+# yangilanishi ilova hayot siklidan mustaqil bo'lishi kerak.
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # O'zbekcha saralash uchun
+      LANG: en_US.utf8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Extensionlar migratsiya orqali o'rnatiladi (core/0001_extensions),
+      # shuning uchun init skript kerak emas
+    healthcheck:
+      # Backend baza tayyor bo'lgunicha kutadi — aks holda birinchi
+      # ishga tushishda migratsiya yiqiladi
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./back
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      # Konteynerlar bir-birini nom orqali topadi
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      # Yuklangan rasmlar konteyner qayta qurilganda yo'qolmasin
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./front
+    restart: unless-stopped
+    ports:
+      # Tashqi reverse proxy shu portga ulanadi
+      - '${WEB_PORT:-8080}:80'
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:

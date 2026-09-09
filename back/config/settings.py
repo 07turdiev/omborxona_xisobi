@@ -58,6 +58,9 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # Statik fayllarni Django o'zi beradi — nginx uchun alohida volume
+    # kerak emas. SecurityMiddleware dan keyin turishi shart.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -142,6 +145,19 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        # Fayl nomiga hash qo'shadi va siqadi — brauzer keshi
+        # eskirmasligi uchun.
+        #
+        # `DEBUG=True` da xavfsiz: Django `ManifestFilesMixin._url()`
+        # ichida hashlashni o'tkazib yuboradi, ya'ni `collectstatic`
+        # bajarilmagan bo'lsa ham ishlab chiqish rejimi buzilmaydi.
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -182,3 +198,98 @@ SPECTACULAR_SETTINGS = {
 
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
+
+# Tashkilotni tanlash sarlavhasi — frontend har so'rovda yuboradi
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "x-tenant-id",
+]
+
+
+# --- Xavfsizlik -----------------------------------------------------------
+#
+# Bu sozlamalar faqat DEBUG=False bo'lganda yoqiladi. Ishlab chiqishda
+# HTTPS yo'q, ya'ni ularni doim yoqib qo'yish lokal ishni buzardi.
+#
+# To'g'ri sozlanganini `manage.py check --deploy` tekshiradi.
+
+if not DEBUG:
+    # HTTPS ga majburiy yo'naltirish. Reverse proxy (nginx) orqasida
+    # Django so'rov HTTPS ekanini o'zi bilmaydi — sarlavha orqali
+    # bildiriladi.
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+    # HSTS: brauzer shu domenga faqat HTTPS orqali murojaat qiladi.
+    #
+    # DIQQAT: bu sozlamani qaytarib olish qiyin — brauzer qiymatni
+    # eslab qoladi va muddat tugagunicha HTTP ga tushmaydi. Shuning
+    # uchun boshida kichik qiymat (masalan 3600) bilan sinab ko'ring,
+    # sertifikat barqaror ishlaganiga ishonch hosil qilgach oshiring.
+    SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=3600)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+        "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False
+    )
+    SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
+
+    # Cookie'lar faqat HTTPS orqali yuboriladi
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    # Cookie'ni JavaScript o'qiy olmaydi (XSS da token o'g'irlanmasin)
+    SESSION_COOKIE_HTTPONLY = True
+
+    # Boshqa saytdan yuborilgan so'rovda cookie ketmasin
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SAMESITE = "Lax"
+
+    # Sahifani begona saytda iframe ichida ochib bo'lmaydi
+    X_FRAME_OPTIONS = "DENY"
+
+    # Brauzer Content-Type ni o'zi taxmin qilmasin
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    # Formalarni qaysi domendan yuborish mumkin (Django 4+ talab qiladi)
+    CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+
+# --- Loglash --------------------------------------------------------------
+#
+# Ishlab chiqarishda xatolar konsolga chiqadi va systemd/Docker jurnaliga
+# tushadi. Alohida fayl ishlatilmadi: konteynerda fayl yozish qo'shimcha
+# hajm va rotatsiya muammosini keltiradi.
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": env("LOG_LEVEL", default="INFO"),
+    },
+    "loggers": {
+        "django.db.backends": {
+            # SQL so'rovlarini ko'rish uchun LOG_LEVEL=DEBUG yetarli emas —
+            # bu logger ataylab alohida, chunki u juda shovqinli
+            "level": env("SQL_LOG_LEVEL", default="WARNING"),
+            "propagate": True,
+        },
+    },
+}

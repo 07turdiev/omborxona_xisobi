@@ -8,6 +8,7 @@ djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.30.0
 flexcache==0.3
 flexparser==0.4
+gunicorn==26.2.0
 inflection==0.5.1
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
@@ -24,3 +25,4 @@ sqlparse==0.6.0
 typing_extensions==4.16.0
 tzdata==2026.3
 uritemplate==4.2.0
+whitenoise==6.12.0

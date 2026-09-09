@@ -22,6 +22,7 @@ class WarehouseViewSet(viewsets.ModelViewSet):
 
     serializer_class = WarehouseSerializer
     permission_classes = [IsTenantMemberOrReadOnly]
+    queryset = Warehouse.objects.none()
 
     def get_queryset(self):
         queryset = Warehouse.objects.all()
