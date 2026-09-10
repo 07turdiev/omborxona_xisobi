@@ -269,7 +269,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 
     <div class="split">
       <!-- Daraxt -->
-      <div class="table-card tree-card">
+      <div class="table-card card-padded tree-card">
         <h3>Kategoriya daraxti</h3>
 
         <p v-if="loading" class="empty-state">Yuklanmoqda…</p>
@@ -313,7 +313,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
         </p>
 
         <template v-else>
-          <div class="table-card">
+          <div class="table-card card-padded">
             <div class="detail-head">
               <div>
                 <h3>{{ selected.name }}</h3>
@@ -369,7 +369,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
           </div>
 
           <!-- Atributlar -->
-          <div class="table-card">
+          <div class="table-card card-padded">
             <div class="detail-head">
               <h3>Atributlar</h3>
 
@@ -675,7 +675,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 .split {
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
-  gap: 14px;
+  gap: 12px;
   align-items: start;
 }
 
@@ -683,14 +683,6 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
   .split {
     grid-template-columns: 1fr;
   }
-}
-
-.table-card {
-  padding: 18px 20px;
-}
-
-.table-card h3 {
-  font-size: 15px;
 }
 
 .tree-card h3 {
@@ -707,7 +699,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  padding: 7px 9px;
+  padding: 6px 8px;
   border: 1px solid transparent;
   border-radius: var(--radius-small);
   background: none;
@@ -732,7 +724,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 }
 
 .off {
-  margin-left: 5px;
+  margin-left: 4px;
   color: var(--red);
   font-size: 11px;
   font-weight: 400;
@@ -741,11 +733,11 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 .tree-meta {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .tree-meta b {
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: 999px;
   background: var(--surface-hover);
   color: var(--text-secondary);
@@ -760,7 +752,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 .detail {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .detail-head {
@@ -778,7 +770,7 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 }
 
 .path {
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--text-muted);
   font-size: 12px;
   font-family: monospace;
@@ -793,22 +785,16 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
 .meta-grid span {
   display: block;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.4px;
 }
 
 .meta-grid strong {
   display: block;
-  margin-top: 3px;
+  margin-top: 4px;
   font-size: 16px;
-}
-
-.hint {
-  margin-bottom: 12px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
 }
 
 .dim-row {
@@ -816,15 +802,8 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
   color: var(--text-secondary);
 }
 
-.cell-sub {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
 code {
-  padding: 1px 5px;
+  padding: 2px 4px;
   border-radius: var(--radius);
   background: var(--surface-hover);
   font-size: 12px;
@@ -836,39 +815,9 @@ code {
   flex-wrap: wrap;
 }
 
-.pill {
-  display: inline-block;
-  padding: 3px 7px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.pill-red {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.pill-purple {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.pill-blue {
-  background: var(--blue-soft);
-  color: var(--blue);
-}
-
-.row-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
 .check-row {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   padding-top: 6px;
   flex-wrap: wrap;
 }
@@ -876,7 +825,7 @@ code {
 .check {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: 13px;
   cursor: pointer;
 }
@@ -886,30 +835,4 @@ code {
   margin: 0;
 }
 
-.field-error {
-  margin-top: 4px;
-  color: var(--red);
-  font-size: 12px;
-}
-
-.field-hint {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.form-error,
-.load-error {
-  margin: 12px 0;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
-
-.load-error {
-  margin: 0 0 14px;
-}
 </style>

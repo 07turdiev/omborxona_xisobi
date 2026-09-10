@@ -244,22 +244,14 @@ async function onRemoveBarcode(barcode: Barcode) {
 .extras {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 18px;
+  gap: 16px;
 }
 
 .block h4 {
   margin-bottom: 8px;
-  font-size: 14px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.hint {
-  margin-bottom: 10px;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .mini-table {
@@ -269,7 +261,7 @@ async function onRemoveBarcode(barcode: Barcode) {
 }
 
 .mini-table th {
-  padding: 5px 7px;
+  padding: 4px 6px;
   border-bottom: 1px solid var(--border);
   color: var(--text-muted);
   font-size: 12px;
@@ -277,17 +269,9 @@ async function onRemoveBarcode(barcode: Barcode) {
   text-align: left;
 }
 
-.mini-table th.num {
-  text-align: right;
-}
-
-.mini-table td {
-  padding: 5px 7px;
+.mini-table th.mini-table td {
+  padding: 4px 6px;
   border-bottom: 1px solid var(--border);
-}
-
-.num {
-  text-align: right;
 }
 
 .empty {
@@ -304,7 +288,7 @@ async function onRemoveBarcode(barcode: Barcode) {
 .add-row {
   display: flex;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .add-row input,
@@ -313,18 +297,10 @@ async function onRemoveBarcode(barcode: Barcode) {
 }
 
 code {
-  padding: 1px 5px;
+  padding: 2px 4px;
   border-radius: var(--radius);
   background: var(--surface-hover);
   font-size: 12px;
 }
 
-.form-error {
-  grid-column: 1 / -1;
-  padding: 8px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
 </style>

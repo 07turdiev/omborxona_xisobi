@@ -219,24 +219,5 @@ function fieldError(field: string): string {
 <style scoped>
 /* Dizaynda maydon xatolari uchun sinf yo'q — qo'shamiz, uslub o'sha yerdagi
    rang o'zgaruvchilaridan olinadi. */
-.field-error {
-  margin-top: 4px;
-  color: var(--red);
-  font-size: 12px;
-}
 
-.field-hint {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.form-error {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
 </style>

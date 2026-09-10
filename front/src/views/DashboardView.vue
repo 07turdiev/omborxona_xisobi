@@ -118,7 +118,7 @@ const dailyMax = computed(() =>
       </div>
 
       <div class="dash-grid">
-        <div class="table-card chart-card">
+        <div class="table-card card-padded chart-card">
           <h3>Kunlik tushum</h3>
 
           <p v-if="!data.daily_sales.length" class="empty-state">
@@ -137,7 +137,7 @@ const dailyMax = computed(() =>
           </div>
         </div>
 
-        <div class="table-card">
+        <div class="table-card card-padded">
           <h3>
             Kam qolgan tovarlar
             <b v-if="data.low_stock.length" class="count-badge">
@@ -160,7 +160,7 @@ const dailyMax = computed(() =>
       </div>
 
       <div class="dash-grid">
-        <div class="table-card">
+        <div class="table-card card-padded">
           <h3>Oxirgi harakatlar</h3>
 
           <p v-if="!data.recent_movements.length" class="empty-state">
@@ -188,7 +188,7 @@ const dailyMax = computed(() =>
           </table>
         </div>
 
-        <div class="table-card">
+        <div class="table-card card-padded">
           <h3>
             Muddati yaqin partiyalar
             <b v-if="data.expiring.length" class="count-badge danger">
@@ -218,27 +218,22 @@ const dailyMax = computed(() =>
 </template>
 
 <style scoped>
-.dash-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.table-card {
-  padding: 18px 20px;
-}
-
+/* Sarlavha yonida belgi turadi — qolgan uslub app.css dan */
 .table-card h3 {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
   margin-bottom: 12px;
-  font-size: 15px;
 }
 
 .count-badge {
-  padding: 2px 7px;
+  padding: 2px 6px;
   border-radius: 999px;
   background: var(--yellow-soft);
   color: var(--yellow);
@@ -259,7 +254,7 @@ const dailyMax = computed(() =>
   align-items: flex-end;
   gap: 6px;
   height: 150px;
-  padding-top: 10px;
+  padding-top: 8px;
 }
 
 .day-column {
@@ -292,7 +287,7 @@ const dailyMax = computed(() =>
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
@@ -331,42 +326,4 @@ const dailyMax = computed(() =>
   white-space: nowrap;
 }
 
-.cell-sub {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.num {
-  text-align: right;
-  font-weight: 700;
-}
-
-.positive {
-  color: var(--green);
-}
-
-.negative {
-  color: var(--red);
-}
-
-.pill {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.pill-grey {
-  background: var(--surface-hover);
-  color: var(--text-secondary);
-}
-
-.pill-red {
-  background: var(--red-soft);
-  color: var(--red);
-}
 </style>

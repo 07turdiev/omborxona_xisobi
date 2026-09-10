@@ -74,7 +74,8 @@ function openPrint(document: Document) {
 
 function toggle(id: number) {
   const next = new Set(expanded.value)
-  next.has(id) ? next.delete(id) : next.add(id)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
   expanded.value = next
 }
 
@@ -396,41 +397,10 @@ const totals = computed(() =>
 </template>
 
 <style scoped>
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-}
-.num {
-  text-align: right;
-}
-
-.muted {
-  color: var(--text-muted);
-}
 
 .profit {
   color: var(--green);
   font-weight: 700;
-}
-
-.cell-sub {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.expand-toggle {
-  width: 16px;
-  height: 16px;
-  margin-right: 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
 }
 
 .lines-row > td {
@@ -451,52 +421,10 @@ const totals = computed(() =>
   text-align: left;
 }
 
-.inner-table th.num {
-  text-align: right;
-}
-
-.inner-table td {
+.inner-table th.inner-table td {
   padding: 6px 8px;
   border-top: 1px solid var(--border);
   font-size: 13px;
 }
 
-.pill {
-  display: inline-block;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.pill-grey {
-  background: var(--surface-hover);
-  color: var(--text-secondary);
-}
-
-.pill-green {
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.pill-red {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.row-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-
-.load-error {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
 </style>

@@ -81,7 +81,8 @@ function onSearchInput() {
 
 function toggle(id: number) {
   const next = new Set(expanded.value)
-  next.has(id) ? next.delete(id) : next.add(id)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
   expanded.value = next
 }
 
@@ -666,13 +667,6 @@ const formError = (field: string): string => {
 </template>
 
 <style scoped>
-.num {
-  text-align: right;
-}
-
-.muted {
-  color: var(--text-muted);
-}
 
 .shortfall {
   color: var(--red);
@@ -681,26 +675,6 @@ const formError = (field: string): string => {
 
 .transit {
   color: var(--orange);
-}
-
-.cell-sub {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.expand-toggle {
-  width: 16px;
-  height: 16px;
-  margin-right: 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
 }
 
 .lines-row > td {
@@ -721,53 +695,14 @@ const formError = (field: string): string => {
   text-align: left;
 }
 
-.inner-table th.num {
-  text-align: right;
-}
-
-.inner-table td {
+.inner-table th.inner-table td {
   padding: 6px 8px;
   border-top: 1px solid var(--border);
   font-size: 13px;
 }
 
-.pill {
-  display: inline-block;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.pill-grey {
-  background: var(--surface-hover);
-  color: var(--text-secondary);
-}
-
-.pill-blue {
-  background: var(--blue-soft);
-  color: var(--blue);
-}
-
-.pill-green {
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.pill-red {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.row-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-
 .lines-block {
-  margin-top: 18px;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
@@ -776,14 +711,14 @@ const formError = (field: string): string => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .lines-head h4 {
-  font-size: 14px;
+  margin-bottom: 0;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .lines-table input,
@@ -795,20 +730,9 @@ const formError = (field: string): string => {
   padding: 6px 8px;
 }
 
-.notice {
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--orange);
-  border-radius: var(--radius-small);
-  background: var(--orange-soft);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
 .shortfall-note {
   margin-top: 12px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius-small);
   background: var(--orange-soft);
   color: var(--orange);
@@ -816,29 +740,4 @@ const formError = (field: string): string => {
   line-height: 1.5;
 }
 
-.field-error {
-  margin-top: 4px;
-  color: var(--red);
-  font-size: 12px;
-}
-
-.field-hint {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.form-error,
-.load-error {
-  margin: 12px 0;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
-
-.load-error {
-  margin: 0 0 14px;
-}
 </style>

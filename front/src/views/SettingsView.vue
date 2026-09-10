@@ -128,7 +128,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
       </div>
 
       <!-- Tashkilot -->
-      <div class="table-card">
+      <div class="table-card card-padded">
         <h3>Tashkilot</h3>
 
         <div class="form-grid three">
@@ -174,7 +174,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
       </div>
 
       <!-- Hujjat raqamlari -->
-      <div class="table-card">
+      <div class="table-card card-padded">
         <h3>Hujjat raqamlari</h3>
 
         <p class="hint">
@@ -211,7 +211,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
       </div>
 
       <!-- Hisob-kitob -->
-      <div class="table-card">
+      <div class="table-card card-padded">
         <h3>Hisob-kitob</h3>
 
         <div class="form-grid three">
@@ -255,7 +255,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
       </div>
 
       <!-- Valyuta kurslari -->
-      <div v-if="currencies.length" class="table-card">
+      <div v-if="currencies.length" class="table-card card-padded">
         <h3>Valyuta kurslari</h3>
 
         <p class="hint">
@@ -310,7 +310,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
       </div>
 
       <!-- Interfeys -->
-      <div class="table-card">
+      <div class="table-card card-padded">
         <h3>Interfeys</h3>
 
         <div class="theme-row">
@@ -329,25 +329,14 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
 </template>
 
 <style scoped>
-.table-card {
-  margin-bottom: 14px;
-  padding: 18px 20px;
+/* Kartalar ustma-ust: oralig'i boshqa sahifalardagi kabi 12px */
+.table-card + .table-card {
+  margin-top: 12px;
 }
 
-.table-card h3 {
-  margin-bottom: 14px;
-  font-size: 15px;
-}
-
-.hint {
-  margin-bottom: 14px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
 
 .hint code {
-  padding: 1px 5px;
+  padding: 2px 4px;
   border-radius: var(--radius);
   background: var(--surface-hover);
   font-size: 12px;
@@ -358,7 +347,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .saved-note {
@@ -371,8 +360,8 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
 }
 
@@ -395,38 +384,4 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   font-size: 12px;
 }
 
-.num {
-  text-align: right;
-}
-
-.notice {
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-small);
-  background: var(--surface-soft);
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.field-error {
-  margin-top: 4px;
-  color: var(--red);
-  font-size: 12px;
-}
-
-.field-hint {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.form-error {
-  padding: 8px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
 </style>

@@ -202,20 +202,6 @@ function formatNumber(value: string | null): string {
 
 <style scoped>
 /* Quyidagi sinflar dizaynda yo'q edi — ranglar app.css o'zgaruvchilaridan. */
-.cell-sub {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.pill {
-  display: inline-block;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
 
 .pill-main {
   background: var(--accent-soft);
@@ -232,28 +218,4 @@ function formatNumber(value: string | null): string {
   color: var(--orange);
 }
 
-.pill-on {
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.pill-off {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.row-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.load-error {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
 </style>

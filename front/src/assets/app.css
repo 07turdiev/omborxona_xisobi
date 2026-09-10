@@ -209,7 +209,9 @@ body {
     color:
         var(--text);
 
-    font-size: 19px;
+    /* Mantine `sm` — InvenTree'ning asosiy matn o'lchami */
+    font-size: 14px;
+    line-height: 1.55;
 
     overflow-x: hidden;
 
@@ -242,6 +244,18 @@ input,
 select,
 textarea {
     outline: none;
+}
+
+
+/* Klaviatura bilan ishlaydigan foydalanuvchi qayerda turganini
+   ko'rishi kerak. `outline: none` faqat sichqoncha uchun edi —
+   `:focus-visible` esa aynan klaviatura holatida ishlaydi. */
+:focus-visible {
+    outline:
+        2px solid
+        var(--accent);
+
+    outline-offset: 1px;
 }
 
 
@@ -318,12 +332,12 @@ svg {
     height: 56px;
 
     padding:
-        0 14px;
+        0 16px;
 
     display: flex;
     align-items: center;
 
-    gap: 10px;
+    gap: 8px;
 
     border-bottom:
         1px solid
@@ -371,7 +385,7 @@ svg {
 
 
 .brand-copy span {
-    margin-top: 1px;
+    margin-top: 2px;
 
     color:
         var(--sidebar-muted);
@@ -425,10 +439,10 @@ svg {
 
 .workspace-card {
     margin:
-        12px 12px 6px;
+        12px 8px 8px;
 
     padding:
-        10px;
+        8px;
 
     border-radius:
         var(--radius);
@@ -457,7 +471,7 @@ svg {
 .workspace-card > strong {
     display: block;
 
-    margin-top: 3px;
+    margin-top: 4px;
 
     overflow: hidden;
     white-space: nowrap;
@@ -540,7 +554,7 @@ svg {
     width: 100%;
     height: 34px;
 
-    margin-bottom: 1px;
+    margin-bottom: 2px;
 
     padding:
         0 8px;
@@ -548,7 +562,7 @@ svg {
     display: flex;
     align-items: center;
 
-    gap: 9px;
+    gap: 8px;
 
     border-radius:
         var(--radius);
@@ -629,7 +643,7 @@ svg {
     min-width: 20px;
 
     padding:
-        1px 6px;
+        2px 6px;
 
     text-align: center;
 
@@ -661,12 +675,12 @@ svg {
 
 .sidebar-footer {
     padding:
-        10px 12px;
+        12px 16px;
 
     display: flex;
     align-items: center;
 
-    gap: 9px;
+    gap: 8px;
 
     border-top:
         1px solid
@@ -720,7 +734,7 @@ svg {
 
 
 .sidebar-user-copy span {
-    margin-top: 1px;
+    margin-top: 2px;
 
     color:
         var(--sidebar-muted);
@@ -789,14 +803,14 @@ svg {
 
 
 .page-heading h1 {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 600;
     letter-spacing: -.2px;
 }
 
 
 .page-heading p {
-    margin-top: 1px;
+    margin-top: 2px;
 
     color:
         var(--text-muted);
@@ -863,7 +877,7 @@ svg {
     width: 15px;
     height: 15px;
 
-    margin-left: 11px;
+    margin-left: 12px;
 
     fill: none;
 
@@ -879,7 +893,7 @@ svg {
     min-width: 0;
 
     padding:
-        0 10px;
+        0 8px;
 
     border: 0;
 
@@ -985,12 +999,12 @@ svg {
     height: 32px;
 
     padding:
-        0 11px;
+        0 12px;
 
     display: flex;
     align-items: center;
 
-    gap: 7px;
+    gap: 6px;
 
     border-radius: var(--radius);
 
@@ -1005,7 +1019,7 @@ svg {
         var(--border);
 
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 
@@ -1060,12 +1074,12 @@ svg {
     height: 38px;
 
     padding:
-        0 9px;
+        0 8px;
 
     display: flex;
     align-items: center;
 
-    gap: 10px;
+    gap: 8px;
 
     border-radius: var(--radius);
 
@@ -1105,7 +1119,7 @@ svg {
     height: 36px;
 
     padding:
-        0 7px;
+        0 6px;
 
     display: flex;
     align-items: center;
@@ -1180,13 +1194,13 @@ svg {
 
 .user-dropdown {
     width: 220px;
-    padding: 7px;
+    padding: 6px;
 }
 
 
 .dropdown-profile {
     padding:
-        10px;
+        8px;
 
     display: flex;
     flex-direction: column;
@@ -1203,7 +1217,7 @@ svg {
 
 
 .dropdown-profile span {
-    margin-top: 3px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
@@ -1216,10 +1230,10 @@ svg {
     width: 100%;
     height: 37px;
 
-    margin-top: 5px;
+    margin-top: 4px;
 
     padding:
-        0 9px;
+        0 8px;
 
     display: flex;
     align-items: center;
@@ -1342,7 +1356,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 12px;
+    font-size: 11px;
 
     text-transform: uppercase;
     letter-spacing: .4px;
@@ -1350,14 +1364,14 @@ svg {
 
 
 .hero-content h2 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: -.2px;
 }
 
 
 .hero-content p {
-    margin-top: 3px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
@@ -1386,13 +1400,13 @@ svg {
     min-height: 32px;
 
     padding:
-        0 14px;
+        0 12px;
 
     display: inline-flex;
     align-items: center;
     justify-content: center;
 
-    gap: 7px;
+    gap: 6px;
 
     border-radius: var(--radius);
 
@@ -1658,7 +1672,7 @@ svg {
     min-width: 0;
 
     padding:
-        17px;
+        16px;
 
     border-radius:
         var(--radius);
@@ -1679,7 +1693,7 @@ svg {
 
     gap: 12px;
 
-    margin-bottom: 15px;
+    margin-bottom: 16px;
 }
 
 
@@ -1703,7 +1717,7 @@ svg {
     min-width: 26px;
 
     padding:
-        4px 7px;
+        4px 6px;
 
     text-align: center;
 
@@ -1736,10 +1750,10 @@ svg {
     display: flex;
     align-items: flex-end;
 
-    gap: 13px;
+    gap: 12px;
 
     padding:
-        10px 4px 0;
+        8px 4px 0;
 
     background-image:
         linear-gradient(
@@ -1809,7 +1823,7 @@ svg {
 
 .progress-list {
     display: grid;
-    gap: 13px;
+    gap: 12px;
 }
 
 
@@ -1821,7 +1835,7 @@ svg {
 
     align-items: center;
 
-    gap: 10px;
+    gap: 8px;
 }
 
 
@@ -1880,12 +1894,12 @@ svg {
 
 .low-stock-item {
     padding:
-        9px;
+        8px;
 
     display: flex;
     align-items: center;
 
-    gap: 9px;
+    gap: 8px;
 
     border-radius: var(--radius);
 
@@ -1956,7 +1970,7 @@ svg {
 .low-stock-copy span {
     display: block;
 
-    margin-top: 3px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
@@ -1985,7 +1999,7 @@ svg {
     align-items: center;
     justify-content: space-between;
 
-    gap: 14px;
+    gap: 12px;
 }
 
 
@@ -1994,7 +2008,7 @@ svg {
     align-items: center;
     flex-wrap: wrap;
 
-    gap: 7px;
+    gap: 8px;
 }
 
 
@@ -2020,7 +2034,7 @@ svg {
     width: 14px;
     height: 14px;
 
-    margin-left: 11px;
+    margin-left: 12px;
 
     fill: none;
 
@@ -2036,7 +2050,7 @@ svg {
     min-width: 0;
 
     padding:
-        0 9px;
+        0 8px;
 
     border: 0;
 
@@ -2059,7 +2073,7 @@ svg {
     height: 34px;
 
     padding:
-        0 10px;
+        0 8px;
 
     border:
         1px solid
@@ -2089,7 +2103,7 @@ svg {
     grid-template-columns:
         repeat(4, minmax(0, 1fr));
 
-    gap: 10px;
+    gap: 12px;
 }
 
 
@@ -2099,7 +2113,7 @@ svg {
     min-width: 0;
 
     padding:
-        15px;
+        16px;
 
     border-radius: var(--radius);
 
@@ -2117,7 +2131,7 @@ svg {
     align-items: center;
     justify-content: space-between;
 
-    gap: 10px;
+    gap: 8px;
 }
 
 
@@ -2198,7 +2212,7 @@ svg {
     grid-template-columns:
         repeat(2, 1fr);
 
-    gap: 7px;
+    gap: 6px;
 }
 
 
@@ -2241,7 +2255,7 @@ svg {
 
     display: grid;
 
-    gap: 9px;
+    gap: 12px;
 }
 
 
@@ -2263,7 +2277,7 @@ svg {
     min-width: 0;
 
     padding:
-        13px 14px;
+        12px;
 
     overflow: hidden;
 
@@ -2313,7 +2327,7 @@ svg {
     margin-bottom: 12px;
 
     padding:
-        14px;
+        16px;
 
     display: grid;
 
@@ -2324,7 +2338,7 @@ svg {
 
     align-items: center;
 
-    gap: 14px;
+    gap: 12px;
 
     border-radius:
         var(--radius);
@@ -2348,7 +2362,7 @@ svg {
     display: flex;
     align-items: center;
 
-    gap: 10px;
+    gap: 8px;
 }
 
 
@@ -2393,7 +2407,7 @@ svg {
 
 
 .period-report-heading p {
-    margin-top: 3px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
@@ -2404,7 +2418,7 @@ svg {
 
 .period-presets {
     display: flex;
-    gap: 5px;
+    gap: 4px;
 }
 
 
@@ -2412,7 +2426,7 @@ svg {
     min-height: 32px;
 
     padding:
-        0 9px;
+        0 8px;
 
     border-radius: var(--radius);
 
@@ -2548,10 +2562,10 @@ svg {
 
 
 .data-table td {
-    height: 40px;
+    height: 38px;
 
     padding:
-        7px 12px;
+        4px 12px;
 
     white-space: nowrap;
 
@@ -2574,6 +2588,25 @@ svg {
 .data-table tbody tr:hover td {
     background:
         var(--surface-hover);
+}
+
+
+/* Son ustunlari o'ngga tekislanadi va raqamlar bir xil
+   kenglikda bo'ladi — aks holda 1 va 8 turli joy egallab,
+   ustun "titraydi". */
+.num,
+.data-table th.num,
+.data-table td.num {
+    text-align: right;
+
+    font-variant-numeric: tabular-nums;
+}
+
+
+.money-value,
+.kpi-card > strong,
+.metric strong {
+    font-variant-numeric: tabular-nums;
 }
 
 
@@ -2603,7 +2636,7 @@ svg {
     display: flex;
     align-items: center;
 
-    gap: 9px;
+    gap: 8px;
 }
 
 
@@ -2630,7 +2663,7 @@ svg {
 
 
 .product-cell-copy span {
-    margin-top: 3px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
@@ -2673,12 +2706,12 @@ svg {
     display: inline-flex;
     align-items: center;
 
-    gap: 5px;
+    gap: 4px;
 
     padding:
-        4px 7px;
+        3px 8px;
 
-    border-radius: var(--radius);
+    border-radius: 999px;
 
     font-size: 12px;
     font-weight: 500;
@@ -2720,7 +2753,7 @@ svg {
     display: inline-flex;
 
     padding:
-        4px 7px;
+        4px 6px;
 
     border-radius: var(--radius);
 
@@ -2737,14 +2770,6 @@ svg {
 /* =========================================================
    ROW ACTION
 ========================================================= */
-
-.row-actions {
-    display: flex;
-    justify-content: flex-end;
-
-    gap: 4px;
-}
-
 
 .icon-button {
     width: 28px;
@@ -2790,14 +2815,31 @@ svg {
 }
 
 
+/* Bo'sh holat. Ilgari bitta qoida edi va `!important` bilan
+   yozilgandi — jadval katagida ham, kichik kartada ham 42px
+   to'ldirish berardi, ya'ni "Hammasi yetarli" degan qisqa
+   xabar ham yarim ekranni egallardi. */
 .empty-state {
     padding:
-        42px 20px !important;
+        24px 20px;
 
     text-align: center;
 
     color:
-        var(--text-muted) !important;
+        var(--text-muted);
+
+    font-size: 13px;
+}
+
+
+/* Jadval ichida ko'proq joy kerak — bo'sh jadval "yiqilib"
+   qolmasin. `td` ga qaraganda aniqroq selektor, shuning uchun
+   `!important` kerak emas. */
+.data-table td.empty-state {
+    height: auto;
+
+    padding:
+        40px 20px;
 }
 
 
@@ -2809,7 +2851,7 @@ svg {
     margin-bottom: 12px;
 
     padding:
-        20px;
+        16px;
 
     display: flex;
     align-items: center;
@@ -2847,14 +2889,14 @@ svg {
 
 
 .full-report-header h2 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: -.2px;
 }
 
 
 .full-report-header p {
-    margin-top: 5px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
@@ -2867,7 +2909,7 @@ svg {
     margin-bottom: 12px;
 
     padding:
-        13px 14px;
+        12px;
 
     display: flex;
     align-items: flex-end;
@@ -2894,7 +2936,7 @@ svg {
 
 
 .global-filter-item label {
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 
     color:
         var(--text-muted);
@@ -2909,7 +2951,7 @@ svg {
     height: 38px;
 
     padding:
-        0 9px;
+        0 8px;
 
     border:
         1px solid
@@ -2951,7 +2993,7 @@ svg {
 
     align-items: center;
 
-    gap: 10px;
+    gap: 8px;
 }
 
 
@@ -3007,7 +3049,7 @@ svg {
     align-items: center;
     justify-content: space-between;
 
-    gap: 14px;
+    gap: 12px;
 
     border-bottom:
         1px solid
@@ -3051,7 +3093,7 @@ svg {
     grid-template-columns:
         260px minmax(0,1fr);
 
-    gap: 14px;
+    gap: 12px;
 }
 
 
@@ -3059,7 +3101,7 @@ svg {
     align-self: start;
 
     padding:
-        18px;
+        16px;
 
     border-radius:
         var(--radius);
@@ -3083,7 +3125,7 @@ svg {
 
 
 .settings-info p {
-    margin-top: 7px;
+    margin-top: 6px;
 
     color:
         var(--text-muted);
@@ -3095,7 +3137,7 @@ svg {
 
 .settings-card {
     padding:
-        19px;
+        16px;
 
     border-radius:
         var(--radius);
@@ -3168,7 +3210,7 @@ svg {
     min-height: 34px;
 
     padding:
-        0 10px;
+        0 8px;
 
     border:
         1px solid
@@ -3191,7 +3233,7 @@ svg {
 
 
 .field textarea {
-    padding-top: 9px;
+    padding-top: 8px;
 
     resize: vertical;
 }
@@ -3246,7 +3288,7 @@ svg {
 
 
 .form-actions {
-    margin-top: 18px;
+    margin-top: 16px;
 
     display: flex;
     justify-content: flex-end;
@@ -3266,7 +3308,7 @@ svg {
     display: flex;
     align-items: center;
 
-    gap: 13px;
+    gap: 12px;
 
     border-radius: var(--radius);
 
@@ -3350,7 +3392,7 @@ svg {
 
 .photo-copy p {
     margin:
-        4px 0 9px;
+        4px 0 8px;
 
     color:
         var(--text-muted);
@@ -3369,7 +3411,7 @@ svg {
 ========================================================= */
 
 .document-info-card {
-    margin-bottom: 15px;
+    margin-bottom: 16px;
 
     padding:
         12px;
@@ -3386,10 +3428,10 @@ svg {
 
 
 .calculation-strip {
-    margin-top: 17px;
+    margin-top: 16px;
 
     padding:
-        13px;
+        12px;
 
     display: grid;
 
@@ -3448,7 +3490,7 @@ svg {
 
 .sale-product-summary {
     padding:
-        10px;
+        8px;
 
     display: grid;
 
@@ -3470,7 +3512,7 @@ svg {
 
 .sale-product-summary > div {
     padding:
-        9px;
+        8px;
 
     display: flex;
     flex-direction: column;
@@ -3523,7 +3565,7 @@ svg {
 
     z-index: 100;
 
-    padding: 22px;
+    padding: 24px;
 
     display: flex;
     align-items: center;
@@ -3609,13 +3651,13 @@ svg {
 
 .modal-header {
     padding:
-        16px 18px;
+        16px;
 
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    gap: 15px;
+    gap: 16px;
 
     border-bottom:
         1px solid
@@ -3645,7 +3687,7 @@ svg {
 
 
 .modal-header p {
-    margin-top: 3px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
@@ -3694,7 +3736,7 @@ svg {
 
 .modal-body {
     padding:
-        18px;
+        16px;
 
     overflow-y: auto;
 }
@@ -3702,12 +3744,12 @@ svg {
 
 .modal-footer {
     padding:
-        12px 18px;
+        12px 16px;
 
     display: flex;
     justify-content: flex-end;
 
-    gap: 7px;
+    gap: 8px;
 
     border-top:
         1px solid
@@ -3723,7 +3765,7 @@ svg {
     max-width: 355px;
 
     padding:
-        25px;
+        24px;
 
     text-align: center;
 }
@@ -3734,7 +3776,7 @@ svg {
     height: 46px;
 
     margin:
-        0 auto 14px;
+        0 auto 12px;
 
     display: grid;
     place-items: center;
@@ -3758,7 +3800,7 @@ svg {
 
 .confirm-dialog p {
     margin:
-        8px auto 18px;
+        8px auto 16px;
 
     max-width: 290px;
 
@@ -3774,7 +3816,291 @@ svg {
     display: flex;
     justify-content: center;
 
-    gap: 7px;
+    gap: 6px;
+}
+
+
+/* =========================================================
+   UMUMIY BO'LAKLAR
+
+   Bular oldin har sahifaning o'z `<style scoped>` blokida
+   qayta yozilardi: `.load-error` ning to'rtta, `.pill` ning
+   beshta turli nusxasi bor edi (11px va 12px, 6px va 8px
+   to'ldirish). Natijada bir xil narsa sahifadan sahifaga
+   sal boshqacha ko'rinardi. Endi ta'rif bitta joyda.
+========================================================= */
+
+/* Sahifa darajasidagi xato — jadval yoki forma ustida */
+.load-error,
+.form-error {
+    margin-bottom: 12px;
+
+    padding:
+        8px 12px;
+
+    border-radius:
+        var(--radius);
+
+    background:
+        var(--red-soft);
+
+    color:
+        var(--red);
+
+    font-size: 13px;
+}
+
+
+/* Forma to'ri ichida bo'lsa, butun kenglikni egallaydi */
+.form-error {
+    grid-column: 1 / -1;
+}
+
+
+/* Maydon ostidagi xato va izoh */
+.field-error {
+    margin-top: 4px;
+
+    color:
+        var(--red);
+
+    font-size: 12px;
+}
+
+
+.field-hint {
+    margin-top: 4px;
+
+    color:
+        var(--text-muted);
+
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+
+/* Blok ustidagi tushuntirish matni */
+.hint {
+    margin-bottom: 12px;
+
+    color:
+        var(--text-secondary);
+
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+/* Eslatma — sozlamalar va ko'chirish sahifalarida */
+.notice {
+    margin-bottom: 12px;
+
+    padding: 12px;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        var(--radius);
+
+    background:
+        var(--surface-soft);
+
+    color:
+        var(--text-secondary);
+
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+.notice-warning {
+    border-color:
+        var(--orange);
+
+    background:
+        var(--orange-soft);
+
+    color:
+        var(--text);
+}
+
+
+/* Yorliq. `.status-badge` bilan bir xil shakl va o'lchamda —
+   ikkalasi ham bir xil narsani bildiradi. */
+.pill {
+    display: inline-block;
+
+    padding:
+        3px 8px;
+
+    border-radius: 999px;
+
+    white-space: nowrap;
+
+    font-size: 12px;
+    font-weight: 500;
+}
+
+
+.pill-green,
+.pill-on {
+    background: var(--green-soft);
+    color: var(--green);
+}
+
+
+.pill-red,
+.pill-off {
+    background: var(--red-soft);
+    color: var(--red);
+}
+
+
+.pill-blue {
+    background: var(--blue-soft);
+    color: var(--blue);
+}
+
+
+.pill-teal {
+    background: var(--teal-soft);
+    color: var(--teal);
+}
+
+
+.pill-orange {
+    background: var(--orange-soft);
+    color: var(--orange);
+}
+
+
+.pill-yellow {
+    background: var(--yellow-soft);
+    color: var(--yellow);
+}
+
+
+.pill-purple {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+
+.pill-grey {
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+}
+
+
+/* Jadval katagidagi ikkinchi qator — SKU, manzil, izoh */
+.cell-sub {
+    display: block;
+
+    margin-top: 2px;
+
+    color:
+        var(--text-muted);
+
+    font-size: 12px;
+}
+
+
+.muted {
+    color:
+        var(--text-muted);
+}
+
+
+.positive {
+    color:
+        var(--green);
+}
+
+
+.negative {
+    color:
+        var(--red);
+}
+
+
+/* Sahifa yuqorisidagi amal tugmalari */
+.toolbar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+
+/* Jadval qatoridagi amal tugmalari. Ular oddiy tugmadan
+   kichikroq: aks holda 32px balandlikdagi tugma qator
+   balandligini 46px ga cho'zib yuboradi va jadval siyraklashadi. */
+.row-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+
+    gap: 6px;
+}
+
+
+.row-actions .button {
+    min-height: 26px;
+
+    padding:
+        0 8px;
+
+    font-size: 12px;
+}
+
+
+.row-actions .button svg {
+    width: 13px;
+    height: 13px;
+}
+
+
+/* `.table-card` odatda jadvalni o'raydi va o'z to'ldirishi
+   yo'q. Ba'zi bloklarda esa ichida jadval emas, oddiy tarkib
+   bo'ladi — o'shanda to'ldirish kerak. Oldin har sahifa buni
+   o'zi qo'shardi va biri 16px, boshqasi 20px berardi. */
+.card-padded {
+    padding: 16px;
+}
+
+
+.table-card > h3 {
+    margin-bottom: 12px;
+
+    font-size: 15px;
+    font-weight: 600;
+}
+
+
+/* Qatorni ochadigan "+" tugmasi */
+.expand-toggle {
+    width: 16px;
+    height: 16px;
+
+    margin-right: 6px;
+
+    border:
+        1px solid
+        var(--border-strong);
+
+    border-radius:
+        var(--radius);
+
+    background:
+        var(--surface);
+
+    color:
+        var(--text-secondary);
+
+    font-size: 14px;
+    line-height: 1;
+
+    cursor: pointer;
 }
 
 
@@ -3792,7 +4118,7 @@ svg {
 
     display: grid;
 
-    gap: 7px;
+    gap: 6px;
 }
 
 
@@ -3800,12 +4126,12 @@ svg {
     width: 305px;
 
     padding:
-        11px 12px;
+        12px;
 
     display: flex;
     align-items: flex-start;
 
-    gap: 9px;
+    gap: 8px;
 
     border-radius: var(--radius);
 
@@ -3866,7 +4192,7 @@ svg {
 .toast-copy span {
     display: block;
 
-    margin-top: 3px;
+    margin-top: 4px;
 
     color:
         var(--text-muted);
@@ -4133,12 +4459,12 @@ svg {
 
     .content {
         padding:
-            14px 10px 40px;
+            12px 8px 40px;
     }
 
     .topbar {
         padding:
-            0 10px;
+            0 8px;
     }
 
     .calculation-strip {

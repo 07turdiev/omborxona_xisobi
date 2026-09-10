@@ -208,7 +208,7 @@ function onPrint() {
 
       <div class="report-grid">
         <!-- Kategoriya bo'yicha -->
-        <div class="table-card chart-card">
+        <div class="table-card card-padded chart-card">
           <h3>Kategoriya bo‘yicha sotuv</h3>
 
           <p v-if="!data.by_category.length" class="empty-state">
@@ -233,7 +233,7 @@ function onPrint() {
         </div>
 
         <!-- Kunlik tushum -->
-        <div class="table-card chart-card">
+        <div class="table-card card-padded chart-card">
           <h3>Kunlik tushum</h3>
 
           <p v-if="!data.daily_sales.length" class="empty-state">
@@ -255,7 +255,7 @@ function onPrint() {
 
       <div class="report-grid">
         <!-- Ombor bo'yicha -->
-        <div class="table-card">
+        <div class="table-card card-padded">
           <h3>Ombor bo‘yicha</h3>
 
           <table class="data-table">
@@ -282,7 +282,7 @@ function onPrint() {
         </div>
 
         <!-- Yo'qotishlar -->
-        <div class="table-card">
+        <div class="table-card card-padded">
           <h3>Yo‘qotishlar</h3>
 
           <table class="data-table">
@@ -310,7 +310,7 @@ function onPrint() {
       </div>
 
       <!-- Eng ko'p sotilganlar -->
-      <div class="table-card">
+      <div class="table-card card-padded">
         <h3>Eng ko‘p tushum keltirgan mahsulotlar</h3>
 
         <div class="table-scroll">
@@ -343,7 +343,7 @@ function onPrint() {
       </div>
 
       <!-- Qoldiq qiymati -->
-      <div class="table-card">
+      <div class="table-card card-padded">
         <h3>Qoldiq qiymati</h3>
 
         <div class="valuation-grid">
@@ -375,23 +375,20 @@ function onPrint() {
 </template>
 
 <style scoped>
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-}
 .period-buttons {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .period-button {
-  padding: 7px 11px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-small);
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -409,25 +406,25 @@ function onPrint() {
 .net-row {
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
 .net-card {
   flex: 1;
-  padding: 14px 16px;
+  padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: var(--shadow);
 }
 
 .net-card span {
   display: block;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.4px;
 }
 
 .net-card strong {
@@ -455,24 +452,15 @@ function onPrint() {
   display: flex;
   align-items: center;
   color: var(--text-muted);
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .report-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.table-card {
-  padding: 18px 20px;
-}
-
-.table-card h3 {
-  margin-bottom: 14px;
-  font-size: 15px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .chart-card {
@@ -505,7 +493,7 @@ function onPrint() {
 
 .bar-row small {
   display: block;
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -515,7 +503,7 @@ function onPrint() {
   align-items: flex-end;
   gap: 6px;
   height: 140px;
-  padding-top: 10px;
+  padding-top: 8px;
 }
 
 .day-column {
@@ -549,15 +537,18 @@ function onPrint() {
 .valuation-grid span {
   display: block;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.4px;
 }
 
 .valuation-grid strong {
   display: block;
   margin-top: 4px;
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .valuation-grid small {
@@ -569,10 +560,6 @@ function onPrint() {
   color: var(--green);
 }
 
-.num {
-  text-align: right;
-}
-
 .profit {
   color: var(--green);
   font-weight: 700;
@@ -581,15 +568,6 @@ function onPrint() {
 .loss-amount {
   color: var(--red);
   font-weight: 700;
-}
-
-.load-error {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
 }
 
 @media print {

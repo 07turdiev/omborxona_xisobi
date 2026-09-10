@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 
-import { catalogApi } from '@/api/catalog'
 import VariantExtras from '@/components/VariantExtras.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import type { AttributeDefinition, Product, ProductInput, Variant } from '@/types'
@@ -294,31 +293,29 @@ function fieldError(field: string): string {
 
 <style scoped>
 .extras-block {
-  margin-top: 18px;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 
 .extras-block h4 {
   margin-bottom: 12px;
-  font-size: 14px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .attribute-block {
-  margin-top: 18px;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 
 .attribute-block h4 {
   margin-bottom: 12px;
-  font-size: 14px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .attribute-block h4 small {
@@ -330,7 +327,7 @@ function fieldError(field: string): string {
 
 .unit-tag {
   margin-left: 4px;
-  padding: 1px 5px;
+  padding: 2px 4px;
   border-radius: var(--radius);
   background: var(--surface-hover);
   color: var(--text-muted);
@@ -342,15 +339,4 @@ function fieldError(field: string): string {
   color: var(--red);
 }
 
-.field-error {
-  margin-top: 4px;
-  color: var(--red);
-  font-size: 12px;
-}
-
-.field-hint {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
 </style>

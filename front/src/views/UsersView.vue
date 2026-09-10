@@ -498,9 +498,6 @@ const fieldError = (field: string): string => {
 </template>
 
 <style scoped>
-.muted {
-  color: var(--text-muted);
-}
 
 .role-select {
   min-width: 130px;
@@ -524,73 +521,13 @@ const fieldError = (field: string): string => {
   font-weight: 700;
 }
 
-.pill {
-  display: inline-block;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.pill-green {
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.pill-red {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.row-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
 .grant-row {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
 }
 
-.notice {
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-small);
-  background: var(--surface-soft);
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.field-error {
-  margin-top: 4px;
-  color: var(--red);
-  font-size: 12px;
-}
-
-.field-hint {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.form-error,
-.load-error {
-  margin: 12px 0;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
-
-.load-error {
-  margin: 0 0 14px;
-}
 </style>

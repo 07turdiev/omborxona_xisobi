@@ -182,7 +182,7 @@ function onPrint() {
 }
 
 .print-sheet {
-  padding: 24px 26px;
+  padding: 24px;
   background: #fff;
   color: #111;
 }
@@ -191,7 +191,7 @@ function onPrint() {
   display: flex;
   justify-content: space-between;
   gap: 20px;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 2px solid #111;
 }
 
@@ -224,8 +224,8 @@ function onPrint() {
 
 .parties {
   display: flex;
-  gap: 30px;
-  margin: 14px 0;
+  gap: 32px;
+  margin: 12px 0;
 }
 
 .parties span {
@@ -249,7 +249,7 @@ function onPrint() {
 }
 
 .sheet-table th {
-  padding: 6px 7px;
+  padding: 6px;
   border-bottom: 1px solid #111;
   color: #333;
   font-size: 12px;
@@ -259,14 +259,14 @@ function onPrint() {
 }
 
 .sheet-table td {
-  padding: 6px 7px;
+  padding: 6px;
   border-bottom: 1px solid #ddd;
   vertical-align: top;
 }
 
 .sheet-table small {
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
   color: #777;
   font-size: 11px;
 }
@@ -290,14 +290,14 @@ function onPrint() {
 }
 
 .total-label {
-  padding-top: 10px;
+  padding-top: 8px;
   text-align: right;
   font-size: 14px;
   font-weight: 700;
 }
 
 .total {
-  padding-top: 10px;
+  padding-top: 8px;
   font-size: 16px;
   font-weight: 700;
 }
@@ -327,7 +327,7 @@ function onPrint() {
 
 .sign i {
   display: block;
-  margin-top: 22px;
+  margin-top: 24px;
   border-bottom: 1px solid #111;
 }
 

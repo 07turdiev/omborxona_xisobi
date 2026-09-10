@@ -132,8 +132,9 @@ function onLogout() {
   padding: 0 12px 6px;
   color: var(--text-muted);
   font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.4px;
 }
 
 .tenant-option {
@@ -142,7 +143,7 @@ function onLogout() {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  padding: 7px 12px;
+  padding: 6px 12px;
   border: none;
   background: none;
   color: var(--text);
@@ -166,7 +167,7 @@ function onLogout() {
 
 .tenant-option small {
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
   color: var(--text-muted);
   font-size: 11px;
 }

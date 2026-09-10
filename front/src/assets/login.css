@@ -242,11 +242,11 @@ svg {
     display: inline-flex;
     align-items: center;
 
-    gap: 9px;
+    gap: 8px;
 
     padding: 8px 12px;
 
-    margin-bottom: 26px;
+    margin-bottom: 24px;
 
     border-radius: 999px;
 
@@ -260,7 +260,7 @@ svg {
     color:
         rgba(255,255,255,.76);
 
-    font-size: 17px;
+    font-size: 12px;
     font-weight: 600;
 
     letter-spacing: .25px;
@@ -318,7 +318,7 @@ svg {
 
     margin-top: 24px;
 
-    font-size: 22px;
+    font-size: 15px;
 
     line-height: 1.7;
 
@@ -338,7 +338,7 @@ svg {
 
     display: grid;
 
-    gap: 14px;
+    gap: 12px;
 
     max-width: 560px;
 
@@ -350,7 +350,7 @@ svg {
     display: flex;
     align-items: center;
 
-    gap: 15px;
+    gap: 16px;
 
 }
 
@@ -401,14 +401,14 @@ svg {
     display: flex;
     flex-direction: column;
 
-    gap: 3px;
+    gap: 4px;
 
 }
 
 
 .feature-item strong {
 
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
 
 }
@@ -419,7 +419,7 @@ svg {
     color:
         rgba(255,255,255,.48);
 
-    font-size: 17px;
+    font-size: 13px;
 
 }
 
@@ -432,19 +432,19 @@ svg {
 
     margin-top: auto;
 
-    padding-top: 30px;
+    padding-top: 32px;
 
     display: flex;
 
     align-items: center;
     justify-content: space-between;
 
-    gap: 25px;
+    gap: 24px;
 
     color:
         rgba(255,255,255,.34);
 
-    font-size: 16px;
+    font-size: 12px;
 
 }
 
@@ -488,7 +488,7 @@ svg {
     min-height: 100vh;
 
     padding:
-        50px 70px 30px;
+        50px 70px 32px;
 
     display: flex;
     flex-direction: column;
@@ -619,9 +619,9 @@ svg {
 
     display: inline-flex;
 
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 
-    padding: 6px 10px;
+    padding: 6px 8px;
 
     border-radius: var(--radius-md);
 
@@ -631,7 +631,7 @@ svg {
     color:
         var(--primary);
 
-    font-size: 16px;
+    font-size: 12px;
     font-weight: 700;
 
     text-transform: uppercase;
@@ -643,13 +643,13 @@ svg {
 
 .login-heading h2 {
 
-    font-size: 31px;
+    font-size: 22px;
 
     font-weight: 700;
 
     letter-spacing: -1.15px;
 
-    margin-bottom: 9px;
+    margin-bottom: 8px;
 
 }
 
@@ -659,7 +659,7 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 18px;
+    font-size: 14px;
 
     line-height: 1.6;
 
@@ -676,11 +676,11 @@ svg {
 
     align-items: center;
 
-    gap: 10px;
+    gap: 8px;
 
-    padding: 12px 13px;
+    padding: 12px 12px;
 
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 
     border-radius: var(--radius-md);
 
@@ -698,7 +698,7 @@ svg {
     color:
         var(--danger);
 
-    font-size: 17px;
+    font-size: 13px;
 
     animation:
         messageAppear .25s ease;
@@ -780,7 +780,7 @@ svg {
 
     opacity: .6;
 
-    font-size: 24px;
+    font-size: 18px;
 
 }
 
@@ -839,7 +839,7 @@ svg {
     color:
         var(--text);
 
-    font-size: 17px;
+    font-size: 13px;
     font-weight: 600;
 
 }
@@ -941,7 +941,7 @@ svg {
     color:
         var(--text);
 
-    font-size: 18px;
+    font-size: 14px;
 
     transition:
         all var(--transition);
@@ -1110,7 +1110,7 @@ svg {
 .form-options {
 
     margin:
-        4px 0 25px;
+        4px 0 24px;
 
     display: flex;
 
@@ -1128,7 +1128,7 @@ svg {
 
     align-items: center;
 
-    gap: 9px;
+    gap: 8px;
 
     margin: 0 !important;
 
@@ -1307,9 +1307,9 @@ svg {
     align-items: center;
     justify-content: center;
 
-    gap: 10px;
+    gap: 8px;
 
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
 
 }
@@ -1353,9 +1353,9 @@ svg {
     align-items: center;
     justify-content: center;
 
-    gap: 10px;
+    gap: 8px;
 
-    font-size: 17px;
+    font-size: 14px;
     font-weight: 600;
 
 }
@@ -1422,15 +1422,15 @@ svg {
 
 .login-security-info {
 
-    margin-top: 23px;
+    margin-top: 24px;
 
-    padding: 13px 15px;
+    padding: 12px 16px;
 
     display: flex;
 
     align-items: flex-start;
 
-    gap: 10px;
+    gap: 8px;
 
     border-radius: var(--radius-md);
 
@@ -1456,7 +1456,7 @@ svg {
     width: 15px;
     height: 15px;
 
-    margin-top: 1px;
+    margin-top: 2px;
 
     fill: none;
 
@@ -1529,7 +1529,7 @@ svg {
     align-items: center;
     justify-content: center;
 
-    padding: 25px;
+    padding: 24px;
 
     background:
         rgba(7, 12, 22, .52);
@@ -1645,7 +1645,7 @@ svg {
 
 .success-card h3 {
 
-    font-size: 20px;
+    font-size: 18px;
 
     margin-bottom: 8px;
 
@@ -1657,7 +1657,7 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 17px;
+    font-size: 13px;
 
 }
 
@@ -1668,7 +1668,7 @@ svg {
 
     height: 3px;
 
-    margin-top: 25px;
+    margin-top: 24px;
 
     border-radius: 999px;
 
@@ -1780,13 +1780,13 @@ svg {
     .login-panel {
 
         padding:
-            50px 50px 30px;
+            50px 50px 32px;
 
     }
 
     .showcase-main h1 {
 
-        font-size: 46px;
+        font-size: 28px;
 
     }
 
@@ -1813,7 +1813,7 @@ svg {
         min-height: 100vh;
 
         padding:
-            70px 25px 60px;
+            70px 24px 60px;
 
     }
 
@@ -1913,7 +1913,7 @@ svg {
 
     .login-heading h2 {
 
-        font-size: 27px;
+        font-size: 20px;
 
     }
 
@@ -1931,7 +1931,7 @@ svg {
 
     .security-label {
 
-        margin-left: 27px;
+        margin-left: 28px;
 
     }
 
@@ -1954,8 +1954,8 @@ and (min-width: 851px) {
 
     .login-showcase {
 
-        padding-top: 30px;
-        padding-bottom: 30px;
+        padding-top: 32px;
+        padding-bottom: 32px;
 
     }
 
@@ -1969,13 +1969,13 @@ and (min-width: 851px) {
     .showcase-main {
 
         padding:
-            30px 0;
+            32px 0;
 
     }
 
     .showcase-main h1 {
 
-        font-size: 45px;
+        font-size: 26px;
 
     }
 
@@ -1987,7 +1987,7 @@ and (min-width: 851px) {
 
     .feature-list {
 
-        margin-top: 25px;
+        margin-top: 24px;
 
     }
 

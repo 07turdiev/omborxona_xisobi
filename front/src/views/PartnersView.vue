@@ -312,46 +312,16 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   font-size: 12px;
 }
 
-.pill {
-  display: inline-block;
-  margin-right: 4px;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.pill-blue {
-  background: var(--blue-soft);
-  color: var(--blue);
-}
-
-.pill-teal {
-  background: var(--teal-soft);
-  color: var(--teal);
-}
-
-.pill-green {
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.pill-red {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
 .role-checks {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   padding-top: 6px;
 }
 
 .check {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: 13px;
   cursor: pointer;
 }
@@ -361,29 +331,4 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   margin: 0;
 }
 
-.row-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.field-error {
-  margin-top: 4px;
-  color: var(--red);
-  font-size: 12px;
-}
-
-.form-error,
-.load-error {
-  margin: 12px 0;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
-
-.load-error {
-  margin: 0 0 14px;
-}
 </style>

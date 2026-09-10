@@ -40,7 +40,8 @@ async function onDelete(product: Product) {
 
 function toggle(id: number) {
   const next = new Set(expanded.value)
-  next.has(id) ? next.delete(id) : next.add(id)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
   expanded.value = next
 }
 
@@ -154,8 +155,8 @@ const totalVariants = computed(() =>
               <th>Atributlar</th>
               <th>Birlik</th>
               <th>O‘ram</th>
-              <th>Kirim narxi</th>
-              <th>Sotuv narxi</th>
+              <th class="num">Kirim narxi</th>
+              <th class="num">Sotuv narxi</th>
               <th>Holat</th>
               <th></th>
             </tr>
@@ -209,8 +210,8 @@ const totalVariants = computed(() =>
                   {{ hasManyVariants(product) ? '—' : packSummary(firstVariant(product)) }}
                 </td>
 
-                <td>{{ money(firstVariant(product)?.purchase_price ?? null) }}</td>
-                <td>{{ money(firstVariant(product)?.sale_price ?? null) }}</td>
+                <td class="num">{{ money(firstVariant(product)?.purchase_price ?? null) }}</td>
+                <td class="num">{{ money(firstVariant(product)?.sale_price ?? null) }}</td>
 
                 <td>
                   <span class="pill" :class="product.is_active ? 'pill-on' : 'pill-off'">
@@ -244,8 +245,8 @@ const totalVariants = computed(() =>
                 <td class="attr-cell">{{ attributeSummary(variant) }}</td>
                 <td></td>
                 <td class="attr-cell">{{ packSummary(variant) }}</td>
-                <td>{{ money(variant.purchase_price) }}</td>
-                <td>{{ money(variant.sale_price) }}</td>
+                <td class="num">{{ money(variant.purchase_price) }}</td>
+                <td class="num">{{ money(variant.sale_price) }}</td>
                 <td colspan="2"></td>
               </tr>
             </template>
@@ -264,39 +265,15 @@ const totalVariants = computed(() =>
 </template>
 
 <style scoped>
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-}
 
 .kpi-grid.compact {
   margin-bottom: 16px;
-}
-
-.cell-sub {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 12px;
 }
 
 .attr-cell {
   max-width: 220px;
   color: var(--text-secondary);
   font-size: 12px;
-}
-
-.expand-toggle {
-  width: 16px;
-  height: 16px;
-  margin-right: 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
 }
 
 .variant-row {
@@ -311,36 +288,4 @@ const totalVariants = computed(() =>
   vertical-align: middle;
 }
 
-.pill {
-  display: inline-block;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.pill-on {
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.pill-off {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.row-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.load-error {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
 </style>

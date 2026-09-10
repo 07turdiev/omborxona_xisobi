@@ -119,19 +119,12 @@ onMounted(load)
 <style scoped>
 .converter {
   margin-bottom: 16px;
-  padding: 20px 22px;
+  padding: 20px 24px;
 }
 
 .converter h3 {
   margin-bottom: 6px;
   font-size: 16px;
-}
-
-.hint {
-  margin-bottom: 14px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
 }
 
 .converter-row {

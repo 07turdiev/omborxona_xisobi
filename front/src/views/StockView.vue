@@ -396,34 +396,31 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 </template>
 
 <style scoped>
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-}
 .stock-totals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-  margin-bottom: 16px;
-  padding: 16px 18px;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: var(--shadow);
 }
 
+/* Yorliq va son KPI kartalaridagi kabi: katta harf yo'q,
+   son tabular shaklda. */
 .stock-totals span {
   display: block;
-  color: var(--text-muted);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .stock-totals strong {
   display: block;
-  margin-top: 4px;
-  font-size: 17px;
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .stock-totals .accent strong {
@@ -438,84 +435,9 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
   color: var(--red);
 }
 
-.num {
-  text-align: right;
-}
-
-.muted {
-  color: var(--text-muted);
-}
-
 .expiry-bad {
   color: var(--red);
   font-weight: 700;
 }
 
-.cell-sub {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.pill {
-  display: inline-block;
-  padding: 4px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.pill-green {
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.pill-yellow {
-  background: var(--yellow-soft);
-  color: var(--yellow);
-}
-
-.pill-orange {
-  background: var(--orange-soft);
-  color: var(--orange);
-}
-
-.pill-red {
-  background: var(--red-soft);
-  color: var(--red);
-}
-
-.pill-blue {
-  background: var(--blue-soft);
-  color: var(--blue);
-}
-
-.row-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-}
-
-.hint {
-  margin-bottom: 14px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.form-error,
-.load-error {
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
-
-.load-error {
-  margin: 0 0 14px;
-}
 </style>

@@ -467,7 +467,7 @@ const fieldError = (field: string): string => {
 
 <style scoped>
 .lines-block {
-  margin-top: 18px;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
@@ -477,7 +477,7 @@ const fieldError = (field: string): string => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .lines-tools {
@@ -492,7 +492,7 @@ const fieldError = (field: string): string => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 10px;
+  padding: 0 8px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-small);
   background: var(--surface);
@@ -512,7 +512,7 @@ const fieldError = (field: string): string => {
   width: 210px;
   border: none;
   background: none;
-  padding: 7px 0;
+  padding: 6px 0;
 }
 
 .scan-field.ok {
@@ -524,7 +524,7 @@ const fieldError = (field: string): string => {
 }
 
 .scan-note {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   font-size: 13px;
   font-weight: 600;
 }
@@ -538,10 +538,10 @@ const fieldError = (field: string): string => {
 }
 
 .lines-head h4 {
-  font-size: 14px;
+  margin-bottom: 0;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .lines-table input,
@@ -551,10 +551,6 @@ const fieldError = (field: string): string => {
 
 .lines-table td {
   padding: 6px 8px;
-}
-
-.num {
-  text-align: right;
 }
 
 .line-sum {
@@ -574,26 +570,11 @@ const fieldError = (field: string): string => {
 
 .lines-total span {
   color: var(--text-muted);
-  font-size: 13px;
-  text-transform: uppercase;
+  font-size: 12px;
 }
 
 .lines-total strong {
   font-size: 18px;
 }
 
-.field-error {
-  margin-top: 4px;
-  color: var(--red);
-  font-size: 12px;
-}
-
-.form-error {
-  margin: 12px 0;
-  padding: 10px 12px;
-  border-radius: var(--radius-small);
-  background: var(--red-soft);
-  color: var(--red);
-  font-size: 13px;
-}
 </style>
