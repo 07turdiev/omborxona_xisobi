@@ -1539,35 +1539,53 @@ svg {
 /* =========================================================
    KPI
 
-   Prototipda to'rtta karta to'rt xil rangda edi — binafsha,
-   teal, to'q sariq, yashil bir qatorda. Rang hech narsani
-   bildirmasdi, faqat bezak edi. Endi belgi neytral kulrang,
-   e'tibor esa sonning o'zida.
+   Prototipda karta vertikal edi: belgi tepada, ostida yorliq,
+   ostida son. To'rt ustunli to'rda bu bitta son uchun ~430×130px
+   quti berardi va sahifa bo'sh ko'rinardi.
 
-   `.kpi-purple` va shunga o'xshash sinflar sahifalarda hali
-   beriladi va shu yerda ataylab ta'sirsiz qoldirildi: keyin
-   biror ko'rsatkichga rang berish kerak bo'lsa, joyi shu.
+   Endi karta gorizontal: belgi chapda, matn o'ngda, va kengligi
+   mazmuniga qarab belgilanadi. Ikkita ko'rsatkich bo'lsa ikkita
+   ixcham plitka chiqadi, ekranning yarmi emas.
+
+   Nega grid emas, flex: grid ustuni qat'iy kenglik talab qiladi
+   (`minmax(180px, 230px)`), va 230px kartada 12 xonali summa —
+   qurilish do'konining yillik tushumi uchun oddiy holat — sig'maydi
+   va `1 234 56…` bo'lib kesiladi. Moliyaviy panelda sonni kesib
+   ko'rsatish yolg'on ko'rsatish bilan teng. Flex'da karta songa
+   qarab kengayadi, `min-width` esa kichik sonli kartalarni bir
+   xil o'lchamda ushlab turadi.
+
+   `.kpi-purple`, `.kpi-green` va shunga o'xshash sinflar
+   shablonlarda hali bor va ataylab uslubsiz: rang hech narsani
+   bildirmasdi. Biror ko'rsatkichni ajratish kerak bo'lsa, joyi shu.
 ========================================================= */
 
 .kpi-grid {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
 
-    grid-template-columns:
-        repeat(4, minmax(0, 1fr));
-
-    gap: 12px;
+    gap: 8px;
 }
 
 
 .kpi-card {
     position: relative;
 
-    min-width: 0;
+    flex: 0 0 auto;
+
+    min-width: 180px;
+    max-width: 100%;
 
     padding:
-        16px;
+        10px 12px;
 
-    overflow: hidden;
+    display: grid;
+
+    grid-template-columns:
+        30px 1fr;
+
+    align-content: center;
+    column-gap: 10px;
 
     border-radius:
         var(--radius);
@@ -1582,10 +1600,18 @@ svg {
 
 
 .kpi-icon {
-    width: 28px;
-    height: 28px;
+    grid-column: 1;
 
-    margin-bottom: 12px;
+    /* `1 / -1` bu yerda ishlamaydi: `-1` faqat aniq e'lon qilingan
+       qatorlarni sanaydi, kartada esa qatorlar yashirin — belgi
+       faqat birinchi qatorga tushib, yorliq yoniga yopishardi.
+       Kartada eng ko'pi uch qator bor: yorliq, son, izoh. */
+    grid-row: 1 / span 3;
+
+    align-self: center;
+
+    width: 30px;
+    height: 30px;
 
     display: grid;
     place-items: center;
@@ -1610,39 +1636,56 @@ svg {
 }
 
 
-.kpi-card p {
-    color:
-        var(--text-secondary);
-
-    font-size: 13px;
-}
-
-
-.kpi-card > strong {
-    display: block;
-
-    margin-top: 6px;
-
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -.3px;
-}
-
-
-.kpi-card > strong.money-value {
-    font-size: 18px;
-}
-
-
+.kpi-card p,
+.kpi-card > strong,
 .kpi-card small {
-    display: block;
+    grid-column: 2;
 
-    margin-top: 4px;
+    min-width: 0;
 
+    white-space: nowrap;
+}
+
+
+/* Yorliq va izoh juda tor ekranda qisqartirilishi mumkin — ular
+   ma'noni yo'qotmaydi. Sonning o'zi (`strong`) hech qachon
+   kesilmaydi: karta uning uchun kengayadi. */
+.kpi-card p,
+.kpi-card small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.kpi-card p {
     color:
         var(--text-muted);
 
     font-size: 12px;
+    line-height: 1.3;
+}
+
+
+.kpi-card > strong {
+    font-size: 18px;
+    font-weight: 600;
+
+    letter-spacing: -.2px;
+    line-height: 1.3;
+}
+
+
+.kpi-card > strong.money-value {
+    font-size: 16px;
+}
+
+
+.kpi-card small {
+    color:
+        var(--text-muted);
+
+    font-size: 11px;
+    line-height: 1.3;
 }
 
 
@@ -4273,11 +4316,6 @@ svg {
 @media
 (max-width: 1120px) {
 
-    .kpi-grid {
-        grid-template-columns:
-            repeat(2,1fr);
-    }
-
     .metric-strip.four {
         grid-template-columns:
             repeat(2,1fr);
@@ -4375,11 +4413,16 @@ svg {
         flex: 1;
     }
 
-    .kpi-grid,
     .metric-strip.four,
     .metric-strip.three,
     .warehouse-cards {
         grid-template-columns: 1fr;
+    }
+
+    /* Telefonda ikkita 180px karta bir qatorga sig'maydi; bittadan
+       chapga yopishib qolmasin — to'liq kenglikka yoyiladi. */
+    .kpi-card {
+        flex-basis: 100%;
     }
 
     .section-toolbar {
