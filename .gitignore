@@ -109,3 +109,6 @@ reference/
 # bu papkasiz ham to'liq ishlaydi. Prototipning o'zi 26 000 qatorlik
 # statik HTML/JS — repoda ikkinchi index.html bo'lib chalkashtiradi.
 store/
+
+# Celery beat jadval holati (lokal)
+back/celerybeat-schedule*

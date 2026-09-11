@@ -64,6 +64,45 @@ services:
       redis:
         condition: service_healthy
 
+  # Fon vazifalarini bajaradi (hozircha: Markaziy bank kursi).
+  # Backend bilan bir xil obraz, faqat buyruq boshqa.
+  worker:
+    build:
+      context: ./back
+    restart: unless-stopped
+    command: celery -A config worker --loglevel info --concurrency 2
+    env_file:
+      - .env.production
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Jadval: vazifalarni belgilangan vaqtda navbatga qo'yadi.
+  # **Faqat bitta nusxa** ishlashi kerak — ikkita beat har vazifani
+  # ikki marta yuboradi. Kurs sinxronlash takrorga chidamli, lekin
+  # keyin qo'shiladigan vazifalar shunday bo'lmasligi mumkin.
+  beat:
+    build:
+      context: ./back
+    restart: unless-stopped
+    # Jadval holati /tmp da: konteyner qayta ishga tushsa, o'tkazib
+    # yuborilgan vazifa keyingi jadval vaqtida bajariladi — kurs uchun
+    # bu yetarli (kuniga uch marta ishlaydi).
+    command: celery -A config beat --loglevel info --schedule /tmp/celerybeat-schedule
+    env_file:
+      - .env.production
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./front

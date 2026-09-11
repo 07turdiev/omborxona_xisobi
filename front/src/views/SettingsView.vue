@@ -41,6 +41,20 @@ const rates = ref<Rate[]>([])
 const rateForm = reactive({ currency: null as number | null, rate: '', valid_from: '' })
 const rateError = ref('')
 
+/** Markaziy bank kursini olish — natija bir qatorlik xabar sifatida. */
+interface CbuSyncResult {
+  created: string[]
+  already_present: string[]
+  missing: string[]
+  valid_from: string | null
+  skipped_reason: string
+}
+
+const syncing = ref(false)
+const syncNote = ref('')
+/** Yashil faqat kurs haqiqatan yozilganda; qolgan holatlar neytral. */
+const syncCreated = ref(false)
+
 const canManage = computed(() => {
   const role = auth.user?.current_tenant?.role
   return role === 'owner' || role === 'manager'
@@ -108,6 +122,40 @@ async function onAddRate() {
     const data = (err as { response?: { data?: Record<string, string[]> } }).response?.data
     rateError.value = Object.values(data ?? {}).flat()[0] ?? 'Kurs qo‘shilmadi.'
   }
+}
+
+async function onSyncCbu() {
+  rateError.value = ''
+  syncNote.value = ''
+  syncing.value = true
+
+  try {
+    const { data } = await api.post<CbuSyncResult>('/exchange-rates/sync-cbu/')
+    syncNote.value = describeSync(data)
+    syncCreated.value = data.created.length > 0
+    rates.value = (await api.get<{ results: Rate[] }>('/exchange-rates/')).data.results
+  } catch (err) {
+    const data = (err as { response?: { data?: { detail?: string } } }).response?.data
+    rateError.value = data?.detail ?? 'Markaziy bankdan kurs olib bo‘lmadi.'
+  } finally {
+    syncing.value = false
+  }
+}
+
+function describeSync(result: CbuSyncResult): string {
+  if (result.skipped_reason) return result.skipped_reason
+
+  const parts: string[] = []
+  const day = result.valid_from ? ` (${result.valid_from})` : ''
+
+  if (result.created.length) parts.push(`Yozildi: ${result.created.join(', ')}${day}`)
+  if (result.already_present.length) {
+    // Qo'lda kiritilgan kurs ham shu yerga tushadi — u ataylab bosilmaydi
+    parts.push(`O‘sha kunga kurs bor edi: ${result.already_present.join(', ')}`)
+  }
+  if (result.missing.length) parts.push(`Bankda yo‘q: ${result.missing.join(', ')}`)
+
+  return parts.join('. ') || 'Kurs olinadigan valyuta yo‘q.'
 }
 
 function currencyCode(id: number): string {
@@ -264,6 +312,23 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
           hisoblanadi — shuning uchun kurs o‘zgarganda eski foyda o‘zgarmaydi.
         </p>
 
+        <p class="hint">
+          Markaziy bank kursi serverda har kuni avtomatik olinadi. Qo‘lda
+          kiritilgan kurs hech qachon ustidan yozilmaydi.
+        </p>
+
+        <div v-if="canManage" class="sync-row">
+          <button
+            class="button button-outline"
+            type="button"
+            :disabled="syncing"
+            @click="onSyncCbu"
+          >
+            {{ syncing ? 'Olinmoqda…' : 'Markaziy bankdan hozir olish' }}
+          </button>
+          <span v-if="syncNote" :class="syncCreated ? 'saved-note' : 'sync-note'">{{ syncNote }}</span>
+        </div>
+
         <table class="data-table">
           <thead>
             <tr>
@@ -348,6 +413,20 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   justify-content: flex-end;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.sync-row {
+  margin-bottom: 12px;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.sync-note {
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .saved-note {

@@ -25,18 +25,19 @@ arxitektura qarorlari — [extraction-plan.md](./extraction-plan.md).
 | **Xodimlar** | Rollar, ombor darajasidagi ixtiyoriy cheklov |
 | **Sozlamalar** | Tashkilot rekvizitlari, hujjat prefikslari, valyuta kurslari |
 
-Testlar: **229 ta**, hammasi o'tadi.
+Testlar: **263 ta**, hammasi o'tadi.
 
 | **Kategoriyalar sahifasi** | Daraxt, atribut ta'riflari (o'ziniki va meros olganlari alohida) |
 | **O'ram va shtrix-kod** | Mahsulot formasidan boshqariladi |
 | **Tashkilot almashtirish** | Bir nechta do'konda ishlaydigan foydalanuvchi uchun, `X-Tenant-Id` orqali |
 | **Hujjatni chop etish** | Brauzer orqali — har qanday printerda ishlaydi |
 | **Excel'ga chiqarish** | Qoldiq, harakatlar jurnali, hujjatlar va hisobot; sonlar **son sifatida** yoziladi, ya'ni Excel'da qo'shsa bo'ladi |
+| **Markaziy bank kursi** | Celery beat kuniga uch marta oladi; qo'lda kiritilgan kurs bosilmaydi; sozlamalarda "hozir olish" tugmasi; o'tgan davrni to'ldirish buyrug'i |
 
 **Dizayndagi 10 bo'limning hammasi ulangan.**
 
 Qolgan ish: termal chek printeri uchun maxsus format (printer turi
-aniqlangach), Celery + Redis, ishlab chiqarishga chiqarish.
+aniqlangach), ishlab chiqarishga chiqarish.
 
 ---
 

@@ -121,6 +121,38 @@ CACHES = {
 }
 
 
+# --- Fon vazifalari (Celery) ----------------------------------------------
+
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BROKER_URL = REDIS_URL or "memory://"
+CELERY_RESULT_BACKEND = None  # natija kerak emas: vazifalar bazaga yozadi
+CELERY_TIMEZONE = "Asia/Tashkent"
+CELERY_TASK_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+
+# Redis yo'q bo'lsa vazifa chaqirilgan joyda sinxron bajariladi. Bu lokal
+# ishlab chiqish uchun: worker ishga tushirmasdan ham hamma narsa ishlaydi.
+# Ishlab chiqarishda REDIS_URL berilgani uchun bu avtomatik o'chadi.
+CELERY_TASK_ALWAYS_EAGER = not REDIS_URL
+CELERY_TASK_EAGER_PROPAGATES = True
+
+# Vazifa worker o'lib qolganda yo'qolmasin: tugagandan keyin tasdiqlanadi.
+# Kurs sinxronlash qayta ishga tushirishga xavfsiz, shuning uchun bu mumkin.
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+CELERY_BEAT_SCHEDULE = {
+    # Markaziy bank kursni odatda ish kuni boshida e'lon qiladi. Kuniga
+    # uch marta: birinchisi o'tib ketsa (tarmoq, bank sayti), keyingisi
+    # to'ldiradi. Takroriy chaqiruv hech narsa yozmaydi.
+    "sync-cbu-exchange-rates": {
+        "task": "apps.pricing.tasks.sync_cbu_rates",
+        "schedule": crontab(hour="8,12,17", minute=5),
+    },
+}
+
+
 # --- Autentifikatsiya -----------------------------------------------------
 
 AUTH_USER_MODEL = "users.User"

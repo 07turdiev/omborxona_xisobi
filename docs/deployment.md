@@ -180,6 +180,7 @@ yangi kod eski sxemada ishlamasligi mumkin.
 # Loglar
 docker compose logs -f backend
 docker compose logs -f db
+docker compose logs -f worker beat   # fon vazifalari
 
 # Holat
 docker compose ps
@@ -193,6 +194,37 @@ docker compose exec db psql -U omborxona_app -d omborxona_xisobi -c "
   SELECT relname, pg_size_pretty(pg_total_relation_size(relid))
   FROM pg_catalog.pg_statio_user_tables
   ORDER BY pg_total_relation_size(relid) DESC LIMIT 10"
+```
+
+### Fon vazifalari
+
+`worker` va `beat` konteynerlari Celery'ni ishga tushiradi. Hozircha bitta
+vazifa bor — **Markaziy bank valyuta kursi**, kuniga uch marta (08:05,
+12:05, 17:05 Toshkent vaqti). U nima uchun muhim: kurs yangilanmasa,
+tizim eng oxirgi eski kursni ishlatadi va dollar kirimining tannarxi
+jimgina noto'g'ri hisoblanadi.
+
+Ishlayotganini tekshirish:
+
+```bash
+# beat jadvalni yuboryaptimi
+docker compose logs beat | grep sync-cbu
+
+# worker bajaryaptimi — "Markaziy bank kursi yozildi" qatori
+docker compose logs worker | grep "kursi yozildi"
+
+# qo'lda, hoziroq
+docker compose exec backend python manage.py sync_exchange_rates
+```
+
+`beat` **faqat bitta nusxada** ishlashi kerak (`docker compose up --scale
+beat=2` qilmang) — aks holda har vazifa ikki marta yuboriladi.
+
+Celery'siz server bo'lsa (masalan oddiy VPS, Docker'siz), xuddi shu ishni
+cron bajaradi:
+
+```bash
+5 8,12,17 * * * cd /app && python manage.py sync_exchange_rates
 ```
 
 `stock_stockmovement` eng tez o'sadigan jadval bo'ladi — u append-only
@@ -210,6 +242,8 @@ jurnal va hech qachon tozalanmaydi. Bu ataylab: u haqiqat manbai.
 - [ ] HTTPS ishlaydi, sertifikat avtomatik yangilanadi
 - [ ] Zaxira cron ga qo'yilgan va **bir marta tiklab sinalgan**
 - [ ] Zaxira boshqa serverga ko'chiriladi
+- [ ] `worker` va `beat` ishlayapti, sozlamalarda bugungi sanali
+      "Markaziy bank" kursi paydo bo'lgan
 - [ ] **Demo parollar almashtirilgan** — `demo12345`, `admin12345`,
       `omborchi12345` hujjatlarda ochiq yozilgan
 - [ ] Demo ma'lumot o'chirilgan yoki haqiqiy ma'lumot bilan
@@ -224,7 +258,7 @@ bilan hamma narsani o'zgartirish mumkin.
 
 | Nima | Nega kerak bo'lishi mumkin |
 |---|---|
-| Celery + Redis navbat | Redis allaqachon ishlaydi (birlik keshi uchun), lekin fon vazifalari hali yo'q. Hisobotlar hozircha tez — o'nlab ming yozuvda sekinlashsa kerak bo'ladi |
+| Og'ir hisobotlarni fonga o'tkazish | Celery tayyor, lekin hisobotlar hozircha tez va sinxron. O'nlab ming yozuvda sekinlashsa, Excel eksportini vazifaga aylantirish kerak bo'ladi |
 | Termal chek formati | Hozir chop etish brauzer orqali, har qanday printerda ishlaydi. 58/80 mm uchun maxsus shablon printer turi aniqlangach |
 | Sentry yoki shunga o'xshash | Xatolarni loglardan qidirish o'rniga bildirishnoma olish |
 | Ko'p til | Interfeys faqat o'zbekcha; dizayn prototipida ru/en ham bor edi |

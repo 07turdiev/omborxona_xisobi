@@ -230,6 +230,25 @@ ID si berilsa — hech narsa ko'rinmaydi.
 
 # InvenTree manbasi NOTICE dagi digestga mos ekanini tekshirish
 .venv/Scripts/python.exe ../scripts/verify_source_digest.py
+
+# Markaziy bank valyuta kursini olish (bugungi / bitta sana / davr)
+.venv/Scripts/python.exe manage.py sync_exchange_rates
+.venv/Scripts/python.exe manage.py sync_exchange_rates --date 2026-09-01
+.venv/Scripts/python.exe manage.py sync_exchange_rates --from 2026-08-01 --to 2026-08-31
+```
+
+**Fon vazifalari lokalda.** `.env` da `REDIS_URL` bo'lmasa Celery vazifalari
+chaqirilgan joyning o'zida sinxron bajariladi — worker ham, Redis ham
+kerak emas. Faqat jadval (har kuni avtomatik kurs olish) ishlamaydi:
+kursni yuqoridagi buyruq bilan yoki **Sozlamalar → Valyuta kurslari →
+"Markaziy bankdan hozir olish"** tugmasi bilan oling.
+
+Redis bilan to'liq sinab ko'rish kerak bo'lsa (`.env` ga
+`REDIS_URL=redis://localhost:6379/0` qo'shib), ikki qo'shimcha oynada:
+
+```bash
+.venv/Scripts/celery.exe -A config worker --pool solo -l info   # Windows'da --pool solo shart
+.venv/Scripts/celery.exe -A config beat -l info
 ```
 
 ## 11. Yangi model qo'shganda — RLS ni unutmang
