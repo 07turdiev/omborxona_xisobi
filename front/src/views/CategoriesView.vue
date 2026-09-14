@@ -2,10 +2,19 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 import { catalogApi } from '@/api/catalog'
+import ImportModal from '@/components/ImportModal.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useCatalogStore } from '@/stores/catalog'
 import type { AttributeDefinition, Category } from '@/types'
 
 const store = useCatalogStore()
+const auth = useAuthStore()
+
+// Excel import
+const importOpen = ref(false)
+const canImport = computed(
+  () => auth.can('categories') && Boolean(auth.user?.current_tenant?.can_write),
+)
 
 const selected = ref<Category | null>(null)
 const inherited = ref<AttributeDefinition[]>([])
@@ -259,11 +268,31 @@ const isChoiceType = computed(() => attributeForm.value_type === 'choice')
         </RouterLink>
       </div>
 
-      <button class="button button-gradient" @click="openCategoryCreate(null)">
-        <svg><use href="#i-plus" /></svg>
-        <span>Ildiz kategoriya</span>
-      </button>
+      <div class="toolbar-actions">
+        <button
+          v-if="canImport"
+          class="button button-outline"
+          type="button"
+          @click="importOpen = true"
+        >
+          <svg><use href="#i-import" /></svg>
+          <span>Excel import</span>
+        </button>
+
+        <button class="button button-gradient" @click="openCategoryCreate(null)">
+          <svg><use href="#i-plus" /></svg>
+          <span>Ildiz kategoriya</span>
+        </button>
+      </div>
     </div>
+
+    <ImportModal
+      :show="importOpen"
+      type="categories"
+      title="Kategoriyalarni import qilish"
+      @close="importOpen = false"
+      @done="store.loadCategories()"
+    />
 
     <p v-if="error" class="load-error">{{ error }}</p>
 

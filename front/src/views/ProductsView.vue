@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import ImportModal from '@/components/ImportModal.vue'
 import ProductModal from '@/components/ProductModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogStore } from '@/stores/catalog'
@@ -11,6 +12,17 @@ const auth = useAuthStore()
 
 /** Kirim narxi — `view_purchase_price` ruxsati bilan */
 const canSeePurchase = computed(() => auth.can('view_purchase_price'))
+
+// Excel import
+const importOpen = ref(false)
+const canImport = computed(
+  () => auth.can('products') && Boolean(auth.user?.current_tenant?.can_write),
+)
+
+async function onImported() {
+  await store.loadCategories()
+  await store.loadProducts()
+}
 
 const modalOpen = ref(false)
 const editing = ref<Product | null>(null)
@@ -120,6 +132,24 @@ const totalVariants = computed(() =>
           <svg><use href="#i-settings" /></svg>
           <span>Kategoriyalar</span>
         </RouterLink>
+
+        <button
+          v-if="canImport"
+          class="button button-outline"
+          type="button"
+          @click="importOpen = true"
+        >
+          <svg><use href="#i-import" /></svg>
+          <span>Excel import</span>
+        </button>
+
+        <ImportModal
+          :show="importOpen"
+          type="products"
+          title="Mahsulotlarni import qilish"
+          @close="importOpen = false"
+          @done="onImported"
+        />
 
         <button class="button button-gradient" @click="openCreate">
           <svg><use href="#i-plus" /></svg>

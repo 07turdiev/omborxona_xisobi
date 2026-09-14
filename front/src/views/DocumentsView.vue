@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 import DocumentModal from '@/components/DocumentModal.vue'
 import DocumentPrint from '@/components/DocumentPrint.vue'
+import ImportModal from '@/components/ImportModal.vue'
 import { documentsApi } from '@/api/documents'
 import { tenantsApi } from '@/api/tenants'
 import { useExport } from '@/composables/useExport'
@@ -30,6 +31,15 @@ const colCount = computed(() => (showProfit.value ? 9 : 8))
 
 const modalOpen = ref(false)
 const editing = ref<Document | null>(null)
+
+// Excel import: kirim sahifasida — kirim, sotuv sahifasida — sotuv
+const importOpen = ref(false)
+const importType = computed(() => (isPurchase.value ? 'purchases' : 'sales'))
+const canImport = computed(
+  () =>
+    auth.can(isPurchase.value ? 'imports' : 'sales') &&
+    Boolean(auth.user?.current_tenant?.can_write),
+)
 
 // Turi sahifadan olinadi: kirim sahifasida sotuvlar chiqmasligi kerak
 const { exporting, exportError, onExport } = useExport(() =>
@@ -190,6 +200,24 @@ const totals = computed(() =>
           <svg><use href="#i-download" /></svg>
           <span>{{ exporting ? 'Tayyorlanmoqda…' : 'Excel' }}</span>
         </button>
+
+        <button
+          v-if="canImport"
+          class="button button-outline"
+          type="button"
+          @click="importOpen = true"
+        >
+          <svg><use href="#i-import" /></svg>
+          <span>Import</span>
+        </button>
+
+        <ImportModal
+          :show="importOpen"
+          :type="importType"
+          :title="isPurchase ? 'Kirimni import qilish' : 'Sotuvlarni import qilish'"
+          @close="importOpen = false"
+          @done="store.load(kind)"
+        />
 
         <button class="button button-gradient" @click="openCreate">
           <svg><use href="#i-plus" /></svg>

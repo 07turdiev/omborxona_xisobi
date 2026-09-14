@@ -18,6 +18,8 @@ class MembershipBriefSerializer(serializers.Serializer):
     tenant_slug = serializers.CharField(source='tenant.slug')
     role = serializers.CharField()
     role_display = serializers.CharField(source='get_role_display')
+    #: Rol ma'lumot kiritishga ruxsat beradimi (kuzatuvchi — yo'q)
+    can_write = serializers.BooleanField(read_only=True)
 
     #: Amaldagi ruxsatlar — interfeys menyu va ustunlarni shunga qarab
     #: ko'rsatadi. Himoya baribir serverda: bu faqat qulaylik uchun.

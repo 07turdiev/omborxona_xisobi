@@ -4,6 +4,8 @@ export interface MembershipBrief {
   tenant_slug: string
   role: string
   role_display: string
+  /** Rol ma'lumot kiritishga ruxsat beradimi (kuzatuvchi — yo'q) */
+  can_write: boolean
   /** Amaldagi ruxsatlar (`apps.core.access.Perm` kodlari) */
   permissions: string[]
 }
