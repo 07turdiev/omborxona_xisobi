@@ -581,6 +581,32 @@ export interface TenantSettings {
   member_count: number
 }
 
+/** Tarix yozuvi — kim, qachon, nimani qildi */
+export interface AuditEventRow {
+  id: number
+  created_at: string
+  action: string
+  action_display: string
+  object_type: string
+  object_type_display: string
+  object_id: string
+  object_repr: string
+  warehouse_id: number | null
+  warehouse_name: string
+  user: number | null
+  user_name: string
+  details: string
+  /** Tahrirda nima o'zgargani. Ruxsatsiz moliyaviy maydon — `null`. */
+  changes: Record<string, [unknown, unknown] | null>
+}
+
+export interface HistoryMeta {
+  /** `all` — barcha xodimlar, `own` — faqat o'zingizning amallaringiz */
+  scope: 'all' | 'own'
+  object_types: { value: string; label: string }[]
+  actions: { value: string; label: string }[]
+}
+
 export interface WarehouseAccessRow {
   id: number
   warehouse: number

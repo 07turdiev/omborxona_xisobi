@@ -7,6 +7,8 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from apps.audit import services as audit_services
+from apps.audit.mixins import Action, AuditMixin
 from apps.core.access import PERMISSION_CATALOG, PERMISSION_GROUPS, ROLE_DEFAULTS, Perm
 from apps.core.permissions import HasTenantMembership, SectionPermission
 from apps.tenants.models import Membership, Tenant
@@ -19,6 +21,7 @@ from apps.tenants.serializers import (
 
 
 class TenantSettingsViewSet(
+    AuditMixin,
     mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
 ):
     """Joriy tashkilot sozlamalari.
@@ -28,6 +31,7 @@ class TenantSettingsViewSet(
     """
 
     serializer_class = TenantSettingsSerializer
+    audit_object_type = 'settings'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.SETTINGS}}
     queryset = Tenant.objects.none()
@@ -46,21 +50,27 @@ class TenantSettingsViewSet(
         if request.method == 'GET':
             return Response(self.get_serializer(tenant).data)
 
+        before = audit_services.snapshot(tenant)
+
         serializer = self.get_serializer(
             tenant, data=request.data, partial=request.method == 'PATCH'
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        if changes := audit_services.diff(before, audit_services.snapshot(tenant)):
+            self.audit(Action.UPDATE, tenant, changes=changes)
+
         return Response(serializer.data)
 
 
-class MembershipViewSet(viewsets.ModelViewSet):
+class MembershipViewSet(AuditMixin, viewsets.ModelViewSet):
     """Tashkilot xodimlari.
 
     Ko'rish — barcha a'zolarga, o'zgartirish — faqat egasi va menejerga.
     """
 
+    audit_object_type = 'member'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.USERS}}
     queryset = Membership.objects.none()
@@ -105,6 +115,8 @@ class MembershipViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         membership = serializer.save()
 
+        self.audit(Action.CREATE, membership, details=membership.get_role_display())
+
         return Response(MembershipSerializer(membership).data, status=201)
 
     def perform_destroy(self, instance):
@@ -124,7 +136,7 @@ class MembershipViewSet(viewsets.ModelViewSet):
         ):
             raise PermissionDenied('Tashkilot egasini faqat egasi chiqara oladi.')
 
-        instance.delete()
+        super().perform_destroy(instance)
 
     @action(detail=False, methods=['get'])
     def roles(self, request):

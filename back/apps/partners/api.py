@@ -5,14 +5,16 @@ from __future__ import annotations
 from django.db.models import Q
 from rest_framework import viewsets
 
+from apps.audit.mixins import Action, AuditMixin
 from apps.core.access import Perm
 from apps.core.permissions import SectionPermission
 from apps.partners.models import Partner
 from apps.partners.serializers import PartnerSerializer
 
 
-class PartnerViewSet(viewsets.ModelViewSet):
+class PartnerViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = PartnerSerializer
+    audit_object_type = 'partner'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.COUNTERPARTIES}}
 

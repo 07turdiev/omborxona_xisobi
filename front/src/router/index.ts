@@ -120,6 +120,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/history',
+      name: 'history',
+      component: () => import('@/views/HistoryView.vue'),
+      meta: {
+        requiresAuth: true,
+        permission: 'history',
+        title: 'Tarix',
+        subtitle: 'Kim, qachon va nimani o‘zgartirgani',
+      },
+    },
+    {
       path: '/users',
       name: 'users',
       component: () => import('@/views/UsersView.vue'),

@@ -7,13 +7,14 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.mixins import Action, AuditMixin
 from apps.core.access import Perm
 from apps.core.permissions import SectionPermission
 from apps.warehouse.models import Warehouse, WarehouseAccess
 from apps.warehouse.serializers import WarehouseAccessSerializer, WarehouseSerializer
 
 
-class WarehouseViewSet(viewsets.ModelViewSet):
+class WarehouseViewSet(AuditMixin, viewsets.ModelViewSet):
     """Omborlar.
 
     Tashkilotlar orasidagi ajratish PostgreSQL RLS bilan, tashkilot
@@ -22,6 +23,7 @@ class WarehouseViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = WarehouseSerializer
+    audit_object_type = 'warehouse'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.WAREHOUSES}}
     queryset = Warehouse.objects.none()
@@ -86,10 +88,11 @@ class WarehouseViewSet(viewsets.ModelViewSet):
         })
 
 
-class WarehouseAccessViewSet(viewsets.ModelViewSet):
+class WarehouseAccessViewSet(AuditMixin, viewsets.ModelViewSet):
     """Omborga kirish huquqlari (ixtiyoriy cheklov)."""
 
     serializer_class = WarehouseAccessSerializer
+    audit_object_type = 'warehouse_access'
     permission_classes = [SectionPermission]
 
     #: Faqat xodimlarni boshqaradigan kishi. Avval bu yerda yozish huquqi

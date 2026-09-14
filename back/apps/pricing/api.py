@@ -6,6 +6,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.mixins import Action, AuditMixin
 from apps.core.access import Perm
 from apps.core.permissions import SectionPermission
 from apps.pricing.cbu import CbuError, fetch_rates
@@ -14,8 +15,9 @@ from apps.pricing.rate_sync import sync_rates_from_cbu
 from apps.pricing.serializers import CurrencySerializer, ExchangeRateSerializer
 
 
-class CurrencyViewSet(viewsets.ModelViewSet):
+class CurrencyViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = CurrencySerializer
+    audit_object_type = 'currency'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.SETTINGS}}
     pagination_class = None
@@ -24,7 +26,7 @@ class CurrencyViewSet(viewsets.ModelViewSet):
         return Currency.objects.all()
 
 
-class ExchangeRateViewSet(viewsets.ModelViewSet):
+class ExchangeRateViewSet(AuditMixin, viewsets.ModelViewSet):
     """Valyuta kurslari — tarix bilan.
 
     Kurs `valid_from` sanasidan boshlab amal qiladi va keyingisi
@@ -34,6 +36,7 @@ class ExchangeRateViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = ExchangeRateSerializer
+    audit_object_type = 'exchange_rate'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.SETTINGS}}
 
@@ -63,5 +66,13 @@ class ExchangeRateViewSet(viewsets.ModelViewSet):
             return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
         result = sync_rates_from_cbu(request.membership.tenant, rates)
+
+        if result.created:
+            self.audit(
+                Action.SYNC,
+                object_type='exchange_rate',
+                object_repr='Markaziy bank kursi',
+                details=f"{', '.join(result.created)} ({result.valid_from})",
+            )
 
         return Response(result.as_dict())

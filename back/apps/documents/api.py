@@ -12,6 +12,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from apps.audit.mixins import Action, AuditMixin
 from apps.core.export import (
     DATE,
     MONEY,
@@ -31,7 +32,7 @@ from apps.documents.serializers import DocumentSerializer
 from apps.warehouse.models import WarehouseAccess
 
 
-class DocumentViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
+class DocumentViewSet(AuditMixin, FinancialRedactionMixin, viewsets.ModelViewSet):
     """Kirim va sotuv hujjatlari.
 
     Tasdiqlash va bekor qilish alohida amallar: ular qoldiqqa ta'sir
@@ -39,6 +40,7 @@ class DocumentViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
     """
 
     serializer_class = DocumentSerializer
+    audit_object_type = 'document'
     permission_classes = [SectionPermission]
     section_permissions = {'read': {Perm.IMPORTS, Perm.SALES}}
     extra_permissions = {'export': {Perm.PRINT_REPORTS}}
@@ -108,11 +110,16 @@ class DocumentViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
             if membership.has_perm(permission)
         ]
 
+    def get_audit_object_type(self, instance) -> str:
+        # Tarixda "Kirim" va "Sotuv" alohida tur sifatida ko'rinsin
+        return instance.kind
+
     def perform_create(self, serializer):
         if serializer.validated_data['kind'] not in self._allowed_kinds():
             raise PermissionDenied('Bu turdagi hujjat yaratishga ruxsatingiz yo‘q.')
 
-        serializer.save()
+        # `super()` — AuditMixin shu yerdan o'tadi va yaratishni yozadi
+        super().perform_create(serializer)
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
@@ -123,6 +130,8 @@ class DocumentViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
             services.confirm(document, user=request.user)
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
+
+        self.audit(Action.CONFIRM, document)
 
         return Response(self.get_serializer(self._reload(document)).data)
 
@@ -137,6 +146,8 @@ class DocumentViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
             )
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
+
+        self.audit(Action.CANCEL, document, details=request.data.get('note', ''))
 
         return Response(self.get_serializer(self._reload(document)).data)
 

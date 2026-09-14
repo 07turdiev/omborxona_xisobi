@@ -7,6 +7,7 @@ from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.mixins import Action, AuditMixin
 from apps.core.access import Perm
 from apps.core.permissions import SectionPermission
 from apps.units.conversion import convert_to_unit
@@ -14,7 +15,7 @@ from apps.units.models import CustomUnit
 from apps.units.serializers import BaseUnitSerializer, CustomUnitSerializer
 
 
-class CustomUnitViewSet(viewsets.ModelViewSet):
+class CustomUnitViewSet(AuditMixin, viewsets.ModelViewSet):
     """Tashkilotning o'z o'lchov birliklari.
 
     Queryset `tenant_id` bo'yicha ochiq filtrlanmaydi — buni PostgreSQL
@@ -24,6 +25,7 @@ class CustomUnitViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = CustomUnitSerializer
+    audit_object_type = 'unit'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.SETTINGS}}
     queryset = CustomUnit.objects.all()

@@ -38,6 +38,7 @@ const operations = [
 
 const analytics = [
   { to: '/reports', icon: 'i-report', label: 'Hisobotlar', perm: 'reports' },
+  { to: '/history', icon: 'i-calendar', label: 'Tarix', perm: 'history' },
   { to: '/users', icon: 'i-users', label: 'Foydalanuvchilar', perm: 'users' },
   { to: '/settings', icon: 'i-settings', label: 'Sozlamalar', perm: 'settings' },
 ]

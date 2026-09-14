@@ -10,6 +10,7 @@ from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.mixins import Action, AuditMixin
 from apps.catalog.models import Category
 from apps.core.export import (
     DATE,
@@ -42,7 +43,7 @@ MONEY_OUTPUT = DecimalField(max_digits=18, decimal_places=2)
 
 
 class StockBalanceViewSet(
-    FinancialRedactionMixin, mixins.ListModelMixin, viewsets.GenericViewSet
+    AuditMixin, FinancialRedactionMixin, mixins.ListModelMixin, viewsets.GenericViewSet
 ):
     """Qoldiqlar.
 
@@ -52,6 +53,7 @@ class StockBalanceViewSet(
     """
 
     serializer_class = StockBalanceSerializer
+    audit_object_type = 'stock'
     permission_classes = [SectionPermission]
     #: Qoldiq sotuv, kirim va ko'chirish formalarida ham kerak (mavjud miqdor)
     section_permissions = {
@@ -189,6 +191,13 @@ class StockBalanceViewSet(
         serializer.is_valid(raise_exception=True)
         movement = serializer.save()
 
+        self.audit(
+            Action.ADJUST,
+            movement.variant,
+            warehouse=movement.warehouse,
+            details=f'{movement.quantity:+} · {movement.get_reason_display()}',
+        )
+
         return Response(StockMovementSerializer(movement).data, status=201)
 
     @action(detail=False, methods=['post'])
@@ -202,6 +211,13 @@ class StockBalanceViewSet(
 
         if movement is None:
             return Response({'detail': 'Farq yo\'q, tuzatish kerak emas.'})
+
+        self.audit(
+            Action.STOCKTAKE,
+            movement.variant,
+            warehouse=movement.warehouse,
+            details=f'Farq: {movement.quantity:+}',
+        )
 
         return Response(StockMovementSerializer(movement).data, status=201)
 
@@ -343,10 +359,11 @@ class StockMovementViewSet(
         return queryset
 
 
-class BatchViewSet(viewsets.ModelViewSet):
+class BatchViewSet(AuditMixin, viewsets.ModelViewSet):
     """Partiyalar: kod va yaroqlilik muddati."""
 
     serializer_class = BatchSerializer
+    audit_object_type = 'batch'
     permission_classes = [SectionPermission]
     section_permissions = {
         'read': {Perm.STOCK, Perm.IMPORTS, Perm.SALES, Perm.TRANSFERS},

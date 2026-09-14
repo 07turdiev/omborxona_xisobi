@@ -7,6 +7,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.mixins import Action, AuditMixin
 from apps.catalog import attributes as attr_service
 from apps.catalog.models import (
     AttributeDefinition,
@@ -28,13 +29,14 @@ from apps.core.access import FinancialRedactionMixin, Perm
 from apps.core.permissions import SectionPermission
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(AuditMixin, viewsets.ModelViewSet):
     """Kategoriya daraxti.
 
     Queryset `tenant_id` bo'yicha ochiq filtrlanmaydi — buni RLS bajaradi.
     """
 
     serializer_class = CategorySerializer
+    audit_object_type = 'category'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.CATEGORIES}}
     pagination_class = None  # daraxt to'liq kerak
@@ -65,8 +67,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Response(AttributeDefinitionSerializer(definitions, many=True).data)
 
 
-class AttributeDefinitionViewSet(viewsets.ModelViewSet):
+class AttributeDefinitionViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = AttributeDefinitionSerializer
+    audit_object_type = 'attribute'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.CATEGORIES}}
 
@@ -79,8 +82,9 @@ class AttributeDefinitionViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-class ProductViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
+class ProductViewSet(AuditMixin, FinancialRedactionMixin, viewsets.ModelViewSet):
     serializer_class = ProductSerializer
+    audit_object_type = 'product'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.PRODUCTS}}
 
@@ -116,8 +120,9 @@ class ProductViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
         return queryset
 
 
-class VariantViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
+class VariantViewSet(AuditMixin, FinancialRedactionMixin, viewsets.ModelViewSet):
     serializer_class = VariantSerializer
+    audit_object_type = 'variant'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.PRODUCTS}}
 
@@ -164,10 +169,11 @@ class VariantViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
         return Response(VariantSerializer(barcode.variant).data)
 
 
-class ProductUnitViewSet(viewsets.ModelViewSet):
+class ProductUnitViewSet(AuditMixin, viewsets.ModelViewSet):
     """O'ram birliklari: «1 qop = 50 kg»."""
 
     serializer_class = ProductUnitSerializer
+    audit_object_type = 'product_unit'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.PRODUCTS}}
 
@@ -180,8 +186,9 @@ class ProductUnitViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-class BarcodeViewSet(viewsets.ModelViewSet):
+class BarcodeViewSet(AuditMixin, viewsets.ModelViewSet):
     serializer_class = BarcodeSerializer
+    audit_object_type = 'barcode'
     permission_classes = [SectionPermission]
     section_permissions = {'write': {Perm.PRODUCTS}}
 

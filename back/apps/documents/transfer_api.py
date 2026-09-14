@@ -11,6 +11,7 @@ from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.mixins import Action, AuditMixin
 from apps.catalog.models import Variant
 from apps.core.access import Perm
 from apps.core.permissions import SectionPermission
@@ -172,7 +173,7 @@ class TransferSerializer(serializers.ModelSerializer):
                 })
 
 
-class TransferViewSet(viewsets.ModelViewSet):
+class TransferViewSet(AuditMixin, viewsets.ModelViewSet):
     """Omborlararo ko'chirish — ikki bosqichli.
 
     `send` va `receive` alohida amallar: ular orasida kunlar o'tishi
@@ -180,6 +181,7 @@ class TransferViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = TransferSerializer
+    audit_object_type = 'transfer'
     permission_classes = [SectionPermission]
     section_permissions = {'read': {Perm.TRANSFERS}}
     queryset = Transfer.objects.none()
@@ -214,6 +216,9 @@ class TransferViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def get_audit_warehouse(self, instance):
+        return instance.from_warehouse
+
     @action(detail=True, methods=['post'])
     def send(self, request, pk=None):
         """Jo'natish: tovar tranzit omborga o'tadi."""
@@ -223,6 +228,8 @@ class TransferViewSet(viewsets.ModelViewSet):
             services.send(transfer, user=request.user)
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
+
+        self.audit(Action.SEND, transfer)
 
         return Response(self.get_serializer(self._reload(transfer)).data)
 
@@ -247,7 +254,18 @@ class TransferViewSet(viewsets.ModelViewSet):
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
 
-        return Response(self.get_serializer(self._reload(transfer)).data)
+        transfer = self._reload(transfer)
+
+        # Kamomad tarixda ko'rinsin — ko'chirishning eng muhim natijasi shu
+        self.audit(
+            Action.RECEIVE,
+            transfer,
+            details=(
+                f'Kamomad: {transfer.total_shortfall}' if transfer.has_shortfall else ''
+            ),
+        )
+
+        return Response(self.get_serializer(transfer).data)
 
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
@@ -258,6 +276,8 @@ class TransferViewSet(viewsets.ModelViewSet):
             services.cancel(transfer, user=request.user)
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
+
+        self.audit(Action.CANCEL, transfer)
 
         return Response(self.get_serializer(self._reload(transfer)).data)
 
