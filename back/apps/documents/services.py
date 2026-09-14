@@ -192,7 +192,15 @@ def confirm(document: Document, *, user=None) -> Document:
     document.confirmed_at = timezone.now()
     document.save(update_fields=['status', 'confirmed_at', 'updated_at'])
 
-    return recalculate_totals(document)
+    document = recalculate_totals(document)
+
+    # Qarzga sotuv: qarz shu tranzaksiyada yaratiladi — u yaratilmasa, sotuv
+    # ham tasdiqlanmaydi. Summa `recalculate_totals` dan keyingina aniq.
+    from apps.debts.services import create_for_document
+
+    create_for_document(document, user=user)
+
+    return document
 
 
 def _document_time(document: Document):
@@ -288,6 +296,13 @@ def cancel(document: Document, *, user=None, note: str = '') -> Document:
         document.save(update_fields=['status', 'cancelled_at', 'updated_at'])
 
         return document
+
+    # To'lov qabul qilingan qarzli sotuvni bekor qilib bo'lmaydi. Tekshiruv
+    # teskari yozuvlardan oldin: aks holda yarim bekor qilingan holat qolardi.
+    if document.kind == Document.Kind.SALE:
+        from apps.debts.services import cancel_for_document
+
+        cancel_for_document(document)
 
     reason = REVERSAL_REASON[document.kind]
     sign = Decimal('-1') if document.is_inbound else Decimal('1')

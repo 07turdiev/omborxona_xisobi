@@ -270,6 +270,15 @@ const totals = computed(() =>
 
                   <strong>{{ document.number }}</strong>
 
+                  <span
+                    v-if="document.is_credit"
+                    class="pill"
+                    :class="document.debt?.status === 'paid' ? 'pill-green' : document.debt?.status === 'overdue' ? 'pill-red' : 'pill-orange'"
+                    :title="document.debt ? `${document.debt.number}, qoldiq ${money(document.debt.remaining)}` : 'Tasdiqlanganda qarz yaratiladi'"
+                  >
+                    qarz
+                  </span>
+
                   <small v-if="document.external_number" class="cell-sub">
                     {{ document.external_number }}
                   </small>

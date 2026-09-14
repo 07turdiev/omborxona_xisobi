@@ -74,6 +74,10 @@ class DocumentSerializer(serializers.ModelSerializer):
     profit = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True)
     is_editable = serializers.BooleanField(read_only=True)
     line_count = serializers.SerializerMethodField()
+    payment_method_display = serializers.CharField(
+        source='get_payment_method_display', read_only=True
+    )
+    debt = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -82,6 +86,9 @@ class DocumentSerializer(serializers.ModelSerializer):
             'status', 'status_display', 'is_editable',
             'warehouse', 'warehouse_name', 'partner', 'partner_name',
             'currency', 'external_number', 'note',
+            'payment_method', 'payment_method_display',
+            'is_credit', 'credit_markup_percent', 'due_date',
+            'customer_name', 'customer_phone', 'customer_document', 'debt',
             'total_amount', 'total_cost', 'profit',
             'confirmed_at', 'cancelled_at',
             'lines', 'items', 'line_count',
@@ -91,10 +98,75 @@ class DocumentSerializer(serializers.ModelSerializer):
             'kind_display', 'warehouse_name', 'partner_name',
             'total_amount', 'total_cost', 'profit',
             'confirmed_at', 'cancelled_at', 'lines', 'line_count',
+            'payment_method_display', 'debt',
         )
 
     def get_line_count(self, obj) -> int:
         return obj.lines.count()
+
+    def get_debt(self, obj) -> dict | None:
+        """Qarzga sotuvning qarz holati — ro'yxatda belgi va havola uchun."""
+        from apps.debts.models import Debt
+
+        try:
+            debt = obj.debt
+        except Debt.DoesNotExist:
+            return None
+
+        return {
+            'id': debt.pk,
+            'number': debt.number,
+            'status': debt.display_status,
+            'remaining': str(debt.remaining),
+        }
+
+    def validate(self, attrs):
+        """Qarzga sotuv va to'lov usuli qoidalari.
+
+        Model `clean()` da ham shunday tekshiruv bor (tasdiqlashda), bu
+        yerda esa xato formada darhol, to'g'ri maydon ostida ko'rinsin.
+        """
+        instance = self.instance
+
+        def current(field, default=None):
+            if field in attrs:
+                return attrs[field]
+
+            return getattr(instance, field, default) if instance else default
+
+        kind = current('kind')
+        is_credit = current('is_credit', False)
+        errors = {}
+
+        if is_credit and kind != Document.Kind.SALE:
+            errors['is_credit'] = 'Qarzga faqat sotuv qilinadi.'
+
+        if (
+            kind == Document.Kind.SALE
+            and current('payment_method') == Document.PaymentMethod.DEFERRED
+        ):
+            errors['payment_method'] = (
+                'Sotuvda to‘lovni kechiktirish uchun «Qarzga» belgisini qo‘ying.'
+            )
+
+        markup = current('credit_markup_percent') or Decimal('0')
+
+        if markup < 0 or markup > 1000:
+            errors['credit_markup_percent'] = 'Ustama 0 dan 1000 % gacha bo‘lishi kerak.'
+
+        if is_credit and not current('partner'):
+            name = (current('customer_name', '') or '').strip()
+            phone = (current('customer_phone', '') or '').strip()
+
+            if not name or not phone:
+                errors['customer_name'] = (
+                    'Qarzga sotuvda mijozni tanlang yoki ism va telefonini kiriting.'
+                )
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
 
     #: Summasi kirim narxini ochib beradigan hujjat turlari
     PURCHASE_PRICED_KINDS = frozenset({Document.Kind.PURCHASE, Document.Kind.RETURN_OUT})
@@ -160,6 +232,12 @@ class DocumentSerializer(serializers.ModelSerializer):
 
         if items is not None:
             self._replace_lines(instance, items)
+        elif {'is_credit', 'credit_markup_percent'} & validated_data.keys():
+            # Ustama har qator summasiga kiradi — qatorlar qayta hisoblanadi
+            for line in instance.lines.all():
+                line.document = instance
+                line.recalculate()
+                line.save(update_fields=['quantity_base', 'line_total', 'updated_at'])
 
         return services.recalculate_totals(instance)
 

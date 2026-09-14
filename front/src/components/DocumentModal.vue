@@ -3,9 +3,16 @@ import { computed, reactive, ref, watch } from 'vue'
 
 import { catalogApi } from '@/api/catalog'
 import type { DocumentInput } from '@/api/documents'
+import { tenantsApi } from '@/api/tenants'
 import { useDocumentStore } from '@/stores/documents'
 import { useWarehouseStore } from '@/stores/warehouses'
-import type { Document, DocumentKind, DocumentLineInput, Variant } from '@/types'
+import type {
+  Document,
+  DocumentKind,
+  DocumentLineInput,
+  TenantSettings,
+  Variant,
+} from '@/types'
 
 const props = defineProps<{
   show: boolean
@@ -20,6 +27,9 @@ const warehouses = useWarehouseStore()
 const errors = ref<Record<string, string[]>>({})
 const variants = ref<Variant[]>([])
 
+/** Qarz muddati va ustamaning standart qiymatlari shu yerdan olinadi */
+const settings = ref<TenantSettings | null>(null)
+
 // Shtrix-kod bilan qo'shish
 const scanCode = ref('')
 const scanInput = ref<HTMLInputElement | null>(null)
@@ -27,6 +37,16 @@ const scanMessage = reactive({ text: '', tone: '' })
 const scanning = ref(false)
 
 const isPurchase = computed(() => props.kind === 'purchase')
+
+/** Kirimda "keyinroq" — yetkazib beruvchiga keyin to'lanadi. Sotuvda
+    kechiktirilgan to'lov "Qarzga" belgisi orqali bo'ladi. */
+const paymentMethods = computed(() => [
+  { value: 'cash', label: 'Naqd' },
+  { value: 'card', label: 'Karta' },
+  { value: 'transfer', label: 'O‘tkazma' },
+  { value: 'mixed', label: 'Aralash' },
+  ...(isPurchase.value ? [{ value: 'deferred', label: 'Keyinroq' }] : []),
+])
 
 /** Qator uchun tanlanishi mumkin bo'lgan o'ram birliklari.
 
@@ -51,6 +71,13 @@ function emptyForm(): DocumentInput {
     currency: 'UZS',
     external_number: '',
     note: '',
+    payment_method: 'cash',
+    is_credit: false,
+    credit_markup_percent: '0',
+    due_date: null,
+    customer_name: '',
+    customer_phone: '',
+    customer_document: '',
     items: [emptyLine()],
   }
 }
@@ -70,6 +97,14 @@ watch(
       variants.value = data.results.flatMap((product) => product.variants)
     }
 
+    if (!settings.value) {
+      try {
+        settings.value = await tenantsApi.settings()
+      } catch {
+        // Sozlamasiz ham forma ishlaydi — standart qiymatlar bo'sh qoladi
+      }
+    }
+
     if (document) {
       Object.assign(form, {
         kind: document.kind,
@@ -79,6 +114,13 @@ watch(
         currency: document.currency,
         external_number: document.external_number,
         note: document.note,
+        payment_method: document.payment_method,
+        is_credit: document.is_credit,
+        credit_markup_percent: document.credit_markup_percent,
+        due_date: document.due_date,
+        customer_name: document.customer_name,
+        customer_phone: document.customer_phone,
+        customer_document: document.customer_document,
         items: document.lines.map((line) => ({
           variant: line.variant,
           batch: line.batch,
@@ -92,6 +134,24 @@ watch(
     }
   },
   { immediate: true },
+)
+
+/** "Qarzga" yoqilganda muddat va ustama tashkilot sozlamasidan to'ldiriladi. */
+watch(
+  () => form.is_credit,
+  (isCredit) => {
+    if (!isCredit || !settings.value) return
+
+    if (!form.due_date) {
+      const due = new Date(form.date)
+      due.setDate(due.getDate() + settings.value.debt_default_days)
+      form.due_date = due.toISOString().slice(0, 10)
+    }
+
+    if (!Number(form.credit_markup_percent)) {
+      form.credit_markup_percent = settings.value.credit_markup_default
+    }
+  },
 )
 
 function addLine() {
@@ -199,14 +259,26 @@ function onUnitChange(index: number) {
   line.unit_price = String(Math.round(Number(base) * factor))
 }
 
-const lineTotal = (line: DocumentLineInput): number => {
+/** Ustamasiz qator summasi (chegirma bilan). */
+const baseLineTotal = (line: DocumentLineInput): number => {
   const discount = 1 - Number(line.discount_percent || 0) / 100
   return Number(line.quantity || 0) * Number(line.unit_price || 0) * discount
 }
 
-const total = computed(() =>
-  form.items.reduce((sum, line) => sum + lineTotal(line), 0),
+/** Qarzga sotuvda ustama har qatorga kiradi — server ham shunday hisoblaydi. */
+const markupMultiplier = computed(() =>
+  !isPurchase.value && form.is_credit ? 1 + Number(form.credit_markup_percent || 0) / 100 : 1,
 )
+
+const lineTotal = (line: DocumentLineInput): number =>
+  baseLineTotal(line) * markupMultiplier.value
+
+const baseTotal = computed(() =>
+  form.items.reduce((sum, line) => sum + baseLineTotal(line), 0),
+)
+
+const total = computed(() => baseTotal.value * markupMultiplier.value)
+const markupAmount = computed(() => total.value - baseTotal.value)
 
 function money(value: number): string {
   return new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: 0 }).format(value)
@@ -218,6 +290,12 @@ async function onSubmit(confirmAfter: boolean) {
   const payload: DocumentInput = {
     ...form,
     items: form.items.filter((line) => line.variant && Number(line.quantity) > 0),
+  }
+
+  // Qarzga bo'lmasa qarz maydonlari yuborilmaydi — eski qiymat qolib ketmasin
+  if (!payload.is_credit) {
+    payload.credit_markup_percent = '0'
+    payload.due_date = null
   }
 
   if (!payload.items.length) {
@@ -310,7 +388,7 @@ const fieldError = (field: string): string => {
             <div class="field">
               <label>{{ isPurchase ? 'Yetkazib beruvchi' : 'Mijoz' }}</label>
               <select v-model="form.partner">
-                <option :value="null">—</option>
+                <option :value="null">{{ isPurchase ? '—' : 'Chakana xaridor' }}</option>
                 <option
                   v-for="p in isPurchase ? store.suppliers : store.customers"
                   :key="p.id"
@@ -321,15 +399,84 @@ const fieldError = (field: string): string => {
               </select>
             </div>
 
+            <div class="field">
+              <label>To‘lov usuli</label>
+              <select v-model="form.payment_method">
+                <option v-for="m in paymentMethods" :key="m.value" :value="m.value">
+                  {{ m.label }}
+                </option>
+              </select>
+              <small v-if="fieldError('payment_method')" class="field-error">
+                {{ fieldError('payment_method') }}
+              </small>
+            </div>
+
             <div v-if="isPurchase" class="field">
               <label>Tashqi hujjat raqami</label>
               <input v-model="form.external_number" placeholder="BKS-2026-1180" />
             </div>
 
-            <div class="field span-2">
+            <div class="field" :class="isPurchase ? '' : 'span-2'">
               <label>Izoh</label>
               <input v-model="form.note" />
             </div>
+          </div>
+
+          <!-- Qarzga sotuv -->
+          <div v-if="!isPurchase" class="credit-block" :class="{ on: form.is_credit }">
+            <label class="credit-toggle">
+              <input v-model="form.is_credit" type="checkbox" />
+              <span>
+                <strong>Qarzga (nasiya)</strong>
+                <small>Tasdiqlanganda qarz yaratiladi, to‘lov «Qarzdorlar» bo‘limidan qabul qilinadi</small>
+              </span>
+            </label>
+
+            <div v-if="form.is_credit" class="form-grid three">
+              <div class="field">
+                <label>Kredit ustamasi, %</label>
+                <input
+                  v-model="form.credit_markup_percent"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="1000"
+                />
+                <small v-if="fieldError('credit_markup_percent')" class="field-error">
+                  {{ fieldError('credit_markup_percent') }}
+                </small>
+              </div>
+
+              <div class="field">
+                <label>To‘lov muddati</label>
+                <input v-model="form.due_date" type="date" />
+                <small class="field-hint">
+                  Bo‘sh bo‘lsa — {{ settings?.debt_default_days ?? 30 }} kun
+                </small>
+              </div>
+
+              <template v-if="!form.partner">
+                <div class="field">
+                  <label>Mijoz ismi</label>
+                  <input v-model="form.customer_name" placeholder="Familiya Ism" />
+                  <small v-if="fieldError('customer_name')" class="field-error">
+                    {{ fieldError('customer_name') }}
+                  </small>
+                </div>
+
+                <div class="field">
+                  <label>Telefon</label>
+                  <input v-model="form.customer_phone" placeholder="+998 90 123 45 67" />
+                </div>
+
+                <div class="field">
+                  <label>Pasport / ID</label>
+                  <input v-model="form.customer_document" placeholder="AB1234567" />
+                </div>
+              </template>
+            </div>
+
+            <p v-if="fieldError('is_credit')" class="form-error">{{ fieldError('is_credit') }}</p>
           </div>
 
           <!-- Qatorlar -->
@@ -434,7 +581,14 @@ const fieldError = (field: string): string => {
             </div>
 
             <div class="lines-total">
-              <span>Jami</span>
+              <template v-if="!isPurchase && form.is_credit && markupAmount > 0">
+                <span>Narx bo‘yicha</span>
+                <strong class="sub-total">{{ money(baseTotal) }}</strong>
+                <span>Ustama</span>
+                <strong class="sub-total">{{ money(markupAmount) }}</strong>
+              </template>
+
+              <span>{{ !isPurchase && form.is_credit ? 'Qarz summasi' : 'Jami' }}</span>
               <strong>{{ money(total) }} so‘m</strong>
             </div>
           </div>
@@ -577,4 +731,47 @@ const fieldError = (field: string): string => {
   font-size: 18px;
 }
 
+.lines-total .sub-total {
+  margin-right: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Qarzga sotuv bloki — yoqilganda ajralib turadi, chunki bu pul
+   hozir kelmaydigan sotuv va xato bilan belgilanmasligi kerak. */
+.credit-block {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.credit-block.on {
+  border-color: var(--orange);
+}
+
+.credit-block .form-grid {
+  margin-top: 12px;
+}
+
+.credit-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.credit-toggle input {
+  margin-top: 3px;
+}
+
+.credit-toggle strong {
+  display: block;
+  font-size: 13px;
+}
+
+.credit-toggle small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
 </style>

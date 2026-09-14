@@ -331,6 +331,17 @@ export interface Document {
   currency: string
   external_number: string
   note: string
+  payment_method: PaymentMethod
+  payment_method_display: string
+  /** Qarzga sotuv — tasdiqlanganda qarz yaratiladi */
+  is_credit: boolean
+  credit_markup_percent: string
+  due_date: string | null
+  customer_name: string
+  customer_phone: string
+  customer_document: string
+  /** Tasdiqlangan qarzga sotuvning qarzi */
+  debt: DocumentDebtBrief | null
   total_amount: string
   total_cost: string
   profit: string
@@ -576,9 +587,74 @@ export interface TenantSettings {
   purchase_prefix: string
   sale_prefix: string
   transfer_prefix: string
+  debt_prefix: string
+  debt_default_days: number
+  credit_markup_default: string
   expiry_warning_days: number
   is_active: boolean
   member_count: number
+}
+
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'mixed' | 'deferred'
+
+export interface DocumentDebtBrief {
+  id: number
+  number: string
+  /** `active` | `overdue` | `paid` | `cancelled` */
+  status: string
+  remaining: string
+}
+
+export interface DebtPayment {
+  id: number
+  amount: string
+  method: string
+  method_display: string
+  paid_at: string
+  note: string
+  created_by_name: string
+}
+
+export interface Debt {
+  id: number
+  number: string
+  document: number
+  document_number: string
+  warehouse: number
+  warehouse_name: string
+  partner: number | null
+  partner_name: string | null
+  /** `counterparty` — kontragent, `retail` — chakana mijoz */
+  customer_type: 'counterparty' | 'retail'
+  customer_name: string
+  customer_phone: string
+  customer_document: string
+  issued_date: string
+  due_date: string
+  is_overdue: boolean
+  overdue_days: number
+  base_amount: string
+  markup_percent: string
+  markup_amount: string
+  amount: string
+  paid_amount: string
+  remaining: string
+  currency: string
+  status: 'active' | 'paid' | 'cancelled'
+  status_display: string
+  /** Muddati o'tgan faol qarz `overdue` bo'lib ko'rinadi */
+  display_status: 'active' | 'overdue' | 'paid' | 'cancelled'
+  paid_at: string | null
+  note: string
+  payments: DebtPayment[]
+}
+
+export interface DebtSummary {
+  active_count: number
+  active_amount: string
+  overdue_count: number
+  overdue_amount: string
+  paid_amount: string
 }
 
 /** Tarix yozuvi — kim, qachon, nimani qildi */

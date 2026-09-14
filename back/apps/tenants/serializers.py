@@ -31,7 +31,8 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'slug', 'business_type', 'business_type_display',
             'base_currency', 'inn', 'phone', 'address',
-            'purchase_prefix', 'sale_prefix', 'transfer_prefix',
+            'purchase_prefix', 'sale_prefix', 'transfer_prefix', 'debt_prefix',
+            'debt_default_days', 'credit_markup_default',
             'expiry_warning_days', 'is_active', 'member_count',
         )
         read_only_fields = (
@@ -72,6 +73,21 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
 
     def validate_transfer_prefix(self, value):
         return self._clean_prefix(value)
+
+    def validate_debt_prefix(self, value):
+        return self._clean_prefix(value)
+
+    def validate_debt_default_days(self, value):
+        if value < 1:
+            raise serializers.ValidationError('Muddat kamida 1 kun bo‘lishi kerak.')
+
+        return value
+
+    def validate_credit_markup_default(self, value):
+        if value < 0 or value > 1000:
+            raise serializers.ValidationError('Ustama 0 dan 1000 % gacha bo‘lishi kerak.')
+
+        return value
 
 
 class MembershipSerializer(serializers.ModelSerializer):

@@ -59,7 +59,7 @@ class DocumentViewSet(AuditMixin, FinancialRedactionMixin, viewsets.ModelViewSet
 
     def get_queryset(self):
         queryset = (
-            Document.objects.select_related('warehouse', 'partner')
+            Document.objects.select_related('warehouse', 'partner', 'debt')
             .prefetch_related('lines__variant__product')
         )
 

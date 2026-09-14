@@ -100,6 +100,24 @@ class Tenant(TimeStampedModel):
         help_text=_('Muddat tugashiga shuncha kun qolganda ogohlantiriladi'),
     )
 
+    # -- Qarzga sotuv ----------------------------------------------------
+
+    debt_prefix = models.CharField(_('Qarz prefiksi'), max_length=10, default='QRZ')
+
+    debt_default_days = models.PositiveSmallIntegerField(
+        _('Qarz muddati, kun'),
+        default=30,
+        help_text=_('Qarzga sotuvda to‘lov muddati ko‘rsatilmasa'),
+    )
+
+    credit_markup_default = models.DecimalField(
+        _('Kredit ustamasi, %'),
+        max_digits=6,
+        decimal_places=2,
+        default=0,
+        help_text=_('Qarzga sotuv formasida oldindan to‘ldiriladi'),
+    )
+
     class Meta:
         verbose_name = _('Tashkilot')
         verbose_name_plural = _('Tashkilotlar')

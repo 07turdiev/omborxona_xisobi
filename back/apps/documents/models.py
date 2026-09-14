@@ -45,6 +45,15 @@ class Document(TenantOwnedModel):
         CONFIRMED = 'confirmed', _('Tasdiqlangan')
         CANCELLED = 'cancelled', _('Bekor qilingan')
 
+    class PaymentMethod(models.TextChoices):
+        CASH = 'cash', _('Naqd')
+        CARD = 'card', _('Karta')
+        TRANSFER = 'transfer', _('O‘tkazma')
+        MIXED = 'mixed', _('Aralash')
+        #: Faqat kirimda: yetkazib beruvchiga keyin to'lanadi. Sotuvda
+        #: kechiktirilgan to'lov — bu qarzga sotuv (`is_credit`).
+        DEFERRED = 'deferred', _('Keyinroq')
+
     #: Hujjat raqami prefikslari (dizayndagi `importPrefix` / `salePrefix`)
     PREFIXES = {
         Kind.PURCHASE: 'KIR',
@@ -93,6 +102,33 @@ class Document(TenantOwnedModel):
     )
 
     note = models.TextField(_('Izoh'), blank=True)
+
+    payment_method = models.CharField(
+        _('To‘lov usuli'),
+        max_length=20,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.CASH,
+    )
+
+    # -- Qarzga sotuv ----------------------------------------------------
+    #
+    # Tasdiqlanganda `apps.debts.Debt` yaratiladi. Mijoz ma'lumoti hujjatda
+    # turadi, chunki qoralama bosqichida qarz hali yo'q.
+
+    is_credit = models.BooleanField(_('Qarzga'), default=False)
+
+    #: Qarz evaziga narxga qo'shiladigan ustama. Har qator summasiga kiradi,
+    #: ya'ni tushum va foydada ham ko'rinadi.
+    credit_markup_percent = models.DecimalField(
+        _('Kredit ustamasi, %'), max_digits=6, decimal_places=2, default=0
+    )
+
+    due_date = models.DateField(_('To‘lov muddati'), null=True, blank=True)
+
+    #: Ro'yxatdagi kontragent bo'lmagan chakana mijoz uchun
+    customer_name = models.CharField(_('Mijoz ismi'), max_length=200, blank=True)
+    customer_phone = models.CharField(_('Mijoz telefoni'), max_length=30, blank=True)
+    customer_document = models.CharField(_('Mijoz hujjati'), max_length=60, blank=True)
 
     #: Tasdiqlash paytida hisoblanadi va keyin o'zgarmaydi.
     #: Jonli hisoblash noto'g'ri bo'lardi: qator narxlari keyin
@@ -168,6 +204,20 @@ class Document(TenantOwnedModel):
                 raise ValidationError({
                     'warehouse': _('Bu ombordan sotib bo\'lmaydi: %(name)s')
                     % {'name': self.warehouse.get_purpose_display()}
+                })
+
+        if self.is_credit:
+            if self.kind != self.Kind.SALE:
+                raise ValidationError({'is_credit': _('Qarzga faqat sotuv qilinadi')})
+
+            # Qarz kimga berilgani noma'lum bo'lsa, uni undirib bo'lmaydi
+            if not self.partner_id and not (
+                self.customer_name.strip() and self.customer_phone.strip()
+            ):
+                raise ValidationError({
+                    'customer_name': _(
+                        'Qarzga sotuvda mijozni tanlang yoki ism va telefonini kiriting'
+                    )
                 })
 
 
@@ -260,7 +310,17 @@ class DocumentLine(TenantOwnedModel):
         self.quantity_base = self.quantity * self.factor
 
         discount = (Decimal('100') - (self.discount_percent or Decimal('0'))) / Decimal('100')
-        self.line_total = (self.quantity * self.unit_price * discount).quantize(
+
+        # Qarzga sotuvda ustama narxga qo'shiladi. Chegirma bilan ko'paytma
+        # tartibi ahamiyatsiz: `narx × (1 + ustama) × (1 − chegirma)`.
+        markup = Decimal('0')
+
+        if self.document.is_credit:
+            markup = self.document.credit_markup_percent or Decimal('0')
+
+        multiplier = (Decimal('100') + markup) / Decimal('100')
+
+        self.line_total = (self.quantity * self.unit_price * multiplier * discount).quantize(
             Decimal('0.01')
         )
 

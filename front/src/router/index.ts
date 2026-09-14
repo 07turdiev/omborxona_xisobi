@@ -65,6 +65,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/debtors',
+      name: 'debtors',
+      component: () => import('@/views/DebtorsView.vue'),
+      meta: {
+        requiresAuth: true,
+        permission: 'debtors',
+        title: 'Qarzdorlar',
+        subtitle: 'Qarzga sotuvlar, muddatlar va to‘lovlar',
+      },
+    },
+    {
       path: '/categories',
       name: 'categories',
       component: () => import('@/views/CategoriesView.vue'),

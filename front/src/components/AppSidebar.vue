@@ -31,6 +31,7 @@ const operations = [
   { to: '/stock', icon: 'i-stock', label: 'Qoldiqlar', perm: 'stock' },
   { to: '/imports', icon: 'i-import', label: 'Kirim', perm: 'imports' },
   { to: '/sales', icon: 'i-sale', label: 'Sotuv', perm: 'sales' },
+  { to: '/debtors', icon: 'i-users', label: 'Qarzdorlar', perm: 'debtors' },
   { to: '/transfers', icon: 'i-warehouse', label: 'Ko‘chirish', perm: 'transfers' },
   { to: '/products', icon: 'i-company', label: 'Mahsulotlar', perm: 'products' },
   { to: '/counterparties', icon: 'i-users', label: 'Kontragentlar', perm: 'counterparties' },

@@ -26,6 +26,13 @@ export interface DocumentInput {
   currency?: string
   external_number?: string
   note?: string
+  payment_method?: string
+  is_credit?: boolean
+  credit_markup_percent?: string
+  due_date?: string | null
+  customer_name?: string
+  customer_phone?: string
+  customer_document?: string
   items: DocumentLineInput[]
 }
 

@@ -253,6 +253,14 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
               {{ fieldError('transfer_prefix') }}
             </small>
           </div>
+
+          <div class="field">
+            <label>Qarz</label>
+            <input v-model="form.debt_prefix" :disabled="!canManage" />
+            <small v-if="fieldError('debt_prefix')" class="field-error">
+              {{ fieldError('debt_prefix') }}
+            </small>
+          </div>
         </div>
       </div>
 
@@ -287,6 +295,47 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
           <div class="field">
             <label>Xodimlar soni</label>
             <input :value="info?.member_count" disabled />
+          </div>
+        </div>
+      </div>
+
+      <!-- Qarzga sotuv -->
+      <div class="table-card card-padded">
+        <h3>Qarzga sotuv</h3>
+
+        <p class="hint">
+          Qarzga sotuv formasida oldindan to‘ldiriladi — har sotuvda o‘zgartirish mumkin.
+          Ustama tovar narxiga qo‘shiladi va tushumda ko‘rinadi.
+        </p>
+
+        <div class="form-grid three">
+          <div class="field">
+            <label>To‘lov muddati, kun</label>
+            <input
+              v-model.number="form.debt_default_days"
+              type="number"
+              min="1"
+              max="3650"
+              :disabled="!canManage"
+            />
+            <small v-if="fieldError('debt_default_days')" class="field-error">
+              {{ fieldError('debt_default_days') }}
+            </small>
+          </div>
+
+          <div class="field">
+            <label>Kredit ustamasi, %</label>
+            <input
+              v-model="form.credit_markup_default"
+              type="number"
+              step="0.01"
+              min="0"
+              max="1000"
+              :disabled="!canManage"
+            />
+            <small v-if="fieldError('credit_markup_default')" class="field-error">
+              {{ fieldError('credit_markup_default') }}
+            </small>
           </div>
         </div>
       </div>
