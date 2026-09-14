@@ -25,12 +25,18 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
         source='get_business_type_display', read_only=True
     )
     member_count = serializers.SerializerMethodField()
+    legal_form_display = serializers.CharField(
+        source='get_legal_form_display', read_only=True
+    )
 
     class Meta:
         model = Tenant
         fields = (
             'id', 'name', 'slug', 'business_type', 'business_type_display',
-            'base_currency', 'inn', 'phone', 'address',
+            'base_currency', 'short_name', 'code', 'legal_form', 'legal_form_display',
+            'inn', 'registration_number', 'vat_code', 'director',
+            'phone', 'email', 'website', 'address', 'actual_address',
+            'bank_name', 'mfo', 'bank_account', 'logo', 'notes',
             'purchase_prefix', 'sale_prefix', 'transfer_prefix', 'debt_prefix',
             'debt_default_days', 'credit_markup_default',
             'expiry_warning_days', 'is_active', 'member_count',
@@ -86,6 +92,70 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
     def validate_credit_markup_default(self, value):
         if value < 0 or value > 1000:
             raise serializers.ValidationError('Ustama 0 dan 1000 % gacha bo‘lishi kerak.')
+
+        return value
+
+    # -- Rekvizitlar -----------------------------------------------------
+    #
+    # O'zbekiston formatlari. Xato rekvizit hujjatda chiqib, bank to'lovini
+    # qaytarib yuborishga sabab bo'ladi — shuning uchun kiritishda tekshiriladi.
+
+    @staticmethod
+    def _digits(value: str, lengths: tuple[int, ...], label: str) -> str:
+        value = (value or '').replace(' ', '').strip()
+
+        if value and (not value.isdigit() or len(value) not in lengths):
+            expected = ' yoki '.join(str(n) for n in lengths)
+            raise serializers.ValidationError(f'{label} {expected} ta raqamdan iborat bo‘lishi kerak.')
+
+        return value
+
+    def validate_inn(self, value):
+        # 9 raqam — yuridik shaxs STIR, 14 raqam — jismoniy shaxs JShShIR (YaTT)
+        return self._digits(value, (9, 14), 'INN')
+
+    def validate_mfo(self, value):
+        return self._digits(value, (5,), 'MFO')
+
+    def validate_bank_account(self, value):
+        return self._digits(value, (20,), 'Hisob raqami')
+
+    def validate_code(self, value):
+        value = (value or '').strip().upper()
+
+        if not value:
+            return value
+
+        if len(value) > 8 or not value.replace('-', '').replace('_', '').isalnum():
+            raise serializers.ValidationError(
+                'Kod 8 tagacha lotin harfi, raqam, chiziqcha yoki pastki chiziq.'
+            )
+
+        duplicate = Tenant.objects.filter(code=value)
+
+        if self.instance is not None:
+            duplicate = duplicate.exclude(pk=self.instance.pk)
+
+        if duplicate.exists():
+            raise serializers.ValidationError('Bu kod boshqa tashkilotda band.')
+
+        return value
+
+    #: Logotip hujjat sarlavhasida chiqadi — katta fayl chop etishni sekinlashtiradi
+    LOGO_MAX_BYTES = 2 * 1024 * 1024
+    LOGO_FORMATS = frozenset({'PNG', 'JPEG', 'WEBP'})
+
+    def validate_logo(self, value):
+        if value is None:
+            return value
+
+        if value.size > self.LOGO_MAX_BYTES:
+            raise serializers.ValidationError('Logotip 2 MB dan oshmasligi kerak.')
+
+        image = getattr(value, 'image', None)
+
+        if image is not None and image.format not in self.LOGO_FORMATS:
+            raise serializers.ValidationError('Logotip PNG, JPEG yoki WEBP bo‘lishi kerak.')
 
         return value
 

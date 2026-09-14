@@ -71,10 +71,19 @@ function onPrint() {
       <div v-if="document" class="print-sheet">
         <header class="sheet-head">
           <div>
+            <img v-if="settings?.logo" :src="settings.logo" alt="" class="sheet-logo" />
             <strong class="company">{{ companyName }}</strong>
-            <div v-if="settings?.inn" class="company-line">INN: {{ settings.inn }}</div>
+            <div v-if="settings?.inn" class="company-line">
+              INN: {{ settings.inn }}
+              <template v-if="settings.vat_code"> · QQS: {{ settings.vat_code }}</template>
+            </div>
             <div v-if="settings?.address" class="company-line">{{ settings.address }}</div>
             <div v-if="settings?.phone" class="company-line">{{ settings.phone }}</div>
+            <div v-if="settings?.bank_account" class="company-line">
+              H/r: {{ settings.bank_account }}
+              <template v-if="settings.bank_name">, {{ settings.bank_name }}</template>
+              <template v-if="settings.mfo">, MFO {{ settings.mfo }}</template>
+            </div>
           </div>
 
           <div class="doc-meta">
@@ -176,6 +185,14 @@ function onPrint() {
 </template>
 
 <style scoped>
+.sheet-logo {
+  display: block;
+  max-width: 160px;
+  max-height: 48px;
+  margin-bottom: 6px;
+  object-fit: contain;
+}
+
 .print-dialog {
   max-height: 90vh;
   overflow-y: auto;

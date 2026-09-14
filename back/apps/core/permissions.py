@@ -128,3 +128,17 @@ class IsTenantAdminOrReadOnly(HasTenantMembership):
             return True
 
         return request.membership.is_admin
+
+
+class IsSuperuser(permissions.BasePermission):
+    """Tizim superadmini — tashkilotlarni yaratish va boshqarish uchun.
+
+    Tashkilot a'zoligi talab qilinmaydi: superadmin hech bir do'konda
+    ishlamasligi mumkin, lekin yangi do'konni u ochadi.
+    """
+
+    message = 'Bu bo‘lim faqat tizim superadmini uchun.'
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated and user.is_superuser)

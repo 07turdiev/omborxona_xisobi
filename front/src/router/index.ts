@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteMeta } from 'vue-router'
 
 import { tokenStorage } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
@@ -164,6 +164,17 @@ const router = createRouter({
       },
     },
     {
+      path: '/companies',
+      name: 'companies',
+      component: () => import('@/views/CompaniesView.vue'),
+      meta: {
+        requiresAuth: true,
+        superuser: true,
+        title: 'Kompaniyalar',
+        subtitle: 'Tashkilotlar, rekvizitlar va egalari',
+      },
+    },
+    {
       path: '/units',
       name: 'units',
       component: () => import('@/views/UnitsView.vue'),
@@ -195,7 +206,9 @@ const router = createRouter({
  */
 const FALLBACK_ORDER = [
   'dashboard', 'sales', 'stock', 'imports', 'products', 'warehouses',
-  'counterparties', 'transfers', 'reports', 'settings', 'users',
+  'counterparties', 'transfers', 'debtors', 'reports', 'history', 'settings', 'users',
+  // Superadmin hech bir do'konda a'zo bo'lmasligi mumkin — unga shu qoladi
+  'companies',
 ]
 
 router.beforeEach(async (to) => {
@@ -211,7 +224,7 @@ router.beforeEach(async (to) => {
 
   const permission = to.meta.permission as string | undefined
 
-  if (!permission || !authenticated) return
+  if ((!permission && !to.meta.superuser) || !authenticated) return
 
   // Bu faqat qulaylik: ruxsatsiz bo'lim bo'sh sahifa va 403 xatolar bilan
   // ochilmasin. Himoyaning o'zi serverda.
@@ -226,11 +239,16 @@ router.beforeEach(async (to) => {
     }
   }
 
-  if (auth.can(permission)) return
+  const allowed = (meta: RouteMeta): boolean =>
+    meta.superuser
+      ? Boolean(auth.user?.is_superuser)
+      : !meta.permission || auth.can(meta.permission as string)
+
+  if (allowed(to.meta)) return
 
   const fallback = FALLBACK_ORDER.find((name) => {
     const target = router.resolve({ name })
-    return target.name !== to.name && auth.can(target.meta.permission as string)
+    return target.name !== to.name && allowed(target.meta)
   })
 
   // Birorta ham bo'lim ochiq bo'lmasa, sahifa o'zi "ruxsat yo'q" deb ko'rsatadi

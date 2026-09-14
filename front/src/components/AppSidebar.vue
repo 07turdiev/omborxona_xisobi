@@ -42,10 +42,16 @@ const analytics = [
   { to: '/history', icon: 'i-calendar', label: 'Tarix', perm: 'history' },
   { to: '/users', icon: 'i-users', label: 'Foydalanuvchilar', perm: 'users' },
   { to: '/settings', icon: 'i-settings', label: 'Sozlamalar', perm: 'settings' },
+  // Faqat tizim superadmini — tashkilot ruxsatiga bog'liq emas
+  { to: '/companies', icon: 'i-company', label: 'Kompaniyalar', perm: 'superuser' },
 ]
 
 const visibleOperations = computed(() => operations.filter((item) => auth.can(item.perm)))
-const visibleAnalytics = computed(() => analytics.filter((item) => auth.can(item.perm)))
+const visibleAnalytics = computed(() =>
+  analytics.filter((item) =>
+    item.perm === 'superuser' ? Boolean(auth.user?.is_superuser) : auth.can(item.perm),
+  ),
+)
 </script>
 
 <template>

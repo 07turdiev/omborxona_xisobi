@@ -581,9 +581,26 @@ export interface TenantSettings {
   business_type: string
   business_type_display: string
   base_currency: string
+  short_name: string
+  code: string
+  legal_form: string
+  legal_form_display: string
   inn: string
+  registration_number: string
+  vat_code: string
+  director: string
   phone: string
+  email: string
+  website: string
+  /** Yuridik manzil */
   address: string
+  actual_address: string
+  bank_name: string
+  mfo: string
+  bank_account: string
+  /** Logotip URL — yuklash alohida multipart so'rov bilan */
+  logo: string | null
+  notes: string
   purchase_prefix: string
   sale_prefix: string
   transfer_prefix: string
@@ -593,6 +610,28 @@ export interface TenantSettings {
   expiry_warning_days: number
   is_active: boolean
   member_count: number
+}
+
+/** Kompaniya (tashkilot) — superadmin boshqaradi */
+export interface Company extends TenantSettings {
+  warehouse_count: number
+  owner: { username: string; full_name: string } | null
+  created_at: string
+}
+
+export interface CompanyInput extends Partial<Omit<Company, 'owner'>> {
+  /** Faqat yaratishda: login mavjud bo'lsa — o'sha foydalanuvchi ega bo'ladi */
+  owner_username?: string
+  owner_password?: string
+  owner_first_name?: string
+  owner_last_name?: string
+}
+
+export interface CompanySummary {
+  total: number
+  active: number
+  warehouses: number
+  users: number
 }
 
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'mixed' | 'deferred'

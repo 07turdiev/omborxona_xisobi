@@ -46,6 +46,13 @@ class Tenant(TimeStampedModel):
         GROCERY = 'grocery', _('Oziq-ovqat')
         GENERAL = 'general', _('Aralash / boshqa')
 
+    class LegalForm(models.TextChoices):
+        LLC = 'llc', _('MChJ')
+        IP = 'ip', _('YaTT')
+        JSC = 'jsc', _('AJ')
+        PE = 'pe', _('XK')
+        OTHER = 'other', _('Boshqa')
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     name = models.CharField(_('Nomi'), max_length=200)
@@ -76,9 +83,34 @@ class Tenant(TimeStampedModel):
 
     # -- Rekvizitlar (hujjat va cheklarda chiqadi) ---------------------
 
+    short_name = models.CharField(_('Qisqa nom'), max_length=100, blank=True)
+
+    #: Ichki kod — tashkilotlar ro'yxatida qisqa belgi sifatida
+    code = models.CharField(_('Kod'), max_length=8, blank=True)
+
+    legal_form = models.CharField(
+        _('Huquqiy shakli'), max_length=10, choices=LegalForm.choices, default=LegalForm.LLC
+    )
+
     inn = models.CharField(_('INN'), max_length=20, blank=True)
+    registration_number = models.CharField(_('Ro‘yxatdan o‘tish raqami'), max_length=30, blank=True)
+    vat_code = models.CharField(_('QQS to‘lovchi kodi'), max_length=30, blank=True)
+    director = models.CharField(_('Rahbar'), max_length=150, blank=True)
+
     phone = models.CharField(_('Telefon'), max_length=30, blank=True)
-    address = models.CharField(_('Manzil'), max_length=300, blank=True)
+    email = models.EmailField(_('Email'), blank=True)
+    website = models.URLField(_('Veb-sayt'), blank=True)
+    address = models.CharField(_('Yuridik manzil'), max_length=300, blank=True)
+    actual_address = models.CharField(_('Haqiqiy manzil'), max_length=300, blank=True)
+
+    bank_name = models.CharField(_('Bank'), max_length=150, blank=True)
+    mfo = models.CharField(_('MFO'), max_length=5, blank=True)
+    bank_account = models.CharField(_('Hisob raqami'), max_length=20, blank=True)
+
+    #: Hujjat va chek sarlavhasida chiqadi
+    logo = models.ImageField(_('Logotip'), upload_to='tenant-logos/', null=True, blank=True)
+
+    notes = models.TextField(_('Izoh'), blank=True)
 
     # -- Hujjat raqamlari ----------------------------------------------
     #
@@ -122,6 +154,11 @@ class Tenant(TimeStampedModel):
         verbose_name = _('Tashkilot')
         verbose_name_plural = _('Tashkilotlar')
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['code'], condition=~models.Q(code=''), name='unique_tenant_code'
+            ),
+        ]
 
     def __str__(self):
         return self.name

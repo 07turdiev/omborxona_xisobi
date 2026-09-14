@@ -107,6 +107,9 @@ services:
     build:
       context: ./front
     restart: unless-stopped
+    volumes:
+      # Yuklangan fayllarni nginx beradi — faqat o'qish uchun
+      - media_data:/usr/share/nginx/media:ro
     ports:
       # Tashqi reverse proxy shu portga ulanadi
       - '${WEB_PORT:-8080}:80'

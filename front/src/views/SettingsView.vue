@@ -88,7 +88,12 @@ async function onSave() {
   saving.value = true
 
   try {
-    info.value = await tenantsApi.saveSettings(form)
+    // Logotip alohida (multipart) yuklanadi. JSON'da uning URL satri qaytib
+    // borsa, server uni "fayl emas" deb rad etardi.
+    const payload = { ...form }
+    delete payload.logo
+
+    info.value = await tenantsApi.saveSettings(payload)
     Object.assign(form, info.value)
     saved.value = true
 
@@ -160,6 +165,43 @@ function currencyCode(id: number): string {
   return currencies.value.find((c) => c.id === id)?.code ?? '—'
 }
 
+// -- Logotip ----------------------------------------------------------
+
+const logoUploading = ref(false)
+
+/** Logotip darhol saqlanadi — umumiy "Saqlash" tugmasini kutmaydi. */
+async function onLogoChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  if (!file) return
+
+  errors.value = {}
+  logoUploading.value = true
+
+  try {
+    info.value = await tenantsApi.uploadLogo(file)
+    form.logo = info.value.logo
+  } catch (err) {
+    const data = (err as { response?: { data?: Record<string, string[]> } }).response?.data
+    errors.value = data ?? { logo: ['Logotipni yuklab bo‘lmadi.'] }
+  } finally {
+    logoUploading.value = false
+    input.value = ''
+  }
+}
+
+async function onLogoRemove() {
+  errors.value = {}
+
+  try {
+    info.value = await tenantsApi.saveSettings({ logo: null })
+    form.logo = null
+  } catch {
+    errors.value = { logo: ['Logotipni olib tashlab bo‘lmadi.'] }
+  }
+}
+
 const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
 </script>
 
@@ -169,8 +211,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
 
     <template v-else>
       <div v-if="!canManage" class="notice">
-        Sozlamalarni o‘zgartirish uchun <strong>egasi</strong> yoki
-        <strong>menejer</strong> roli kerak.
+        Sozlamalarni o‘zgartirish uchun <strong>«Sozlamalar»</strong> ruxsati kerak.
       </div>
 
       <!-- Tashkilot -->
@@ -187,7 +228,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
           </div>
 
           <div class="field">
-            <label>Qisqa nomi</label>
+            <label>Tizim nomi (slug)</label>
             <input :value="form.slug" disabled />
             <small class="field-hint">O‘zgartirilmaydi — havolalarda ishlatiladi</small>
           </div>
@@ -203,8 +244,40 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
           </div>
 
           <div class="field">
-            <label>INN</label>
-            <input v-model="form.inn" :disabled="!canManage" />
+            <label>Qisqa nom</label>
+            <input v-model="form.short_name" :disabled="!canManage" />
+          </div>
+
+          <div class="field">
+            <label>Huquqiy shakli</label>
+            <select v-model="form.legal_form" :disabled="!canManage">
+              <option value="llc">MChJ</option>
+              <option value="ip">YaTT</option>
+              <option value="jsc">AJ</option>
+              <option value="pe">XK</option>
+              <option value="other">Boshqa</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>INN (STIR)</label>
+            <input v-model="form.inn" inputmode="numeric" :disabled="!canManage" />
+            <small v-if="fieldError('inn')" class="field-error">{{ fieldError('inn') }}</small>
+          </div>
+
+          <div class="field">
+            <label>Ro‘yxatdan o‘tish raqami</label>
+            <input v-model="form.registration_number" :disabled="!canManage" />
+          </div>
+
+          <div class="field">
+            <label>QQS to‘lovchi kodi</label>
+            <input v-model="form.vat_code" :disabled="!canManage" />
+          </div>
+
+          <div class="field">
+            <label>Rahbar</label>
+            <input v-model="form.director" :disabled="!canManage" />
           </div>
 
           <div class="field">
@@ -212,11 +285,87 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
             <input v-model="form.phone" :disabled="!canManage" />
           </div>
 
+          <div class="field">
+            <label>Email</label>
+            <input v-model="form.email" type="email" :disabled="!canManage" />
+            <small v-if="fieldError('email')" class="field-error">{{ fieldError('email') }}</small>
+          </div>
+
+          <div class="field">
+            <label>Veb-sayt</label>
+            <input v-model="form.website" placeholder="https://" :disabled="!canManage" />
+            <small v-if="fieldError('website')" class="field-error">{{ fieldError('website') }}</small>
+          </div>
+
           <div class="field full">
-            <label>Manzil</label>
+            <label>Yuridik manzil</label>
             <input v-model="form.address" :disabled="!canManage" />
           </div>
+
+          <div class="field full">
+            <label>Haqiqiy manzil</label>
+            <input v-model="form.actual_address" :disabled="!canManage" />
+          </div>
         </div>
+      </div>
+
+      <!-- Bank rekvizitlari va logotip -->
+      <div class="table-card card-padded">
+        <h3>Bank rekvizitlari va logotip</h3>
+
+        <div class="form-grid three">
+          <div class="field">
+            <label>Bank</label>
+            <input v-model="form.bank_name" :disabled="!canManage" />
+          </div>
+
+          <div class="field">
+            <label>MFO</label>
+            <input v-model="form.mfo" maxlength="5" inputmode="numeric" :disabled="!canManage" />
+            <small v-if="fieldError('mfo')" class="field-error">{{ fieldError('mfo') }}</small>
+          </div>
+
+          <div class="field">
+            <label>Hisob raqami</label>
+            <input
+              v-model="form.bank_account"
+              maxlength="20"
+              inputmode="numeric"
+              :disabled="!canManage"
+            />
+            <small v-if="fieldError('bank_account')" class="field-error">
+              {{ fieldError('bank_account') }}
+            </small>
+          </div>
+        </div>
+
+        <div class="logo-row">
+          <img v-if="form.logo" :src="form.logo" alt="Logotip" class="logo-preview" />
+          <span v-else class="muted">Logotip yuklanmagan</span>
+
+          <label v-if="canManage" class="button button-outline">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+              @change="onLogoChange"
+            />
+            {{ logoUploading ? 'Yuklanmoqda…' : 'Logotip tanlash' }}
+          </label>
+
+          <button
+            v-if="canManage && form.logo"
+            class="button button-soft"
+            type="button"
+            @click="onLogoRemove"
+          >
+            Olib tashlash
+          </button>
+
+          <small class="field-hint">PNG, JPEG yoki WEBP, 2 MB gacha. Hujjat sarlavhasida chiqadi.</small>
+        </div>
+
+        <p v-if="fieldError('logo')" class="form-error">{{ fieldError('logo') }}</p>
       </div>
 
       <!-- Hujjat raqamlari -->
@@ -469,6 +618,21 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+}
+
+.logo-row {
+  margin-top: 12px;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-preview {
+  max-width: 160px;
+  max-height: 56px;
+  object-fit: contain;
 }
 
 .sync-note {

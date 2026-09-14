@@ -97,6 +97,7 @@ def tenant_context(tenant_id: uuid.UUID | None):
     lekin ko'rinmayapti" holati. Shuning uchun ochiq tranzaksiya
     bo'lmasa, shu yerda ochiladi.
     """
+    previous = get_current_tenant_id()
     token = set_current_tenant_id(tenant_id)
 
     # Allaqachon tranzaksiya ichida bo'lsak, yangisini ochmaymiz:
@@ -108,7 +109,12 @@ def tenant_context(tenant_id: uuid.UUID | None):
             yield
         finally:
             reset_current_tenant_id(token)
-            apply_tenant_to_connection(None)
+            # Tashqi kontekstni tiklaymiz, `None` emas. Aks holda so'rov
+            # ichida boshqa tashkilotga qisqa kirib chiqish (masalan
+            # superadmin kompaniyalar ro'yxatida omborlarni sanashi) so'rov
+            # tashkilotini bazadan o'chirib yuborardi va keyingi o'qishlar
+            # jimgina bo'sh natija qaytarardi.
+            apply_tenant_to_connection(previous)
 
         return
 

@@ -27,7 +27,9 @@ RUN SECRET_KEY=build-only DEBUG=False \
     python manage.py collectstatic --noinput
 
 # Ildiz huquqisiz ishlaydi
-RUN useradd --create-home --uid 1000 app && chown -R app /app
+# Media papka oldindan yaratiladi: aks holda Docker volume uni root egaligida
+# ochadi va backend (ildiz huquqisiz) rasm va logotipni saqlay olmaydi
+RUN useradd --create-home --uid 1000 app && mkdir -p /app/media && chown -R app /app
 USER app
 
 EXPOSE 8000

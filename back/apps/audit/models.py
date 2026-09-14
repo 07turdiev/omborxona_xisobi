@@ -68,6 +68,7 @@ class AuditEvent(TenantOwnedModel):
         'partner': 'Kontragent',
         'member': 'Xodim',
         'settings': 'Sozlamalar',
+        'company': 'Kompaniya',
         'currency': 'Valyuta',
         'exchange_rate': 'Valyuta kursi',
         'unit': 'O‘lchov birligi',

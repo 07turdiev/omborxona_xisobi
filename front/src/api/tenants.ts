@@ -37,6 +37,20 @@ export const tenantsApi = {
     return data
   },
 
+  /** Logotip — alohida multipart so'rov. JSON saqlashda fayl yuborilmaydi. */
+  async uploadLogo(file: File) {
+    const body = new FormData()
+    body.append('logo', file)
+
+    const { data } = await api.patch<TenantSettings>('/tenant/current/', body, {
+      // Mijozda standart `application/json` sarlavhasi bor. Axios 1.x uni
+      // ko'rsa FormData'ni JSON'ga aylantiradi va fayl jimgina yo'qoladi.
+      // Shu sarlavha bilan brauzer chegarani (boundary) o'zi qo'yadi.
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+
   async members(filters: { search?: string; role?: string } = {}) {
     const { data } = await api.get<Paginated<MembershipRow>>('/members/', {
       params: clean(filters),
