@@ -7,7 +7,8 @@ from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.core.permissions import IsTenantAdminOrReadOnly
+from apps.core.access import Perm
+from apps.core.permissions import SectionPermission
 from apps.units.conversion import convert_to_unit
 from apps.units.models import CustomUnit
 from apps.units.serializers import BaseUnitSerializer, CustomUnitSerializer
@@ -23,7 +24,8 @@ class CustomUnitViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = CustomUnitSerializer
-    permission_classes = [IsTenantAdminOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.SETTINGS}}
     queryset = CustomUnit.objects.all()
 
     @extend_schema(responses=BaseUnitSerializer(many=True))
@@ -36,7 +38,7 @@ class CustomUnitViewSet(viewsets.ModelViewSet):
 class ConversionViewSet(viewsets.ViewSet):
     """Qiymatni birlikka keltirish — frontend formalari uchun."""
 
-    permission_classes = [IsTenantAdminOrReadOnly]
+    permission_classes = [SectionPermission]
 
     @extend_schema(
         parameters=[],

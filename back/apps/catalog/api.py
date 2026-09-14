@@ -24,7 +24,8 @@ from apps.catalog.serializers import (
     ProductUnitSerializer,
     VariantSerializer,
 )
-from apps.core.permissions import IsTenantAdminOrReadOnly, IsTenantMemberOrReadOnly
+from apps.core.access import FinancialRedactionMixin, Perm
+from apps.core.permissions import SectionPermission
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -34,7 +35,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = CategorySerializer
-    permission_classes = [IsTenantAdminOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.CATEGORIES}}
     pagination_class = None  # daraxt to'liq kerak
 
     def get_queryset(self):
@@ -65,7 +67,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class AttributeDefinitionViewSet(viewsets.ModelViewSet):
     serializer_class = AttributeDefinitionSerializer
-    permission_classes = [IsTenantAdminOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.CATEGORIES}}
 
     def get_queryset(self):
         queryset = AttributeDefinition.objects.select_related('category')
@@ -76,9 +79,10 @@ class AttributeDefinitionViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-class ProductViewSet(viewsets.ModelViewSet):
+class ProductViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
     serializer_class = ProductSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.PRODUCTS}}
 
     def get_queryset(self):
         queryset = (
@@ -112,9 +116,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-class VariantViewSet(viewsets.ModelViewSet):
+class VariantViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
     serializer_class = VariantSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.PRODUCTS}}
 
     def get_queryset(self):
         queryset = (
@@ -163,7 +168,8 @@ class ProductUnitViewSet(viewsets.ModelViewSet):
     """O'ram birliklari: «1 qop = 50 kg»."""
 
     serializer_class = ProductUnitSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.PRODUCTS}}
 
     def get_queryset(self):
         queryset = ProductUnit.objects.select_related('variant')
@@ -176,7 +182,8 @@ class ProductUnitViewSet(viewsets.ModelViewSet):
 
 class BarcodeViewSet(viewsets.ModelViewSet):
     serializer_class = BarcodeSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.PRODUCTS}}
 
     def get_queryset(self):
         queryset = Barcode.objects.select_related('variant')

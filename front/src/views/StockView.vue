@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import { stockApi } from '@/api/stock'
 import { useExport } from '@/composables/useExport'
+import { useAuthStore } from '@/stores/auth'
 import { useCatalogStore } from '@/stores/catalog'
 import { useStockStore } from '@/stores/stock'
 import { useWarehouseStore } from '@/stores/warehouses'
@@ -11,6 +12,10 @@ import type { StockBalance } from '@/types'
 const store = useStockStore()
 const warehouses = useWarehouseStore()
 const catalog = useCatalogStore()
+const auth = useAuthStore()
+
+/** Tannarx kirim narxidan hisoblanadi — `view_purchase_price` ruxsati bilan */
+const canSeeCost = computed(() => auth.can('view_purchase_price'))
 
 // Ekrandagi filtrlar bilan bir xil kesim yuklab olinadi
 const { exporting, exportError, onExport } = useExport(() =>
@@ -198,7 +203,7 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
         <strong>{{ number(store.summary?.reserved) }}</strong>
       </div>
 
-      <div class="accent">
+      <div v-if="canSeeCost" class="accent">
         <span>Tannarx (FIFO)</span>
         <strong>{{ money(store.summary?.cost_value) }}</strong>
       </div>
@@ -231,7 +236,7 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
               <th class="num">Qoldiq</th>
               <th class="num">Band</th>
               <th class="num">Mavjud</th>
-              <th class="num">Tannarx</th>
+              <th v-if="canSeeCost" class="num">Tannarx</th>
               <th>Holat</th>
               <th></th>
             </tr>
@@ -239,11 +244,11 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 
           <tbody>
             <tr v-if="store.loading">
-              <td colspan="10" class="empty-state">Yuklanmoqda…</td>
+              <td :colspan="canSeeCost ? 10 : 9" class="empty-state">Yuklanmoqda…</td>
             </tr>
 
             <tr v-else-if="store.isEmpty">
-              <td colspan="10" class="empty-state">
+              <td :colspan="canSeeCost ? 10 : 9" class="empty-state">
                 Qoldiq topilmadi. Kirim qilinganidan keyin bu yerda paydo bo‘ladi.
               </td>
             </tr>
@@ -279,7 +284,7 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
                 <strong>{{ number(row.available_quantity) }}</strong>
               </td>
 
-              <td class="num">
+              <td v-if="canSeeCost" class="num">
                 <span v-if="Number(row.cost_value) > 0">
                   {{ money(row.cost_value) }}
                   <small class="cell-sub">{{ money(row.avg_unit_cost) }} / {{ row.unit }}</small>

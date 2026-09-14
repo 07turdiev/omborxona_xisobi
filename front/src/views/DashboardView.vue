@@ -95,21 +95,21 @@ const dailyMax = computed(() =>
           <small>{{ data.summary.sale_count }} sotuv</small>
         </article>
 
-        <article class="kpi-card kpi-green">
+        <article v-if="auth.can('view_profit')" class="kpi-card kpi-green">
           <div class="kpi-icon"><svg><use href="#i-report" /></svg></div>
           <p>Sof foyda</p>
           <strong>{{ money(data.summary.net_profit) }}</strong>
           <small>yo‘qotishlar ayirilgan</small>
         </article>
 
-        <article class="kpi-card kpi-blue">
+        <article v-if="auth.can('view_purchase_price')" class="kpi-card kpi-blue">
           <div class="kpi-icon"><svg><use href="#i-stock" /></svg></div>
           <p>Qoldiq qiymati</p>
           <strong>{{ money(data.valuation.cost_value) }}</strong>
           <small>{{ data.valuation.positions }} pozitsiya</small>
         </article>
 
-        <article class="kpi-card kpi-orange">
+        <article v-if="auth.can('view_profit')" class="kpi-card kpi-orange">
           <div class="kpi-icon"><svg><use href="#i-warehouse" /></svg></div>
           <p>Kutilayotgan foyda</p>
           <strong>{{ money(data.valuation.potential_profit) }}</strong>

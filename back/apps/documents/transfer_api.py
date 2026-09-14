@@ -12,7 +12,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.catalog.models import Variant
-from apps.core.permissions import IsTenantMemberOrReadOnly
+from apps.core.access import Perm
+from apps.core.permissions import SectionPermission
 from apps.documents import transfer_services as services
 from apps.documents.transfer_models import Transfer, TransferLine
 from apps.stock.models import Batch
@@ -179,7 +180,8 @@ class TransferViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = TransferSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'read': {Perm.TRANSFERS}}
     queryset = Transfer.objects.none()
 
     def get_queryset(self):

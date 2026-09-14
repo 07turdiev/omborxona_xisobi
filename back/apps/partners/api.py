@@ -5,14 +5,16 @@ from __future__ import annotations
 from django.db.models import Q
 from rest_framework import viewsets
 
-from apps.core.permissions import IsTenantMemberOrReadOnly
+from apps.core.access import Perm
+from apps.core.permissions import SectionPermission
 from apps.partners.models import Partner
 from apps.partners.serializers import PartnerSerializer
 
 
 class PartnerViewSet(viewsets.ModelViewSet):
     serializer_class = PartnerSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.COUNTERPARTIES}}
 
     def get_queryset(self):
         queryset = Partner.objects.all()

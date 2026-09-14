@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
+from apps.core.access import ALL_PERMISSIONS, ROLE_DEFAULTS, clean_permissions
 from apps.tenants.models import Membership, Tenant
 
 User = get_user_model()
@@ -85,17 +86,26 @@ class MembershipSerializer(serializers.ModelSerializer):
     is_admin = serializers.BooleanField(read_only=True)
     warehouse_count = serializers.SerializerMethodField()
 
+    #: Amaldagi ruxsatlar (rol standarti yoki alohida sozlangan ro'yxat)
+    permissions = serializers.SerializerMethodField()
+    uses_role_defaults = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Membership
         fields = (
             'id', 'user', 'username', 'full_name', 'email', 'phone',
             'role', 'role_display', 'is_active',
-            'can_write', 'is_admin', 'warehouse_count', 'created_at',
+            'can_write', 'is_admin', 'permissions', 'uses_role_defaults',
+            'warehouse_count', 'created_at',
         )
         read_only_fields = (
             'id', 'user', 'username', 'full_name', 'email', 'phone',
-            'role_display', 'can_write', 'is_admin', 'warehouse_count', 'created_at',
+            'role_display', 'can_write', 'is_admin', 'permissions',
+            'uses_role_defaults', 'warehouse_count', 'created_at',
         )
+
+    def get_permissions(self, obj) -> list[str]:
+        return sorted(obj.effective_permissions)
 
     def get_full_name(self, obj) -> str:
         return obj.user.get_full_name() or obj.user.username
@@ -105,6 +115,79 @@ class MembershipSerializer(serializers.ModelSerializer):
         from apps.warehouse.models import WarehouseAccess
 
         return WarehouseAccess.objects.filter(user_id=obj.user_id).count()
+
+
+def normalize_permissions(value, role: str):
+    """Ruxsatlar ro'yxatini tekshiradi.
+
+    Noma'lum kod — xato (jimgina tashlab yuborilsa, admin "berdim" deb
+    o'ylab qolardi). Ro'yxat rolning standartiga teng bo'lsa `None`
+    qaytadi: shunda keyin rol o'zgarganda ruxsatlar ham u bilan birga
+    o'zgaradi.
+    """
+    if value is None:
+        return None
+
+    unknown = {str(item) for item in value} - ALL_PERMISSIONS
+
+    if unknown:
+        raise serializers.ValidationError({
+            'permissions': 'Noma’lum ruxsat: ' + ', '.join(sorted(unknown))
+        })
+
+    cleaned = clean_permissions(value)
+
+    if frozenset(cleaned) == ROLE_DEFAULTS.get(role, frozenset()):
+        return None
+
+    return cleaned
+
+
+def check_access_change(actor: Membership, *, target, role: str, permissions) -> None:
+    """Xodim huquqini o'zgartirish qoidalari.
+
+    1. **O'z huquqini hech kim o'zgartira olmaydi** — na rol, na ruxsat,
+       na faollik. Aks holda menejer o'zini ega qilib qo'yardi, yagona ega
+       esa o'zini adashib kuzatuvchiga tushirib, tashkilotni egasiz
+       qoldirardi.
+    2. **Egasini faqat ega** o'zgartiradi va ega rolini faqat ega beradi.
+    3. **O'zida yo'q ruxsatni bera olmaydi.** "Xodimlar" ruxsati bor, lekin
+       foydani ko'rmaydigan kishi boshqaga foydani ko'rish huquqini bera
+       olmasligi kerak — aks holda u o'z yordamchisi orqali ko'rardi.
+    """
+    owner = Membership.Role.OWNER
+
+    if target is not None and target.user_id == actor.user_id:
+        raise serializers.ValidationError({
+            'detail': 'O‘z rolingiz, ruxsatlaringiz va holatingizni o‘zgartira olmaysiz.'
+        })
+
+    if actor.role == owner:
+        return
+
+    if target is not None and target.role == owner:
+        raise serializers.ValidationError({
+            'detail': 'Tashkilot egasini faqat egasi o‘zgartira oladi.'
+        })
+
+    if role == owner:
+        raise serializers.ValidationError({
+            'role': 'Ega rolini faqat tashkilot egasi bera oladi.'
+        })
+
+    resulting = (
+        frozenset(permissions)
+        if permissions is not None
+        else ROLE_DEFAULTS.get(role, frozenset())
+    )
+
+    extra = resulting - actor.effective_permissions
+
+    if extra:
+        raise serializers.ValidationError({
+            'permissions': 'O‘zingizda yo‘q ruxsatni bera olmaysiz: '
+            + ', '.join(sorted(extra))
+        })
 
 
 class MembershipCreateSerializer(serializers.Serializer):
@@ -130,6 +213,11 @@ class MembershipCreateSerializer(serializers.Serializer):
     phone = serializers.CharField(required=False, allow_blank=True)
     role = serializers.ChoiceField(
         choices=Membership.Role.choices, default=Membership.Role.VIEWER
+    )
+
+    #: Berilmasa yoki `null` — rolning standart ruxsatlari
+    permissions = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
     )
 
     def validate(self, attrs):
@@ -158,6 +246,13 @@ class MembershipCreateSerializer(serializers.Serializer):
             except DjangoValidationError as exc:
                 raise serializers.ValidationError({'password': exc.messages})
 
+        permissions = normalize_permissions(attrs.get('permissions'), attrs['role'])
+        check_access_change(
+            self.context['request'].membership,
+            target=None, role=attrs['role'], permissions=permissions,
+        )
+        attrs['permissions'] = permissions
+
         attrs['username'] = username
         attrs['_existing'] = existing
 
@@ -168,6 +263,7 @@ class MembershipCreateSerializer(serializers.Serializer):
         existing = validated_data.pop('_existing')
         password = validated_data.pop('password', '')
         role = validated_data.pop('role')
+        permissions = validated_data.pop('permissions', None)
         tenant_id = self.context['request'].tenant_id
 
         if existing is None:
@@ -183,17 +279,42 @@ class MembershipCreateSerializer(serializers.Serializer):
             user = existing
 
         return Membership.objects.create(
-            tenant_id=tenant_id, user=user, role=role
+            tenant_id=tenant_id, user=user, role=role, permissions=permissions
         )
 
 
 class MembershipUpdateSerializer(serializers.ModelSerializer):
-    """Rol va faollikni o'zgartirish.
+    """Rol, faollik va ruxsatlarni o'zgartirish.
 
     Foydalanuvchining ismi va paroli bu yerdan o'zgartirilmaydi — u
     boshqa tashkilotlarda ham ishlashi mumkin.
+
+    `permissions: null` yuborilsa — rolning standart ruxsatlariga qaytadi.
     """
+
+    permissions = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Membership
-        fields = ('role', 'is_active')
+        fields = ('role', 'is_active', 'permissions')
+
+    def validate(self, attrs):
+        target = self.instance
+        role = attrs.get('role', target.role)
+
+        if 'permissions' in attrs:
+            permissions = normalize_permissions(attrs['permissions'], role)
+        else:
+            permissions = target.permissions
+
+        check_access_change(
+            self.context['request'].membership,
+            target=target, role=role, permissions=permissions,
+        )
+
+        if 'permissions' in attrs:
+            attrs['permissions'] = permissions
+
+        return attrs

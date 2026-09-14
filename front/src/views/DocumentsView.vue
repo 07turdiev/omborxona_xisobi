@@ -7,6 +7,7 @@ import DocumentPrint from '@/components/DocumentPrint.vue'
 import { documentsApi } from '@/api/documents'
 import { tenantsApi } from '@/api/tenants'
 import { useExport } from '@/composables/useExport'
+import { useAuthStore } from '@/stores/auth'
 import { useDocumentStore } from '@/stores/documents'
 import { useWarehouseStore } from '@/stores/warehouses'
 import type { Document, DocumentKind, TenantSettings } from '@/types'
@@ -17,6 +18,15 @@ const warehouses = useWarehouseStore()
 
 const kind = computed(() => (route.meta.documentKind as DocumentKind) ?? 'purchase')
 const isPurchase = computed(() => kind.value === 'purchase')
+
+const auth = useAuthStore()
+
+// Tannarx va foyda — `view_profit`, kirim summasi — `view_purchase_price`.
+// Server ruxsatsiz javobda bu qiymatlarni baribir `null` qiladi; bu yerda
+// faqat bo'sh kartalar va "—" bilan to'la ustunlar ko'rinmasligi uchun.
+const showProfit = computed(() => !isPurchase.value && auth.can('view_profit'))
+const showAmount = computed(() => !isPurchase.value || auth.can('view_purchase_price'))
+const colCount = computed(() => (showProfit.value ? 9 : 8))
 
 const modalOpen = ref(false)
 const editing = ref<Document | null>(null)
@@ -201,21 +211,21 @@ const totals = computed(() =>
         <strong>{{ totals?.count ?? 0 }}</strong>
       </article>
 
-      <article class="kpi-card kpi-blue">
+      <article v-if="showAmount" class="kpi-card kpi-blue">
         <div class="kpi-icon"><svg><use href="#i-report" /></svg></div>
         <p>{{ isPurchase ? 'Xarid summasi' : 'Tushum' }}</p>
         <strong>{{ money(totals?.amount) }}</strong>
         <small>so‘m</small>
       </article>
 
-      <article v-if="!isPurchase" class="kpi-card kpi-orange">
+      <article v-if="showProfit" class="kpi-card kpi-orange">
         <div class="kpi-icon"><svg><use href="#i-stock" /></svg></div>
         <p>Tannarx (FIFO)</p>
         <strong>{{ money(totals?.cost) }}</strong>
         <small>so‘m</small>
       </article>
 
-      <article v-if="!isPurchase" class="kpi-card kpi-green">
+      <article v-if="showProfit" class="kpi-card kpi-green">
         <div class="kpi-icon"><svg><use href="#i-report" /></svg></div>
         <p>Foyda</p>
         <strong>{{ money(totals?.profit) }}</strong>
@@ -234,7 +244,7 @@ const totals = computed(() =>
               <th>{{ isPurchase ? 'Yetkazib beruvchi' : 'Mijoz' }}</th>
               <th class="num">Pozitsiya</th>
               <th class="num">Summa</th>
-              <th v-if="!isPurchase" class="num">Foyda</th>
+              <th v-if="showProfit" class="num">Foyda</th>
               <th>Holat</th>
               <th></th>
             </tr>
@@ -242,11 +252,11 @@ const totals = computed(() =>
 
           <tbody>
             <tr v-if="store.loading">
-              <td :colspan="isPurchase ? 8 : 9" class="empty-state">Yuklanmoqda…</td>
+              <td :colspan="colCount" class="empty-state">Yuklanmoqda…</td>
             </tr>
 
             <tr v-else-if="store.isEmpty">
-              <td :colspan="isPurchase ? 8 : 9" class="empty-state">
+              <td :colspan="colCount" class="empty-state">
                 Hujjat topilmadi.
               </td>
             </tr>
@@ -271,7 +281,7 @@ const totals = computed(() =>
                 <td class="num">{{ document.line_count }}</td>
                 <td class="num"><strong>{{ money(document.total_amount) }}</strong></td>
 
-                <td v-if="!isPurchase" class="num">
+                <td v-if="showProfit" class="num">
                   <span v-if="document.status === 'confirmed'" class="profit">
                     {{ money(document.profit) }}
                   </span>
@@ -334,7 +344,7 @@ const totals = computed(() =>
               </tr>
 
               <tr v-if="expanded.has(document.id)" class="lines-row">
-                <td :colspan="isPurchase ? 8 : 9">
+                <td :colspan="colCount">
                   <table class="inner-table">
                     <thead>
                       <tr>
@@ -343,7 +353,7 @@ const totals = computed(() =>
                         <th class="num">Bazaviy</th>
                         <th class="num">Narx</th>
                         <th class="num">Summa</th>
-                        <th v-if="!isPurchase" class="num">Tannarx</th>
+                        <th v-if="showProfit" class="num">Tannarx</th>
                       </tr>
                     </thead>
 
@@ -367,7 +377,7 @@ const totals = computed(() =>
 
                         <td class="num">{{ money(line.unit_price) }}</td>
                         <td class="num">{{ money(line.line_total) }}</td>
-                        <td v-if="!isPurchase" class="num">{{ money(line.line_cost) }}</td>
+                        <td v-if="showProfit" class="num">{{ money(line.line_cost) }}</td>
                       </tr>
                     </tbody>
                   </table>

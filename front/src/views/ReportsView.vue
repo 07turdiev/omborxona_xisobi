@@ -3,10 +3,17 @@ import { computed, onMounted, ref } from 'vue'
 
 import { reportsApi, type ReportPeriod } from '@/api/reports'
 import { useExport } from '@/composables/useExport'
+import { useAuthStore } from '@/stores/auth'
 import { useWarehouseStore } from '@/stores/warehouses'
 import type { ReportBundle } from '@/types'
 
 const warehouses = useWarehouseStore()
+const auth = useAuthStore()
+
+// Server ruxsatsiz javobda bu qiymatlarni `null` qiladi; bu yerda faqat
+// bo'sh kartalar va "—" ustunlar ko'rinmasin
+const canSeeProfit = computed(() => auth.can('view_profit'))
+const canSeePurchase = computed(() => auth.can('view_purchase_price'))
 
 const data = ref<ReportBundle | null>(null)
 const loading = ref(false)
@@ -155,7 +162,7 @@ function onPrint() {
     <template v-if="data && !loading">
       <!-- Asosiy ko'rsatkichlar -->
       <div class="kpi-grid">
-        <article class="kpi-card kpi-blue">
+        <article v-if="canSeePurchase" class="kpi-card kpi-blue">
           <div class="kpi-icon"><svg><use href="#i-import" /></svg></div>
           <p>Xarid</p>
           <strong>{{ money(data.summary.purchase_amount) }}</strong>
@@ -169,13 +176,13 @@ function onPrint() {
           <small>{{ data.summary.sale_count }} sotuv</small>
         </article>
 
-        <article class="kpi-card kpi-orange">
+        <article v-if="canSeeProfit" class="kpi-card kpi-orange">
           <div class="kpi-icon"><svg><use href="#i-stock" /></svg></div>
           <p>Tannarx (FIFO)</p>
           <strong>{{ money(data.summary.cost) }}</strong>
         </article>
 
-        <article class="kpi-card kpi-green">
+        <article v-if="canSeeProfit" class="kpi-card kpi-green">
           <div class="kpi-icon"><svg><use href="#i-report" /></svg></div>
           <p>Yalpi foyda</p>
           <strong>{{ money(data.summary.gross_profit) }}</strong>
@@ -184,7 +191,7 @@ function onPrint() {
       </div>
 
       <!-- Yo'qotishlar va sof foyda -->
-      <div class="net-row">
+      <div v-if="canSeeProfit" class="net-row">
         <div class="net-card">
           <span>Yalpi foyda</span>
           <strong>{{ money(data.summary.gross_profit) }}</strong>
@@ -228,7 +235,7 @@ function onPrint() {
               ></div>
             </div>
 
-            <small>foyda {{ money(row.profit) }} · {{ row.margin_percent }}%</small>
+            <small v-if="canSeeProfit">foyda {{ money(row.profit) }} · {{ row.margin_percent }}%</small>
           </div>
         </div>
 
@@ -264,18 +271,18 @@ function onPrint() {
                 <th>Ombor</th>
                 <th class="num">Sotuv</th>
                 <th class="num">Tushum</th>
-                <th class="num">Foyda</th>
+                <th v-if="canSeeProfit" class="num">Foyda</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!data.by_warehouse.length">
-                <td colspan="4" class="empty-state">Ma’lumot yo‘q</td>
+                <td :colspan="canSeeProfit ? 4 : 3" class="empty-state">Ma’lumot yo‘q</td>
               </tr>
               <tr v-for="row in data.by_warehouse" :key="row.warehouse_id">
                 <td>{{ row.name }}</td>
                 <td class="num">{{ row.count }}</td>
                 <td class="num">{{ money(row.revenue) }}</td>
-                <td class="num profit">{{ money(row.profit) }}</td>
+                <td v-if="canSeeProfit" class="num profit">{{ money(row.profit) }}</td>
               </tr>
             </tbody>
           </table>
@@ -291,18 +298,18 @@ function onPrint() {
                 <th>Sababi</th>
                 <th class="num">Soni</th>
                 <th class="num">Miqdor</th>
-                <th class="num">Summa</th>
+                <th v-if="canSeePurchase" class="num">Summa</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!data.losses.by_reason.length">
-                <td colspan="4" class="empty-state">Yo‘qotish yo‘q</td>
+                <td :colspan="canSeePurchase ? 4 : 3" class="empty-state">Yo‘qotish yo‘q</td>
               </tr>
               <tr v-for="row in data.losses.by_reason" :key="row.reason">
                 <td>{{ row.label }}</td>
                 <td class="num">{{ row.count }}</td>
                 <td class="num">{{ number(row.quantity) }}</td>
-                <td class="num loss-amount">{{ money(row.amount) }}</td>
+                <td v-if="canSeePurchase" class="num loss-amount">{{ money(row.amount) }}</td>
               </tr>
             </tbody>
           </table>
@@ -321,21 +328,21 @@ function onPrint() {
                 <th>SKU</th>
                 <th class="num">Miqdor</th>
                 <th class="num">Tushum</th>
-                <th class="num">Tannarx</th>
-                <th class="num">Foyda</th>
+                <th v-if="canSeeProfit" class="num">Tannarx</th>
+                <th v-if="canSeeProfit" class="num">Foyda</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!data.top_products.length">
-                <td colspan="6" class="empty-state">Ma’lumot yo‘q</td>
+                <td :colspan="canSeeProfit ? 6 : 4" class="empty-state">Ma’lumot yo‘q</td>
               </tr>
               <tr v-for="row in data.top_products" :key="row.variant_id">
                 <td>{{ row.name }}</td>
                 <td>{{ row.sku }}</td>
                 <td class="num">{{ number(row.quantity) }}</td>
                 <td class="num">{{ money(row.revenue) }}</td>
-                <td class="num">{{ money(row.cost) }}</td>
-                <td class="num profit">{{ money(row.profit) }}</td>
+                <td v-if="canSeeProfit" class="num">{{ money(row.cost) }}</td>
+                <td v-if="canSeeProfit" class="num profit">{{ money(row.profit) }}</td>
               </tr>
             </tbody>
           </table>
@@ -355,7 +362,7 @@ function onPrint() {
             <span>Umumiy miqdor</span>
             <strong>{{ number(data.valuation.units) }}</strong>
           </div>
-          <div>
+          <div v-if="canSeePurchase">
             <span>Tannarx (FIFO)</span>
             <strong>{{ money(data.valuation.cost_value) }}</strong>
           </div>
@@ -363,7 +370,7 @@ function onPrint() {
             <span>Chakana qiymati</span>
             <strong>{{ money(data.valuation.retail_value) }}</strong>
           </div>
-          <div class="accent">
+          <div v-if="canSeeProfit" class="accent">
             <span>Kutilayotgan foyda</span>
             <strong>{{ money(data.valuation.potential_profit) }}</strong>
             <small>{{ data.valuation.margin_percent }}%</small>

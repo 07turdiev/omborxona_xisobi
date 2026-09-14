@@ -15,7 +15,8 @@ PERIOD_PARAMS = [
 ]
 
 from apps.core.export import context_meta, excel_response
-from apps.core.permissions import HasTenantMembership
+from apps.core.access import FinancialRedactionMixin, Perm
+from apps.core.permissions import SectionPermission
 from apps.reports import services
 from apps.reports.export import build_report_workbook
 
@@ -31,15 +32,18 @@ XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ),
 )
 @extend_schema(parameters=PERIOD_PARAMS, responses={200: dict})
-class ReportViewSet(ViewSet):
+class ReportViewSet(FinancialRedactionMixin, ViewSet):
     """Hisobotlar.
 
-    **Barcha a'zolarga ochiq.** Siz shunday xohlagansiz: ombor soni oz
-    va hamma hisobotlarni ko'rishi kerak. Cheklov kerak bo'lsa,
-    `WarehouseAccess` orqali ombor darajasida qo'shiladi.
+    Hisobotlar `reports` ruxsati bilan, boshqaruv paneli — `dashboard`
+    ruxsati bilan ochiladi. Standart rollarda hisobotlar deyarli hamma
+    uchun ochiq; tannarx va foyda esa alohida ruxsat (`view_profit`)
+    bo'lmasa javobdan tozalanadi.
     """
 
-    permission_classes = [HasTenantMembership]
+    permission_classes = [SectionPermission]
+    section_permissions = {'read': {Perm.REPORTS}, 'dashboard': {Perm.DASHBOARD}}
+    extra_permissions = {'export': {Perm.PRINT_REPORTS}}
 
     def _period(self, request) -> dict:
         params = request.query_params
@@ -66,7 +70,7 @@ class ReportViewSet(ViewSet):
             ),
             'top_products': services.top_products(**period, limit=10),
             'daily_sales': services.daily_sales(**period),
-            'losses': services.loss_summary(**period),
+            'losses': self._losses(request, period),
             'valuation': services.stock_valuation(period['warehouse']),
         })
 
@@ -88,7 +92,24 @@ class ReportViewSet(ViewSet):
 
     @action(detail=False, methods=['get'])
     def losses(self, request):
-        return Response(services.loss_summary(**self._period(request)))
+        return Response(self._losses(request, self._period(request)))
+
+    def _losses(self, request, period: dict) -> dict:
+        """Yo'qotishlar — summasi kirim narxidan hisoblanadi.
+
+        Summa kalitining nomi `amount`, u umumiy yashirish ro'yxatida emas
+        (qarz summasi ham shunday ataladi), shuning uchun shu yerda alohida
+        tozalanadi.
+        """
+        data = services.loss_summary(**period)
+
+        if request.membership.has_perm(Perm.VIEW_PURCHASE_PRICE):
+            return data
+
+        return {
+            'total': None,
+            'by_reason': [{**row, 'amount': None} for row in data['by_reason']],
+        }
 
     @action(detail=False, methods=['get'])
     def valuation(self, request):
@@ -109,7 +130,9 @@ class ReportViewSet(ViewSet):
         ko'rib turgan raqamlar bilan fayldagi raqamlar mos kelishi kerak.
         """
         period = self._period(request)
-        workbook = build_report_workbook(period, self._export_meta(request, period))
+        workbook = build_report_workbook(
+            period, self._export_meta(request, period), request.membership
+        )
 
         return excel_response(workbook, 'hisobot')
 

@@ -2,6 +2,7 @@ import api from '@/api/client'
 import type {
   MembershipRow,
   Paginated,
+  PermissionCatalog,
   RoleChoice,
   TenantSettings,
   WarehouseAccessRow,
@@ -15,6 +16,8 @@ export interface MemberInput {
   email?: string
   phone?: string
   role: string
+  /** `null` yoki berilmasa — rolning standart ruxsatlari */
+  permissions?: string[] | null
 }
 
 function clean(params: object) {
@@ -46,12 +49,20 @@ export const tenantsApi = {
     return data
   },
 
+  async permissionCatalog() {
+    const { data } = await api.get<PermissionCatalog>('/members/permissions/')
+    return data
+  },
+
   async addMember(payload: MemberInput) {
     const { data } = await api.post<MembershipRow>('/members/', payload)
     return data
   },
 
-  async updateMember(id: number, payload: { role?: string; is_active?: boolean }) {
+  async updateMember(
+    id: number,
+    payload: { role?: string; is_active?: boolean; permissions?: string[] | null },
+  ) {
     const { data } = await api.patch<MembershipRow>(`/members/${id}/`, payload)
     return data
   },

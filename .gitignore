@@ -112,3 +112,6 @@ store/
 
 # Celery beat jadval holati (lokal)
 back/celerybeat-schedule*
+
+# Yangi prototip manbasi (PHP) — baza paroli va foydalanuvchilar dump bor, repoga kirmaydi
+new/

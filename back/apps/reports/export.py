@@ -29,6 +29,7 @@ from apps.core.export import (
     Column,
     add_sheet,
 )
+from apps.core.access import Perm, visible_columns, visible_pairs
 from apps.reports import services
 
 #: Umumiy ko'rsatkichlar — "kalit, nom, format"
@@ -151,15 +152,31 @@ def _add_pairs_sheet(
     return sheet
 
 
-def build_report_workbook(period: dict, meta: list[tuple[str, str]]) -> Workbook:
-    """Butun hisobotni bitta ko'p varaqli kitobga yig'adi."""
+def build_report_workbook(
+    period: dict, meta: list[tuple[str, str]], membership=None
+) -> Workbook:
+    """Butun hisobotni bitta ko'p varaqli kitobga yig'adi.
+
+    `membership` berilsa, ruxsatsiz moliyaviy ustunlar faylga umuman
+    chiqmaydi (bo'sh ustun emas — ustunning o'zi yo'q).
+    """
     workbook = Workbook()
+
+    def cols(columns):
+        return visible_columns(columns, membership) if membership else columns
+
+    def pairs(labels):
+        return visible_pairs(labels, membership) if membership else labels
+
+    show_loss_amount = membership is None or membership.has_perm(
+        Perm.VIEW_PURCHASE_PRICE
+    )
 
     losses = services.loss_summary(**period)
 
     _add_pairs_sheet(
         workbook,
-        SUMMARY_LABELS,
+        pairs(SUMMARY_LABELS),
         services.period_summary(**period),
         sheet_name='Umumiy',
         title='Umumiy ko‘rsatkichlar',
@@ -169,7 +186,7 @@ def build_report_workbook(period: dict, meta: list[tuple[str, str]]) -> Workbook
 
     add_sheet(
         workbook,
-        CATEGORY_COLUMNS,
+        cols(CATEGORY_COLUMNS),
         services.by_category(**period),
         sheet_name='Kategoriya',
         title='Kategoriyalar bo‘yicha sotuv',
@@ -178,7 +195,7 @@ def build_report_workbook(period: dict, meta: list[tuple[str, str]]) -> Workbook
 
     add_sheet(
         workbook,
-        WAREHOUSE_COLUMNS,
+        cols(WAREHOUSE_COLUMNS),
         services.by_warehouse(period['date_from'], period['date_to']),
         sheet_name='Omborlar',
         title='Omborlar bo‘yicha sotuv',
@@ -187,7 +204,7 @@ def build_report_workbook(period: dict, meta: list[tuple[str, str]]) -> Workbook
 
     add_sheet(
         workbook,
-        PRODUCT_COLUMNS,
+        cols(PRODUCT_COLUMNS),
         # Eksportda ro'yxat cheklanmaydi: ekranda 10 ta yetadi, faylda
         # esa buxgalterga hammasi kerak bo'ladi.
         services.top_products(**period, limit=10000),
@@ -198,7 +215,7 @@ def build_report_workbook(period: dict, meta: list[tuple[str, str]]) -> Workbook
 
     add_sheet(
         workbook,
-        DAILY_COLUMNS,
+        cols(DAILY_COLUMNS),
         services.daily_sales(**period),
         sheet_name='Kunlik',
         title='Kunlik sotuv',
@@ -207,16 +224,18 @@ def build_report_workbook(period: dict, meta: list[tuple[str, str]]) -> Workbook
 
     add_sheet(
         workbook,
-        LOSS_COLUMNS,
+        [c for c in LOSS_COLUMNS if show_loss_amount or c.key != 'amount'],
         losses['by_reason'],
         sheet_name='Yo‘qotishlar',
         title='Yo‘qotishlar sabablari bo‘yicha',
-        meta=[*meta, ('Jami', f"{losses['total']:,.2f}")],
+        meta=(
+            [*meta, ('Jami', f"{losses['total']:,.2f}")] if show_loss_amount else meta
+        ),
     )
 
     _add_pairs_sheet(
         workbook,
-        VALUATION_LABELS,
+        pairs(VALUATION_LABELS),
         services.stock_valuation(period['warehouse']),
         sheet_name='Qoldiq qiymati',
         title='Qoldiq qiymati',

@@ -55,10 +55,8 @@ const syncNote = ref('')
 /** Yashil faqat kurs haqiqatan yozilganda; qolgan holatlar neytral. */
 const syncCreated = ref(false)
 
-const canManage = computed(() => {
-  const role = auth.user?.current_tenant?.role
-  return role === 'owner' || role === 'manager'
-})
+/** Sozlamalarni o'zgartirish — `settings` ruxsati (egasi va menejerda standart) */
+const canManage = computed(() => auth.can('settings'))
 
 async function load() {
   loading.value = true

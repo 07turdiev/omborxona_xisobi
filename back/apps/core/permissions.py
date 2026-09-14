@@ -63,6 +63,53 @@ class IsTenantMemberOrReadOnly(HasTenantMembership):
         return request.membership.can_write
 
 
+class SectionPermission(HasTenantMembership):
+    """Bo'lim ruxsatiga asoslangan tekshiruv (`apps.core.access.Perm`).
+
+    ViewSet ikki atribut e'lon qiladi:
+
+    - `section_permissions` — qaysi ruxsatlardan **biri** kerak:
+      `{'read': {...}, 'write': {...}, '<action>': {...}}`.
+      Amal nomi bilan berilgan qoida `read`/`write` dan ustun.
+      `read` berilmasa — o'qish har a'zoga ochiq (masalan, ombor ro'yxati
+      sotuv formasida ham kerak). `write` berilmasa — `read` dagi qoida.
+    - `extra_permissions` — amal uchun **qo'shimcha**, hammasi kerak
+      bo'lgan ruxsatlar: `{'export': {'print_reports'}}`.
+
+    Yozish uchun ruxsatning o'zi yetarli emas: rol ham yozishga ruxsat
+    berishi kerak (`Membership.can_write`). Kuzatuvchiga "sotuv" ruxsati
+    berilsa, u sotuvlarni ko'radi, lekin sotuv qila olmaydi.
+    """
+
+    message = 'Bu bo‘limga ruxsatingiz yo‘q.'
+
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+
+        membership = request.membership
+        action = getattr(view, 'action', None)
+
+        extra = getattr(view, 'extra_permissions', {}).get(action)
+
+        if extra and not membership.has_all(extra):
+            return False
+
+        if request.method not in SAFE_METHODS and not membership.can_write:
+            return False
+
+        rules = getattr(view, 'section_permissions', {})
+
+        if action in rules:
+            needed = rules[action]
+        elif request.method in SAFE_METHODS:
+            needed = rules.get('read')
+        else:
+            needed = rules.get('write', rules.get('read'))
+
+        return membership.has_any(needed) if needed else True
+
+
 class IsTenantAdminOrReadOnly(HasTenantMembership):
     """O'qish — har a'zoga; yozish — faqat egasi va menejerga.
 

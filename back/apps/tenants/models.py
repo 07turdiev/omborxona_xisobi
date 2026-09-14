@@ -128,11 +128,15 @@ class Membership(TimeStampedModel):
         OWNER = 'owner', _('Egasi')
         MANAGER = 'manager', _('Menejer')
         STOREKEEPER = 'storekeeper', _('Omborchi')
-        SALESPERSON = 'salesperson', _('Sotuvchi')
+        SALESPERSON = 'salesperson', _('Sotuvchi / kassir')
+        ACCOUNTANT = 'accountant', _('Buxgalter')
         VIEWER = 'viewer', _('Kuzatuvchi')
 
-    #: Ma'lumot o'zgartira oladigan rollar
-    WRITE_ROLES = frozenset({Role.OWNER, Role.MANAGER, Role.STOREKEEPER, Role.SALESPERSON})
+    #: Ma'lumot o'zgartira oladigan rollar. Kuzatuvchi bu yerda yo'q va
+    #: unga qanday ruxsat berilmasin, u hech narsani o'zgartira olmaydi.
+    WRITE_ROLES = frozenset({
+        Role.OWNER, Role.MANAGER, Role.STOREKEEPER, Role.SALESPERSON, Role.ACCOUNTANT,
+    })
 
     #: Tashkilot sozlamalarini boshqara oladigan rollar
     ADMIN_ROLES = frozenset({Role.OWNER, Role.MANAGER})
@@ -160,6 +164,17 @@ class Membership(TimeStampedModel):
 
     is_active = models.BooleanField(_('Faol'), default=True)
 
+    #: Xodimning alohida ruxsatlari (`apps.core.access.Perm` kodlari).
+    #: `None` — roldagi standart ruxsatlar amal qiladi va rol o'zgarsa
+    #: ular ham o'zgaradi. Ro'yxat berilsa — aynan shu ro'yxat, roldan
+    #: qat'i nazar. Egasiga bu maydon ta'sir qilmaydi.
+    permissions = models.JSONField(
+        _('Ruxsatlar'),
+        null=True,
+        blank=True,
+        help_text=_('Bo‘sh — rolning standart ruxsatlari'),
+    )
+
     class Meta:
         verbose_name = _('A\'zolik')
         verbose_name_plural = _('A\'zoliklar')
@@ -182,5 +197,40 @@ class Membership(TimeStampedModel):
 
     @property
     def is_admin(self) -> bool:
-        """Foydalanuvchi tashkilot sozlamalarini boshqara oladimi?"""
+        """Rol bo'yicha boshqaruvchimi (egasi yoki menejer)?
+
+        Faqat ko'rsatish uchun. Ruxsat tekshiruvlari `has_perm()` orqali
+        bo'ladi — xodimga alohida "sozlamalar" ruxsati berilishi mumkin.
+        """
         return self.is_active and self.role in self.ADMIN_ROLES
+
+    @property
+    def uses_role_defaults(self) -> bool:
+        """Ruxsatlar roldan olinadimi (alohida sozlanmaganmi)?"""
+        return self.role == self.Role.OWNER or self.permissions is None
+
+    @property
+    def effective_permissions(self) -> frozenset[str]:
+        """Amaldagi ruxsatlar to'plami."""
+        from apps.core.access import ALL_PERMISSIONS, ROLE_DEFAULTS
+
+        if not self.is_active:
+            return frozenset()
+
+        # Egasini hech kim, hatto o'zi ham, ruxsatsiz qoldira olmaydi
+        if self.role == self.Role.OWNER:
+            return ALL_PERMISSIONS
+
+        if self.permissions is None:
+            return ROLE_DEFAULTS.get(self.role, frozenset())
+
+        return frozenset(self.permissions) & ALL_PERMISSIONS
+
+    def has_perm(self, permission: str) -> bool:
+        return permission in self.effective_permissions
+
+    def has_any(self, permissions) -> bool:
+        return bool(self.effective_permissions & set(permissions))
+
+    def has_all(self, permissions) -> bool:
+        return set(permissions) <= self.effective_permissions

@@ -2,10 +2,15 @@
 import { computed, onMounted, ref } from 'vue'
 
 import ProductModal from '@/components/ProductModal.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useCatalogStore } from '@/stores/catalog'
 import type { Product, Variant } from '@/types'
 
 const store = useCatalogStore()
+const auth = useAuthStore()
+
+/** Kirim narxi — `view_purchase_price` ruxsati bilan */
+const canSeePurchase = computed(() => auth.can('view_purchase_price'))
 
 const modalOpen = ref(false)
 const editing = ref<Product | null>(null)
@@ -155,7 +160,7 @@ const totalVariants = computed(() =>
               <th>Atributlar</th>
               <th>Birlik</th>
               <th>O‘ram</th>
-              <th class="num">Kirim narxi</th>
+              <th v-if="canSeePurchase" class="num">Kirim narxi</th>
               <th class="num">Sotuv narxi</th>
               <th>Holat</th>
               <th></th>
@@ -164,11 +169,11 @@ const totalVariants = computed(() =>
 
           <tbody>
             <tr v-if="store.loading">
-              <td colspan="9" class="empty-state">Yuklanmoqda…</td>
+              <td :colspan="canSeePurchase ? 9 : 8" class="empty-state">Yuklanmoqda…</td>
             </tr>
 
             <tr v-else-if="store.isEmpty">
-              <td colspan="9" class="empty-state">
+              <td :colspan="canSeePurchase ? 9 : 8" class="empty-state">
                 Mahsulot topilmadi. «Mahsulot qo‘shish» tugmasi bilan birinchisini yarating.
               </td>
             </tr>
@@ -210,7 +215,7 @@ const totalVariants = computed(() =>
                   {{ hasManyVariants(product) ? '—' : packSummary(firstVariant(product)) }}
                 </td>
 
-                <td class="num">{{ money(firstVariant(product)?.purchase_price ?? null) }}</td>
+                <td v-if="canSeePurchase" class="num">{{ money(firstVariant(product)?.purchase_price ?? null) }}</td>
                 <td class="num">{{ money(firstVariant(product)?.sale_price ?? null) }}</td>
 
                 <td>
@@ -245,7 +250,7 @@ const totalVariants = computed(() =>
                 <td class="attr-cell">{{ attributeSummary(variant) }}</td>
                 <td></td>
                 <td class="attr-cell">{{ packSummary(variant) }}</td>
-                <td class="num">{{ money(variant.purchase_price) }}</td>
+                <td v-if="canSeePurchase" class="num">{{ money(variant.purchase_price) }}</td>
                 <td class="num">{{ money(variant.sale_price) }}</td>
                 <td colspan="2"></td>
               </tr>

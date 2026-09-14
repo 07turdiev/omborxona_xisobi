@@ -6,7 +6,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.core.permissions import IsTenantAdminOrReadOnly
+from apps.core.access import Perm
+from apps.core.permissions import SectionPermission
 from apps.pricing.cbu import CbuError, fetch_rates
 from apps.pricing.models import Currency, ExchangeRate
 from apps.pricing.rate_sync import sync_rates_from_cbu
@@ -15,7 +16,8 @@ from apps.pricing.serializers import CurrencySerializer, ExchangeRateSerializer
 
 class CurrencyViewSet(viewsets.ModelViewSet):
     serializer_class = CurrencySerializer
-    permission_classes = [IsTenantAdminOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.SETTINGS}}
     pagination_class = None
 
     def get_queryset(self):
@@ -32,7 +34,8 @@ class ExchangeRateViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = ExchangeRateSerializer
-    permission_classes = [IsTenantAdminOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.SETTINGS}}
 
     def get_queryset(self):
         queryset = ExchangeRate.objects.select_related('currency')

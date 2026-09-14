@@ -18,23 +18,32 @@ const initials = computed(() => {
   return name.slice(0, 1).toUpperCase() || 'F'
 })
 
-/** Menyu tarkibi dizayndagi tartibda (store/index.html). */
+/**
+ * Menyu tarkibi dizayndagi tartibda (store/index.html).
+ *
+ * `perm` — bo'limni ko'rsatish uchun kerakli ruxsat. Ruxsatsiz bo'lim
+ * menyuda umuman ko'rinmaydi; unga manzil orqali kirilsa, router
+ * boshqaruv paneliga qaytaradi, server esa 403 beradi.
+ */
 const operations = [
-  { to: '/', icon: 'i-dashboard', label: 'Boshqaruv paneli' },
-  { to: '/warehouses', icon: 'i-warehouse', label: 'Omborlar', badge: true },
-  { to: '/stock', icon: 'i-stock', label: 'Qoldiqlar' },
-  { to: '/imports', icon: 'i-import', label: 'Kirim' },
-  { to: '/sales', icon: 'i-sale', label: 'Sotuv' },
-  { to: '/transfers', icon: 'i-warehouse', label: 'Ko‘chirish' },
-  { to: '/products', icon: 'i-company', label: 'Mahsulotlar' },
-  { to: '/counterparties', icon: 'i-users', label: 'Kontragentlar' },
+  { to: '/', icon: 'i-dashboard', label: 'Boshqaruv paneli', perm: 'dashboard' },
+  { to: '/warehouses', icon: 'i-warehouse', label: 'Omborlar', perm: 'warehouses', badge: true },
+  { to: '/stock', icon: 'i-stock', label: 'Qoldiqlar', perm: 'stock' },
+  { to: '/imports', icon: 'i-import', label: 'Kirim', perm: 'imports' },
+  { to: '/sales', icon: 'i-sale', label: 'Sotuv', perm: 'sales' },
+  { to: '/transfers', icon: 'i-warehouse', label: 'Ko‘chirish', perm: 'transfers' },
+  { to: '/products', icon: 'i-company', label: 'Mahsulotlar', perm: 'products' },
+  { to: '/counterparties', icon: 'i-users', label: 'Kontragentlar', perm: 'counterparties' },
 ]
 
 const analytics = [
-  { to: '/reports', icon: 'i-report', label: 'Hisobotlar' },
-  { to: '/users', icon: 'i-users', label: 'Foydalanuvchilar' },
-  { to: '/settings', icon: 'i-settings', label: 'Sozlamalar' },
+  { to: '/reports', icon: 'i-report', label: 'Hisobotlar', perm: 'reports' },
+  { to: '/users', icon: 'i-users', label: 'Foydalanuvchilar', perm: 'users' },
+  { to: '/settings', icon: 'i-settings', label: 'Sozlamalar', perm: 'settings' },
 ]
+
+const visibleOperations = computed(() => operations.filter((item) => auth.can(item.perm)))
+const visibleAnalytics = computed(() => analytics.filter((item) => auth.can(item.perm)))
 </script>
 
 <template>
@@ -66,7 +75,7 @@ const analytics = [
       <span class="menu-caption">Operatsiyalar</span>
 
       <RouterLink
-        v-for="item in operations"
+        v-for="item in visibleOperations"
         :key="item.to"
         v-slot="{ isActive, navigate }"
         :to="item.to"
@@ -83,10 +92,10 @@ const analytics = [
         </button>
       </RouterLink>
 
-      <span class="menu-caption second">Tahlil</span>
+      <span v-if="visibleAnalytics.length" class="menu-caption second">Tahlil</span>
 
       <RouterLink
-        v-for="item in analytics"
+        v-for="item in visibleAnalytics"
         :key="item.to"
         v-slot="{ isActive, navigate }"
         :to="item.to"

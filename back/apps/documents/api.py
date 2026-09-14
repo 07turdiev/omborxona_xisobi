@@ -9,6 +9,7 @@ from django.db.models import Count, Q, Sum
 from openpyxl import Workbook
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.core.export import (
@@ -22,14 +23,15 @@ from apps.core.export import (
     context_meta,
     excel_response,
 )
-from apps.core.permissions import IsTenantMemberOrReadOnly
+from apps.core.access import FinancialRedactionMixin, Perm, visible_columns
+from apps.core.permissions import SectionPermission
 from apps.documents import services
 from apps.documents.models import Document
 from apps.documents.serializers import DocumentSerializer
 from apps.warehouse.models import WarehouseAccess
 
 
-class DocumentViewSet(viewsets.ModelViewSet):
+class DocumentViewSet(FinancialRedactionMixin, viewsets.ModelViewSet):
     """Kirim va sotuv hujjatlari.
 
     Tasdiqlash va bekor qilish alohida amallar: ular qoldiqqa ta'sir
@@ -37,7 +39,18 @@ class DocumentViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = DocumentSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'read': {Perm.IMPORTS, Perm.SALES}}
+    extra_permissions = {'export': {Perm.PRINT_REPORTS}}
+
+    #: Hujjat turi qaysi bo'lim ruxsatiga tegishli. Kassir sotuvni ko'radi,
+    #: lekin kirim hujjatlarini — ya'ni tovar qanchaga olinganini — ko'rmaydi.
+    KIND_PERMISSIONS = {
+        Document.Kind.PURCHASE: Perm.IMPORTS,
+        Document.Kind.RETURN_OUT: Perm.IMPORTS,
+        Document.Kind.SALE: Perm.SALES,
+        Document.Kind.RETURN_IN: Perm.SALES,
+    }
     # Sxema generatori so'rovsiz ishlaydi va `get_queryset()` u yerda
     # yiqiladi — model tipi shu atributdan aniqlanadi
     queryset = Document.objects.none()
@@ -50,6 +63,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
         allowed = WarehouseAccess.visible_to(self.request.user)
         queryset = queryset.filter(warehouse__in=allowed)
+
+        # Ruxsat berilmagan turdagi hujjatlar umuman ko'rinmaydi — ularni
+        # ochib, tahrirlab yoki tasdiqlab ham bo'lmaydi (404)
+        queryset = queryset.filter(kind__in=self._allowed_kinds())
 
         params = self.request.query_params
 
@@ -79,6 +96,23 @@ class DocumentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(date__lte=date_to)
 
         return queryset
+
+    def _allowed_kinds(self) -> list[str]:
+        membership = getattr(self.request, 'membership', None)
+
+        if membership is None:
+            return []
+
+        return [
+            kind for kind, permission in self.KIND_PERMISSIONS.items()
+            if membership.has_perm(permission)
+        ]
+
+    def perform_create(self, serializer):
+        if serializer.validated_data['kind'] not in self._allowed_kinds():
+            raise PermissionDenied('Bu turdagi hujjat yaratishga ruxsatingiz yo‘q.')
+
+        serializer.save()
 
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
@@ -168,7 +202,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
         add_sheet(
             workbook,
-            self.DOCUMENT_COLUMNS,
+            visible_columns(self.DOCUMENT_COLUMNS, request.membership),
             rows,
             sheet_name='Hujjatlar',
             title='Hujjatlar',
@@ -178,7 +212,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
         add_sheet(
             workbook,
-            self.LINE_COLUMNS,
+            visible_columns(self.LINE_COLUMNS, request.membership),
             self._flatten_lines(rows),
             sheet_name='Qatorlar',
             title='Hujjat qatorlari',

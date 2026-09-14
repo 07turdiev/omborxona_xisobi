@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import { tokenStorage } from '@/api/client'
+import { useAuthStore } from '@/stores/auth'
 import DashboardView from '@/views/DashboardView.vue'
 
 const router = createRouter({
@@ -12,6 +13,7 @@ const router = createRouter({
       component: DashboardView,
       meta: {
         requiresAuth: true,
+        permission: 'dashboard',
         title: 'Boshqaruv paneli',
         subtitle: 'Ombor tizimining asosiy ko‘rsatkichlari',
       },
@@ -22,6 +24,7 @@ const router = createRouter({
       component: () => import('@/views/WarehousesView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'warehouses',
         title: 'Omborlar',
         subtitle: 'Omborlarni qo‘shish, tahrirlash va boshqarish',
       },
@@ -32,6 +35,7 @@ const router = createRouter({
       component: () => import('@/views/StockView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'stock',
         title: 'Qoldiqlar',
         subtitle: 'Ombor, partiya va yaroqlilik muddati kesimida',
       },
@@ -42,6 +46,7 @@ const router = createRouter({
       component: () => import('@/views/DocumentsView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'imports',
         title: 'Kirim',
         subtitle: 'Yetkazib beruvchidan kelgan tovar hujjatlari',
         documentKind: 'purchase',
@@ -53,6 +58,7 @@ const router = createRouter({
       component: () => import('@/views/DocumentsView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'sales',
         title: 'Sotuv',
         subtitle: 'Sotuv hujjatlari, tannarx va foyda',
         documentKind: 'sale',
@@ -64,6 +70,7 @@ const router = createRouter({
       component: () => import('@/views/CategoriesView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'categories',
         title: 'Kategoriyalar',
         subtitle: 'Kategoriya daraxti va atribut ta’riflari',
       },
@@ -74,6 +81,7 @@ const router = createRouter({
       component: () => import('@/views/ProductsView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'products',
         title: 'Mahsulotlar',
         subtitle: 'Katalog, atributlar va o‘ram birliklari',
       },
@@ -84,6 +92,7 @@ const router = createRouter({
       component: () => import('@/views/TransfersView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'transfers',
         title: 'Ko‘chirish',
         subtitle: 'Omborlar orasida: jo‘natildi → qabul qilindi',
       },
@@ -94,6 +103,7 @@ const router = createRouter({
       component: () => import('@/views/PartnersView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'counterparties',
         title: 'Kontragentlar',
         subtitle: 'Yetkazib beruvchilar va mijozlar',
       },
@@ -104,6 +114,7 @@ const router = createRouter({
       component: () => import('@/views/ReportsView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'reports',
         title: 'Hisobotlar',
         subtitle: 'Aylanma, tannarx, foyda va yo‘qotishlar',
       },
@@ -114,6 +125,7 @@ const router = createRouter({
       component: () => import('@/views/UsersView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'users',
         title: 'Foydalanuvchilar',
         subtitle: 'Xodimlar, rollar va ombor huquqlari',
       },
@@ -124,6 +136,7 @@ const router = createRouter({
       component: () => import('@/views/SettingsView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'settings',
         title: 'Sozlamalar',
         subtitle: 'Tashkilot rekvizitlari, hujjat raqamlari va kurslar',
       },
@@ -134,6 +147,7 @@ const router = createRouter({
       component: () => import('@/views/UnitsView.vue'),
       meta: {
         requiresAuth: true,
+        permission: 'settings',
         title: 'O‘lchov birliklari',
         subtitle: 'Tashkilotning o‘z birliklari va konversiya',
       },
@@ -153,7 +167,16 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+/**
+ * Ruxsatsiz bo'limga manzil orqali kirilganda qayerga yo'naltiriladi.
+ * Tartib — kundalik ishda eng ko'p kerak bo'ladiganidan boshlab.
+ */
+const FALLBACK_ORDER = [
+  'dashboard', 'sales', 'stock', 'imports', 'products', 'warehouses',
+  'counterparties', 'transfers', 'reports', 'settings', 'users',
+]
+
+router.beforeEach(async (to) => {
   const authenticated = Boolean(tokenStorage.access)
 
   if (to.meta.requiresAuth && !authenticated) {
@@ -163,6 +186,33 @@ router.beforeEach((to) => {
   if (to.name === 'login' && authenticated) {
     return { name: 'dashboard' }
   }
+
+  const permission = to.meta.permission as string | undefined
+
+  if (!permission || !authenticated) return
+
+  // Bu faqat qulaylik: ruxsatsiz bo'lim bo'sh sahifa va 403 xatolar bilan
+  // ochilmasin. Himoyaning o'zi serverda.
+  const auth = useAuthStore()
+
+  if (!auth.user) {
+    try {
+      await auth.fetchMe()
+    } catch {
+      // Token eskirgan — API mijozi login sahifasiga o'zi yuboradi
+      return
+    }
+  }
+
+  if (auth.can(permission)) return
+
+  const fallback = FALLBACK_ORDER.find((name) => {
+    const target = router.resolve({ name })
+    return target.name !== to.name && auth.can(target.meta.permission as string)
+  })
+
+  // Birorta ham bo'lim ochiq bo'lmasa, sahifa o'zi "ruxsat yo'q" deb ko'rsatadi
+  if (fallback) return { name: fallback }
 })
 
 export default router

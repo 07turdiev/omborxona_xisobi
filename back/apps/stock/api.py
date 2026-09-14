@@ -22,7 +22,8 @@ from apps.core.export import (
     context_meta,
     excel_response,
 )
-from apps.core.permissions import IsTenantMemberOrReadOnly
+from apps.core.access import FinancialRedactionMixin, Perm, visible_columns
+from apps.core.permissions import SectionPermission
 from apps.stock.enums import MovementReason
 from apps.stock.models import Batch, StockBalance, StockMovement
 from apps.stock.serializers import (
@@ -40,7 +41,9 @@ from apps.warehouse.models import WarehouseAccess
 MONEY_OUTPUT = DecimalField(max_digits=18, decimal_places=2)
 
 
-class StockBalanceViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class StockBalanceViewSet(
+    FinancialRedactionMixin, mixins.ListModelMixin, viewsets.GenericViewSet
+):
     """Qoldiqlar.
 
     Faqat o'qish uchun: qoldiq jurnaldan hosila, uni to'g'ridan-to'g'ri
@@ -49,7 +52,13 @@ class StockBalanceViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
 
     serializer_class = StockBalanceSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    #: Qoldiq sotuv, kirim va ko'chirish formalarida ham kerak (mavjud miqdor)
+    section_permissions = {
+        'read': {Perm.STOCK, Perm.SALES, Perm.IMPORTS, Perm.TRANSFERS, Perm.DASHBOARD},
+        'write': {Perm.STOCK},
+    }
+    extra_permissions = {'export': {Perm.PRINT_REPORTS}}
 
     def get_queryset(self):
         queryset = (
@@ -219,6 +228,8 @@ class StockBalanceViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             Column('sale_price', 'Sotuv narxi', MONEY),
         ]
 
+        columns = visible_columns(columns, request.membership)
+
         workbook = build_workbook(
             columns,
             serializer.data,
@@ -272,6 +283,8 @@ class _MovementExportMixin:
             Column('note', 'Izoh', TEXT, width=30),
         ]
 
+        columns = visible_columns(columns, request.membership)
+
         workbook = build_workbook(
             columns,
             serializer.data,
@@ -286,7 +299,10 @@ class _MovementExportMixin:
 
 
 class StockMovementViewSet(
-    _MovementExportMixin, mixins.ListModelMixin, viewsets.GenericViewSet
+    FinancialRedactionMixin,
+    _MovementExportMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
 ):
     """Harakatlar jurnali — faqat o'qish.
 
@@ -295,7 +311,9 @@ class StockMovementViewSet(
     """
 
     serializer_class = StockMovementSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'read': {Perm.STOCK, Perm.HISTORY}}
+    extra_permissions = {'export': {Perm.PRINT_REPORTS}}
 
     def get_queryset(self):
         queryset = StockMovement.objects.select_related(
@@ -329,7 +347,11 @@ class BatchViewSet(viewsets.ModelViewSet):
     """Partiyalar: kod va yaroqlilik muddati."""
 
     serializer_class = BatchSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {
+        'read': {Perm.STOCK, Perm.IMPORTS, Perm.SALES, Perm.TRANSFERS},
+        'write': {Perm.IMPORTS, Perm.STOCK},
+    }
 
     def get_queryset(self):
         queryset = Batch.objects.select_related('variant__product')

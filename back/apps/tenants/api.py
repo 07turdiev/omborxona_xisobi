@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from apps.core.permissions import HasTenantMembership, IsTenantAdminOrReadOnly
+from apps.core.access import PERMISSION_CATALOG, PERMISSION_GROUPS, ROLE_DEFAULTS, Perm
+from apps.core.permissions import HasTenantMembership, SectionPermission
 from apps.tenants.models import Membership, Tenant
 from apps.tenants.serializers import (
     MembershipCreateSerializer,
@@ -26,7 +28,8 @@ class TenantSettingsViewSet(
     """
 
     serializer_class = TenantSettingsSerializer
-    permission_classes = [IsTenantAdminOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.SETTINGS}}
     queryset = Tenant.objects.none()
 
     def get_queryset(self):
@@ -58,7 +61,8 @@ class MembershipViewSet(viewsets.ModelViewSet):
     Ko'rish — barcha a'zolarga, o'zgartirish — faqat egasi va menejerga.
     """
 
-    permission_classes = [IsTenantAdminOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.USERS}}
     queryset = Membership.objects.none()
 
     def get_queryset(self):
@@ -109,6 +113,17 @@ class MembershipViewSet(viewsets.ModelViewSet):
         Foydalanuvchi boshqa tashkilotlarda ishlayotgan bo'lishi mumkin,
         shuning uchun uning hisobiga tegilmaydi.
         """
+        actor = self.request.membership
+
+        if instance.user_id == actor.user_id:
+            raise PermissionDenied('O‘zingizni tashkilotdan chiqara olmaysiz.')
+
+        if (
+            instance.role == Membership.Role.OWNER
+            and actor.role != Membership.Role.OWNER
+        ):
+            raise PermissionDenied('Tashkilot egasini faqat egasi chiqara oladi.')
+
         instance.delete()
 
     @action(detail=False, methods=['get'])
@@ -120,9 +135,15 @@ class MembershipViewSet(viewsets.ModelViewSet):
                 'label': str(label),
                 'can_write': value in Membership.WRITE_ROLES,
                 'is_admin': value in Membership.ADMIN_ROLES,
+                'default_permissions': sorted(ROLE_DEFAULTS.get(value, frozenset())),
             }
             for value, label in Membership.Role.choices
         ])
+
+    @action(detail=False, methods=['get'], url_path='permissions')
+    def permission_catalog(self, request):
+        """Ruxsatlar katalogi — xodim formasidagi katakchalar uchun."""
+        return Response({'groups': PERMISSION_GROUPS, 'items': PERMISSION_CATALOG})
 
 
 class MyMembershipsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

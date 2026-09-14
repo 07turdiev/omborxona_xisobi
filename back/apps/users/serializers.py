@@ -19,6 +19,13 @@ class MembershipBriefSerializer(serializers.Serializer):
     role = serializers.CharField()
     role_display = serializers.CharField(source='get_role_display')
 
+    #: Amaldagi ruxsatlar — interfeys menyu va ustunlarni shunga qarab
+    #: ko'rsatadi. Himoya baribir serverda: bu faqat qulaylik uchun.
+    permissions = serializers.SerializerMethodField()
+
+    def get_permissions(self, obj) -> list[str]:
+        return sorted(obj.effective_permissions)
+
 
 class UserSerializer(serializers.ModelSerializer):
     """Joriy foydalanuvchi va uning tashkilotlari.

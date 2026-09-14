@@ -4,6 +4,14 @@ export interface MembershipBrief {
   tenant_slug: string
   role: string
   role_display: string
+  /** Amaldagi ruxsatlar (`apps.core.access.Perm` kodlari) */
+  permissions: string[]
+}
+
+/** Ruxsatlar katalogi — xodim formasidagi katakchalar uchun */
+export interface PermissionCatalog {
+  groups: Record<string, string>
+  items: { value: string; label: string; group: string }[]
 }
 
 export interface User {
@@ -539,6 +547,9 @@ export interface MembershipRow {
   is_active: boolean
   can_write: boolean
   is_admin: boolean
+  permissions: string[]
+  /** Ruxsatlar roldan olinadimi (alohida sozlanmaganmi) */
+  uses_role_defaults: boolean
   /** Nechta omborga cheklangan. Nol — hammasi ochiq. */
   warehouse_count: number
   created_at: string
@@ -549,6 +560,7 @@ export interface RoleChoice {
   label: string
   can_write: boolean
   is_admin: boolean
+  default_permissions: string[]
 }
 
 export interface TenantSettings {

@@ -21,10 +21,33 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Router qo'riqchisi va App.vue birinchi yuklanishda `/me` ni bir vaqtda
+  // so'rashi mumkin — bitta so'rov ikkalasiga yetadi
+  let pendingMe: Promise<User> | null = null
+
   async function fetchMe() {
-    const { data } = await api.get<User>('/auth/me/')
-    user.value = data
-    return data
+    pendingMe ??= api
+      .get<User>('/auth/me/')
+      .then(({ data }) => {
+        user.value = data
+        return data
+      })
+      .finally(() => {
+        pendingMe = null
+      })
+
+    return pendingMe
+  }
+
+  /**
+   * Joriy tashkilotdagi ruxsat.
+   *
+   * Faqat interfeys uchun: menyu va ustunlarni yashiradi. Haqiqiy himoya
+   * serverda — ruxsatsiz so'rov 403 oladi, moliyaviy maydonlar esa
+   * javobning o'zida tozalanadi.
+   */
+  function can(permission: string): boolean {
+    return user.value?.current_tenant?.permissions?.includes(permission) ?? false
   }
 
   function logout() {
@@ -47,5 +70,5 @@ export const useAuthStore = defineStore('auth', () => {
     window.location.reload()
   }
 
-  return { user, loading, isAuthenticated, login, fetchMe, logout, switchTenant }
+  return { user, loading, isAuthenticated, can, login, fetchMe, logout, switchTenant }
 })

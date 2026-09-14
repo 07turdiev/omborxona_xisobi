@@ -4,13 +4,19 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { tenantsApi, type MemberInput } from '@/api/tenants'
 import { useAuthStore } from '@/stores/auth'
 import { useWarehouseStore } from '@/stores/warehouses'
-import type { MembershipRow, RoleChoice, WarehouseAccessRow } from '@/types'
+import type {
+  MembershipRow,
+  PermissionCatalog,
+  RoleChoice,
+  WarehouseAccessRow,
+} from '@/types'
 
 const auth = useAuthStore()
 const warehouses = useWarehouseStore()
 
 const items = ref<MembershipRow[]>([])
 const roles = ref<RoleChoice[]>([])
+const catalog = ref<PermissionCatalog | null>(null)
 
 const loading = ref(false)
 const saving = ref(false)
@@ -48,10 +54,34 @@ const accessLevels = [
   { value: 'manage', label: 'To‘liq boshqarish' },
 ]
 
-const canManage = computed(() => {
-  const role = auth.user?.current_tenant?.role
-  return role === 'owner' || role === 'manager'
-})
+// Ruxsatlar
+const permOpen = ref(false)
+const permTarget = ref<MembershipRow | null>(null)
+const permSelected = ref<Set<string>>(new Set())
+const permError = ref('')
+
+/** Xodimlarni boshqarish — `users` ruxsati (egasi va menejerda standart). */
+const canManage = computed(() => auth.can('users'))
+
+const isOwnerActor = computed(() => auth.user?.current_tenant?.role === 'owner')
+
+/**
+ * Qatorni tahrirlash mumkinmi. Server ham xuddi shu qoidalarni tekshiradi —
+ * bu yerda faqat bosib bo'lmaydigan tugmani ko'rsatmaslik uchun.
+ */
+function canEdit(member: MembershipRow): boolean {
+  if (!canManage.value) return false
+
+  // O'z huquqini hech kim o'zgartirmaydi
+  if (member.user === auth.user?.id) return false
+
+  // Egasini faqat ega o'zgartiradi
+  return member.role !== 'owner' || isOwnerActor.value
+}
+
+function roleLabel(value: string): string {
+  return roles.value.find((role) => role.value === value)?.label ?? value
+}
 
 async function load() {
   loading.value = true
@@ -67,7 +97,14 @@ async function load() {
 }
 
 onMounted(async () => {
-  roles.value = await tenantsApi.roles()
+  const [roleList, permissionCatalog] = await Promise.all([
+    tenantsApi.roles(),
+    tenantsApi.permissionCatalog(),
+  ])
+
+  roles.value = roleList
+  catalog.value = permissionCatalog
+
   await Promise.all([load(), warehouses.load()])
 })
 
@@ -84,6 +121,11 @@ function asErrors(err: unknown): Record<string, string[]> {
   if (data && typeof data === 'object') return data as Record<string, string[]>
 
   return { detail: ['Kutilmagan xatolik.'] }
+}
+
+function firstError(err: unknown, fallback: string): string {
+  const value = Object.values(asErrors(err)).flat()[0]
+  return typeof value === 'string' ? value : fallback
 }
 
 // -- xodim qo'shish --------------------------------------------------
@@ -116,7 +158,8 @@ async function onRoleChange(member: MembershipRow, role: string) {
     await tenantsApi.updateMember(member.id, { role })
     await load()
   } catch (err) {
-    error.value = Object.values(asErrors(err)).flat()[0] ?? 'O‘zgartirib bo‘lmadi.'
+    error.value = firstError(err, 'O‘zgartirib bo‘lmadi.')
+    await load()
   }
 }
 
@@ -125,7 +168,7 @@ async function onToggleActive(member: MembershipRow) {
     await tenantsApi.updateMember(member.id, { is_active: !member.is_active })
     await load()
   } catch (err) {
-    error.value = Object.values(asErrors(err)).flat()[0] ?? 'O‘zgartirib bo‘lmadi.'
+    error.value = firstError(err, 'O‘zgartirib bo‘lmadi.')
   }
 }
 
@@ -142,7 +185,62 @@ async function onRemove(member: MembershipRow) {
     await tenantsApi.removeMember(member.id)
     await load()
   } catch (err) {
-    error.value = Object.values(asErrors(err)).flat()[0] ?? 'Chiqarib bo‘lmadi.'
+    error.value = firstError(err, 'Chiqarib bo‘lmadi.')
+  }
+}
+
+// -- ruxsatlar -------------------------------------------------------
+
+const permGroups = computed(() => {
+  if (!catalog.value) return []
+
+  return Object.entries(catalog.value.groups).map(([key, label]) => ({
+    key,
+    label,
+    items: catalog.value!.items.filter((item) => item.group === key),
+  }))
+})
+
+const targetDefaults = computed(() => {
+  const role = roles.value.find((r) => r.value === permTarget.value?.role)
+  return new Set(role?.default_permissions ?? [])
+})
+
+function openPermissions(member: MembershipRow) {
+  permTarget.value = member
+  permSelected.value = new Set(member.permissions)
+  permError.value = ''
+  permOpen.value = true
+}
+
+function togglePermission(value: string) {
+  const next = new Set(permSelected.value)
+
+  if (next.has(value)) next.delete(value)
+  else next.add(value)
+
+  permSelected.value = next
+}
+
+/** Egasi bo'lmagan admin o'zida yo'q ruxsatni bera olmaydi (server ham shunday). */
+function canGrant(value: string): boolean {
+  return isOwnerActor.value || auth.can(value)
+}
+
+async function savePermissions(permissions: string[] | null) {
+  if (!permTarget.value) return
+
+  permError.value = ''
+  saving.value = true
+
+  try {
+    await tenantsApi.updateMember(permTarget.value.id, { permissions })
+    permOpen.value = false
+    await load()
+  } catch (err) {
+    permError.value = firstError(err, 'Ruxsatlarni saqlab bo‘lmadi.')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -174,7 +272,7 @@ async function onGrant() {
     newAccess.warehouse = null
     await load()
   } catch (err) {
-    error.value = Object.values(asErrors(err)).flat()[0] ?? 'Huquq berib bo‘lmadi.'
+    error.value = firstError(err, 'Huquq berib bo‘lmadi.')
   }
 }
 
@@ -227,8 +325,8 @@ const fieldError = (field: string): string => {
     <p v-if="error" class="load-error">{{ error }}</p>
 
     <div v-if="!canManage" class="notice">
-      Xodimlarni boshqarish uchun <strong>egasi</strong> yoki
-      <strong>menejer</strong> roli kerak. Siz ro‘yxatni ko‘ra olasiz.
+      Xodimlarni boshqarish uchun <strong>«Xodimlar»</strong> ruxsati kerak.
+      Siz ro‘yxatni ko‘ra olasiz.
     </div>
 
     <div class="table-card">
@@ -240,6 +338,7 @@ const fieldError = (field: string): string => {
               <th>Login</th>
               <th>Aloqa</th>
               <th>Rol</th>
+              <th>Ruxsatlar</th>
               <th>Omborlar</th>
               <th>Holat</th>
               <th></th>
@@ -248,15 +347,18 @@ const fieldError = (field: string): string => {
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="7" class="empty-state">Yuklanmoqda…</td>
+              <td colspan="8" class="empty-state">Yuklanmoqda…</td>
             </tr>
 
             <tr v-else-if="!items.length">
-              <td colspan="7" class="empty-state">Xodim topilmadi.</td>
+              <td colspan="8" class="empty-state">Xodim topilmadi.</td>
             </tr>
 
             <tr v-for="member in items" v-else :key="member.id">
-              <td><strong>{{ member.full_name }}</strong></td>
+              <td>
+                <strong>{{ member.full_name }}</strong>
+                <small v-if="member.user === auth.user?.id" class="cell-sub">siz</small>
+              </td>
               <td>{{ member.username }}</td>
 
               <td>
@@ -268,12 +370,17 @@ const fieldError = (field: string): string => {
 
               <td>
                 <select
-                  v-if="canManage"
+                  v-if="canEdit(member)"
                   class="role-select"
                   :value="member.role"
                   @change="onRoleChange(member, ($event.target as HTMLSelectElement).value)"
                 >
-                  <option v-for="role in roles" :key="role.value" :value="role.value">
+                  <option
+                    v-for="role in roles"
+                    :key="role.value"
+                    :value="role.value"
+                    :disabled="role.value === 'owner' && !isOwnerActor"
+                  >
                     {{ role.label }}
                   </option>
                 </select>
@@ -282,7 +389,23 @@ const fieldError = (field: string): string => {
 
               <td>
                 <button
-                  v-if="canManage"
+                  v-if="canEdit(member) && member.role !== 'owner'"
+                  class="access-link"
+                  type="button"
+                  @click="openPermissions(member)"
+                >
+                  <span v-if="member.uses_role_defaults" class="all-access">rol bo‘yicha</span>
+                  <span v-else class="limited">alohida · {{ member.permissions.length }}</span>
+                </button>
+                <span v-else-if="member.role === 'owner'" class="muted">hammasi</span>
+                <span v-else class="muted">
+                  {{ member.uses_role_defaults ? 'rol bo‘yicha' : `alohida · ${member.permissions.length}` }}
+                </span>
+              </td>
+
+              <td>
+                <button
+                  v-if="canEdit(member)"
                   class="access-link"
                   type="button"
                   @click="openAccess(member)"
@@ -306,7 +429,7 @@ const fieldError = (field: string): string => {
               </td>
 
               <td class="row-actions">
-                <template v-if="canManage">
+                <template v-if="canEdit(member)">
                   <button class="button button-soft" type="button" @click="onToggleActive(member)">
                     {{ member.is_active ? 'To‘xtatish' : 'Faollashtirish' }}
                   </button>
@@ -334,6 +457,7 @@ const fieldError = (field: string): string => {
             <p>
               Login mavjud bo‘lsa, o‘sha foydalanuvchiga shu tashkilotda
               a’zolik beriladi — bir odam bir nechta do‘konda ishlashi mumkin.
+              Ruxsatlar roldan olinadi; keyin ularni alohida sozlash mumkin.
             </p>
           </div>
 
@@ -365,10 +489,18 @@ const fieldError = (field: string): string => {
               <div class="field">
                 <label>Rol</label>
                 <select v-model="form.role">
-                  <option v-for="role in roles" :key="role.value" :value="role.value">
+                  <option
+                    v-for="role in roles"
+                    :key="role.value"
+                    :value="role.value"
+                    :disabled="role.value === 'owner' && !isOwnerActor"
+                  >
                     {{ role.label }}
                   </option>
                 </select>
+                <small v-if="fieldError('role')" class="field-error">
+                  {{ fieldError('role') }}
+                </small>
               </div>
 
               <div class="field">
@@ -392,7 +524,9 @@ const fieldError = (field: string): string => {
               </div>
             </div>
 
-            <p v-if="fieldError('detail')" class="form-error">{{ fieldError('detail') }}</p>
+            <p v-if="fieldError('detail') || fieldError('permissions')" class="form-error">
+              {{ fieldError('detail') || fieldError('permissions') }}
+            </p>
           </div>
 
           <div class="modal-footer">
@@ -405,6 +539,77 @@ const fieldError = (field: string): string => {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Ruxsatlar -->
+    <div class="modal" :class="{ show: permOpen }">
+      <div class="modal-backdrop" @click="permOpen = false"></div>
+
+      <div class="modal-dialog modal-large">
+        <div class="modal-header">
+          <div>
+            <span class="modal-eyebrow">RUXSATLAR</span>
+            <h3>{{ permTarget?.full_name }}</h3>
+            <p>
+              Rol: <strong>{{ roleLabel(permTarget?.role ?? '') }}</strong>.
+              <span class="default-mark">•</span> belgisi — shu rolning standart ruxsati.
+              Kirim narxi va foyda alohida ruxsat: ularsiz xodim sotuv qila oladi,
+              lekin tovar qanchaga olinganini ko‘rmaydi.
+            </p>
+          </div>
+
+          <button class="modal-close" type="button" @click="permOpen = false">
+            <svg><use href="#i-close" /></svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="perm-groups">
+            <fieldset v-for="group in permGroups" :key="group.key" class="perm-group">
+              <legend>{{ group.label }}</legend>
+
+              <label
+                v-for="item in group.items"
+                :key="item.value"
+                class="perm-item"
+                :class="{ locked: !canGrant(item.value) }"
+                :title="canGrant(item.value) ? '' : 'Sizda bu ruxsat yo‘q — uni bera olmaysiz'"
+              >
+                <input
+                  type="checkbox"
+                  :checked="permSelected.has(item.value)"
+                  :disabled="!canGrant(item.value) && !permSelected.has(item.value)"
+                  @change="togglePermission(item.value)"
+                />
+                <span>{{ item.label }}</span>
+                <span v-if="targetDefaults.has(item.value)" class="default-mark">•</span>
+              </label>
+            </fieldset>
+          </div>
+
+          <p v-if="permError" class="form-error">{{ permError }}</p>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            class="button button-outline"
+            type="button"
+            :disabled="saving || permTarget?.uses_role_defaults"
+            @click="savePermissions(null)"
+          >
+            Rol standartiga qaytarish
+          </button>
+
+          <button
+            class="button button-gradient"
+            type="button"
+            :disabled="saving"
+            @click="savePermissions([...permSelected])"
+          >
+            {{ saving ? 'Saqlanmoqda…' : 'Saqlash' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -528,6 +733,49 @@ const fieldError = (field: string): string => {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+.perm-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.perm-group {
+  margin: 0;
+  padding: 12px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.perm-group legend {
+  padding: 0 4px;
+
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.perm-item {
+  padding: 4px 0;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.perm-item.locked {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.default-mark {
+  color: var(--green);
+  font-weight: 700;
 }
 
 </style>

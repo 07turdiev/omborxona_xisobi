@@ -96,6 +96,37 @@ class DocumentSerializer(serializers.ModelSerializer):
     def get_line_count(self, obj) -> int:
         return obj.lines.count()
 
+    #: Summasi kirim narxini ochib beradigan hujjat turlari
+    PURCHASE_PRICED_KINDS = frozenset({Document.Kind.PURCHASE, Document.Kind.RETURN_OUT})
+
+    def to_representation(self, instance):
+        """Kirim narxini ko'rish ruxsati bo'lmasa, kirim summalarini tozalaydi.
+
+        Umumiy yashirish (`FinancialRedactionMixin`) kalit nomiga qaraydi,
+        `total_amount` esa sotuvda tushum, kirimda — xarid narxi. Farqni
+        faqat hujjat turi biladi, shuning uchun bu shu yerda.
+        """
+        data = super().to_representation(instance)
+
+        request = self.context.get('request')
+        membership = getattr(request, 'membership', None)
+
+        if membership is None or instance.kind not in self.PURCHASE_PRICED_KINDS:
+            return data
+
+        from apps.core.access import Perm
+
+        if membership.has_perm(Perm.VIEW_PURCHASE_PRICE):
+            return data
+
+        data['total_amount'] = None
+
+        for line in data.get('lines') or []:
+            for key in ('unit_price', 'unit_price_base', 'line_total'):
+                line[key] = None
+
+        return data
+
     @transaction.atomic
     def create(self, validated_data):
         items = validated_data.pop('items', [])

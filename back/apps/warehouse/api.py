@@ -7,7 +7,8 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.core.permissions import IsTenantMemberOrReadOnly
+from apps.core.access import Perm
+from apps.core.permissions import SectionPermission
 from apps.warehouse.models import Warehouse, WarehouseAccess
 from apps.warehouse.serializers import WarehouseAccessSerializer, WarehouseSerializer
 
@@ -21,7 +22,8 @@ class WarehouseViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = WarehouseSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
+    permission_classes = [SectionPermission]
+    section_permissions = {'write': {Perm.WAREHOUSES}}
     queryset = Warehouse.objects.none()
 
     def get_queryset(self):
@@ -88,5 +90,18 @@ class WarehouseAccessViewSet(viewsets.ModelViewSet):
     """Omborga kirish huquqlari (ixtiyoriy cheklov)."""
 
     serializer_class = WarehouseAccessSerializer
-    permission_classes = [IsTenantMemberOrReadOnly]
-    queryset = WarehouseAccess.objects.select_related('warehouse', 'user')
+    permission_classes = [SectionPermission]
+
+    #: Faqat xodimlarni boshqaradigan kishi. Avval bu yerda yozish huquqi
+    #: bo'lgan istalgan xodim (masalan omborchi) turardi, ya'ni u o'ziga
+    #: yoki boshqaga ombor ruxsatini qo'sha olardi.
+    section_permissions = {'read': {Perm.USERS}}
+    queryset = WarehouseAccess.objects.none()
+
+    def get_queryset(self):
+        queryset = WarehouseAccess.objects.select_related('warehouse', 'user')
+
+        if user := self.request.query_params.get('user', '').strip():
+            queryset = queryset.filter(user_id=user)
+
+        return queryset
