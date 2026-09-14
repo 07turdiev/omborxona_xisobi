@@ -2,9 +2,11 @@
 #
 # Baza zaxira nusxasi.
 #
-# Foydalanish:
-#   ./scripts/backup.sh                 # docker compose ichidagi bazadan
+# Foydalanish (loyiha papkasidan):
+#   ./scripts/backup.sh
 #   BACKUP_DIR=/mnt/backup ./scripts/backup.sh
+#
+# Baza konteynerda ham, serverning o'zida ham ishlaydi (scripts/db-env.sh).
 #
 # Cron bilan har kuni soat 3 da:
 #   0 3 * * * cd /srv/omborxona && ./scripts/backup.sh >> /var/log/ombor-backup.log 2>&1
@@ -15,20 +17,11 @@
 
 set -euo pipefail
 
+# shellcheck source=scripts/db-env.sh
+source "$(dirname "$0")/db-env.sh"
+
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
-COMPOSE_SERVICE="${COMPOSE_SERVICE:-db}"
-
-# .env.production dan baza sozlamalarini olamiz
-if [[ -f .env.production ]]; then
-    set -a
-    # shellcheck disable=SC1091
-    source .env.production
-    set +a
-fi
-
-: "${POSTGRES_DB:?POSTGRES_DB berilmagan}"
-: "${POSTGRES_USER:?POSTGRES_USER berilmagan}"
 
 mkdir -p "$BACKUP_DIR"
 
@@ -37,8 +30,7 @@ TARGET="$BACKUP_DIR/${POSTGRES_DB}-${STAMP}.dump"
 
 echo "Zaxira olinmoqda: $TARGET"
 
-docker compose exec -T "$COMPOSE_SERVICE" \
-    pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "$TARGET"
+db_dump > "$TARGET"
 
 SIZE="$(du -h "$TARGET" | cut -f1)"
 echo "Tayyor: $TARGET ($SIZE)"

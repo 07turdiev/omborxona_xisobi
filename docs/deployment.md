@@ -9,74 +9,204 @@ ishga tushirish uchun [development.md](./development.md) ga qarang.
 
 | Nima | Izoh |
 |---|---|
-| Server | 2 CPU, 4 GB RAM yetarli. Do'kon soni o'nlab bo'lsa ham. |
-| Docker + Docker Compose | Boshqa hech narsa o'rnatish shart emas |
-| Domen | Masalan `ombor.example.uz`, A yozuvi server IP siga |
-| Reverse proxy | Caddy yoki Traefik — HTTPS sertifikati uchun |
+| Server | 2 CPU, 4 GB RAM yetarli. Do'kon soni o'nlab bo'lsa ham. Ubuntu 22.04/24.04 |
+| Docker + Docker Compose | Compose 2.24.4+ (`docker compose version`) |
+| PostgreSQL 15+ | Konteynerda (standart) yoki serverning o'zida — 2B bo'lim |
+| Domen | Masalan `ombor.example.uz`, A yozuvi tashqi IP ga |
+| Reverse proxy | Caddy — HTTPS sertifikati uchun (3-bo'lim) |
 
 **Nima uchun HTTPS `docker-compose.yml` da yo'q.** Sertifikat
 yangilanishi ilova hayot siklidan mustaqil bo'lishi kerak: ilovani
 qayta qurganingizda sertifikat ishlashda davom etsin. Shuning uchun
 tashqi proxy tavsiya qilinadi.
 
+**PostgreSQL 15+ nima uchun.** Qoldiq jadvalidagi unikal cheklov
+`NULLS NOT DISTINCT` dan foydalanadi (15-versiyadan). Ubuntu 22.04 ning
+o'z paketi 14 — shuning uchun rasmiy PGDG repozitoriyasi ishlatiladi.
+
 ---
 
 ## 2. Birinchi ishga tushirish
 
 ```bash
-git clone <repo> /srv/omborxona
+sudo mkdir -p /srv && sudo chown "$USER" /srv
+git clone https://github.com/07turdiev/omborxona_xisobi.git /srv/omborxona
 cd /srv/omborxona
 
 cp .env.production.example .env.production
+# compose ${...} qiymatlarini `.env` dan oladi — ikkalasi bitta fayl bo'lsin
+ln -s .env.production .env
+chmod 600 .env.production
 ```
 
-`.env.production` ni to'ldiring. **Majburiy** maydonlar:
+Maxfiy qiymatlarni yarating (faqat harf va raqam — `$` compose'ni,
+`@ :` esa DATABASE_URL ni buzadi):
 
 ```bash
-# Yangi kalit yaratish
-docker run --rm python:3.13-slim python -c \
-  "import secrets; print(''.join(secrets.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*(-_=+)') for _ in range(50)))"
+openssl rand -hex 50   # SECRET_KEY
+openssl rand -hex 24   # POSTGRES_PASSWORD
 ```
+
+`.env.production` ni to'ldiring (`nano .env.production`). **Majburiy**:
 
 | O'zgaruvchi | Nima |
 |---|---|
-| `SECRET_KEY` | Yuqoridagi buyruq natijasi |
-| `ALLOWED_HOSTS` | Domeningiz |
-| `CSRF_TRUSTED_ORIGINS` | `https://` bilan domeningiz |
-| `POSTGRES_PASSWORD` | Kuchli parol |
+| `SECRET_KEY` | Birinchi buyruq natijasi |
+| `ALLOWED_HOSTS` | Domeningiz: `ombor.example.uz` |
+| `CSRF_TRUSTED_ORIGINS` | `https://` bilan: `https://ombor.example.uz` |
+| `POSTGRES_PASSWORD` | Ikkinchi buyruq natijasi |
 
-Keyin:
+### 2A. Baza konteynerda (standart)
+
+Qo'shimcha hech narsa kerak emas — 2C ga o'ting.
+
+### 2B. Baza serverning o'zida (native PostgreSQL)
+
+**1. O'rnatish** (rasmiy PGDG repozitoriyasidan):
 
 ```bash
-docker compose up -d --build
+sudo apt install -y postgresql-common
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh   # Enter bosing
+sudo apt install -y postgresql-18
+```
+
+**2. Rol va baza.** `PAROL` o'rniga `.env.production` dagi
+`POSTGRES_PASSWORD` ni qo'ying:
+
+```bash
+sudo -u postgres psql <<'SQL'
+CREATE ROLE omborxona_app LOGIN PASSWORD 'PAROL'
+    NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+CREATE DATABASE omborxona_xisobi OWNER omborxona_app
+    ENCODING 'UTF8' TEMPLATE template0
+    LOCALE_PROVIDER icu ICU_LOCALE 'uz-UZ' LOCALE 'C.UTF-8';
+\c omborxona_xisobi
+CREATE EXTENSION IF NOT EXISTS ltree;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS btree_gin;
+SQL
+```
+
+- `NOSUPERUSER NOBYPASSRLS` — **majburiy**: aks holda RLS bu rolga
+  qo'llanmaydi va tashkilotlar bir-birining ma'lumotini ko'radi.
+- Rol baza egasi — migratsiya jadval yarata oladi. Jadvallarda
+  `FORCE ROW LEVEL SECURITY` yoqilgani uchun egalik RLS ni chetlab
+  o'tmaydi.
+- Extensionlar `postgres` nomidan oldindan yaratiladi; migratsiya ularni
+  mavjud deb o'tkazib yuboradi.
+- `ICU_LOCALE 'uz-UZ'` — nomlar o'zbekcha tartibda saralanadi.
+
+**3. Docker konteynerlaridan ulanish.** Konteynerlar serverga
+`172.16.0.0/12` tarmog'idan keladi:
+
+```bash
+PGCONF=/etc/postgresql/18/main
+sudo sed -i "s/^#\?listen_addresses.*/listen_addresses = '*'/" $PGCONF/postgresql.conf
+echo "host omborxona_xisobi omborxona_app 172.16.0.0/12 scram-sha-256" \
+  | sudo tee -a $PGCONF/pg_hba.conf
+sudo systemctl restart postgresql
+```
+
+**4. Firewall.** `listen_addresses = '*'` bo'lgani uchun 5432 port
+tashqaridan yopiq bo'lishi shart:
+
+```bash
+sudo ufw allow OpenSSH          # AVVAL shu — aks holda SSH uziladi
+sudo ufw allow 80,443/tcp
+sudo ufw allow from 172.16.0.0/12 to any port 5432 proto tcp
+sudo ufw enable
+sudo ufw status
+```
+
+**5. `.env.production`** da B bo'limidagi uch qatorni oching (`#` ni
+olib tashlang) va `PAROL` ni almashtiring:
+
+```bash
+COMPOSE_FILE=docker-compose.yml:docker-compose.hostdb.yml
+POSTGRES_HOST=127.0.0.1
+DATABASE_URL=postgres://omborxona_app:PAROL@host.docker.internal:5432/omborxona_xisobi
+```
+
+`COMPOSE_FILE` tufayli keyingi barcha `docker compose` buyruqlari
+`docker-compose.hostdb.yml` ni o'zi qo'shadi: baza konteyneri ishga
+tushmaydi, backend serverdagi bazaga ulanadi.
+
+Zaxira skriptlari `POSTGRES_HOST` ni ko'rib, `pg_dump` ni serverning
+o'zida ishga tushiradi.
+
+### 2C. Ishga tushirish
+
+```bash
+docker compose config --quiet && echo "compose sozlamasi to'g'ri"
+
+docker compose build
+docker compose up -d
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py createsuperuser
 ```
 
+`createsuperuser` — tizim superadmini. U interfeysdagi **Kompaniyalar**
+bo'limidan do'konlarni va ularning egalarini ochadi.
+
 Tekshirish:
 
 ```bash
+docker compose ps
 docker compose exec backend python manage.py check --deploy
 docker compose exec backend python manage.py check --database default
+curl -sI http://127.0.0.1:8080 | head -1     # HTTP/1.1 200 OK
 ```
 
-Ikkinchi buyruq **eng muhimi**: u har bir jadvalda RLS policy borligini
-va baza roli `SUPERUSER`/`BYPASSRLS` emasligini tekshiradi.
+`check --database default` **eng muhimi**: u har bir jadvalda RLS policy
+borligini va baza roli `SUPERUSER`/`BYPASSRLS` emasligini tekshiradi.
 
 ---
 
-## 3. Reverse proxy (Caddy namunasi)
+## 3. HTTPS: domen, router va Caddy
 
-`/etc/caddy/Caddyfile`:
+**1. DNS.** Domen boshqaruv panelida `A` yozuvi: `ombor.example.uz` →
+ofisning **tashqi** IP manzili (`curl -s ifconfig.me` serverda ko'rsatadi).
+Provayder statik tashqi IP bermasa, sertifikat olinmaydi — avval shuni
+hal qiling.
+
+**2. Router.** 80 va 443 portlarni server ichki IP siga
+(`192.168.100.61`) yo'naltiring (port forwarding / NAT). Let's Encrypt
+sertifikat berishdan oldin domen orqali 80-portga ulanib tekshiradi.
+
+**3. Caddy** (serverning o'zida):
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+  | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
+  | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy
+```
+
+`/etc/caddy/Caddyfile` (`sudo nano /etc/caddy/Caddyfile`, eski
+tarkibni to'liq almashtiring):
 
 ```
 ombor.example.uz {
-    reverse_proxy localhost:8080
+    encode gzip
+    reverse_proxy 127.0.0.1:8080
 }
+```
+
+```bash
+sudo systemctl reload caddy
+sudo journalctl -u caddy -f      # "certificate obtained successfully" ni kuting
 ```
 
 Caddy sertifikatni o'zi oladi va yangilaydi. `WEB_PORT` ni
 `.env.production` da o'zgartirsangiz, bu yerda ham o'zgartiring.
+
+**Nima uchun frontend porti faqat `127.0.0.1` da.** Docker o'z portlarini
+UFW dan chetlab ochadi — `0.0.0.0:8080` bo'lsa firewall uni to'smaydi
+va saytga HTTPS'siz kirish mumkin bo'lardi. Qolaversa frontend nginx
+Caddy yuborgan `X-Forwarded-Proto` ga ishonadi; unga faqat Caddy
+ulanishi kerak.
 
 ---
 

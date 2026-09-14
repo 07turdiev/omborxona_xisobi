@@ -2,7 +2,7 @@
 #
 # Zaxira nusxadan tiklash.
 #
-# Foydalanish:
+# Foydalanish (loyiha papkasidan):
 #   ./scripts/restore.sh backups/omborxona_xisobi-20260909-030000.dump
 #
 # DIQQAT: bu amal joriy bazani **butunlay almashtiradi**. Shuning uchun
@@ -14,7 +14,6 @@
 set -euo pipefail
 
 DUMP="${1:-}"
-COMPOSE_SERVICE="${COMPOSE_SERVICE:-db}"
 
 if [[ -z "$DUMP" ]]; then
     echo "Foydalanish: $0 <zaxira-fayli.dump>" >&2
@@ -26,18 +25,11 @@ if [[ ! -f "$DUMP" ]]; then
     exit 1
 fi
 
-if [[ -f .env.production ]]; then
-    set -a
-    # shellcheck disable=SC1091
-    source .env.production
-    set +a
-fi
-
-: "${POSTGRES_DB:?POSTGRES_DB berilmagan}"
-: "${POSTGRES_USER:?POSTGRES_USER berilmagan}"
+# shellcheck source=scripts/db-env.sh
+source "$(dirname "$0")/db-env.sh"
 
 echo "Tiklanadi : $DUMP"
-echo "Baza      : $POSTGRES_DB"
+echo "Baza      : $POSTGRES_DB ${POSTGRES_HOST:+(server: $POSTGRES_HOST)}"
 echo
 echo "JORIY BAZA BUTUNLAY ALMASHTIRILADI."
 read -r -p "Davom etilsinmi? 'ha' deb yozing: " CONFIRM
@@ -52,21 +44,18 @@ SAFETY="./backups/before-restore-$(date +%Y%m%d-%H%M%S).dump"
 mkdir -p ./backups
 
 echo "Joriy holat saqlanmoqda: $SAFETY"
-docker compose exec -T "$COMPOSE_SERVICE" \
-    pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "$SAFETY"
+db_dump > "$SAFETY"
 
+# Bazaga yozadigan hamma to'xtatiladi — fon vazifasi ham tiklash
+# o'rtasida yarim jadvalga yozib qo'ymasin
 echo "Ilova to'xtatilmoqda..."
-docker compose stop backend
+docker compose stop backend worker beat
 
 echo "Tiklanmoqda..."
-# `--clean --if-exists`: mavjud obyektlarni o'chirib, qaytadan yaratadi.
-# `--no-owner`: egalik konteynerdagi rolga moslashtiriladi.
-docker compose exec -T "$COMPOSE_SERVICE" \
-    pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-    --clean --if-exists --no-owner < "$DUMP"
+db_restore < "$DUMP"
 
 echo "Ilova ishga tushirilmoqda..."
-docker compose start backend
+docker compose start backend worker beat
 
 echo
 echo "Tayyor. Tekshiring:"

@@ -1,0 +1,44 @@
+# Baza konteynerda emas, serverning o'zida (native PostgreSQL) bo'lganda.
+#
+# Ulash — .env.production da (u `.env` ga symlink bo'lishi kerak):
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.hostdb.yml
+#   POSTGRES_HOST=127.0.0.1
+#   DATABASE_URL=postgres://omborxona_app:PAROL@host.docker.internal:5432/omborxona_xisobi
+#
+# Shundan keyin oddiy `docker compose up -d` bu faylni o'zi qo'shadi.
+#
+# `host.docker.internal` — konteyner ichidan serverning o'zi. PostgreSQL
+# Docker tarmog'idan (172.16.0.0/12) ulanishni qabul qilishi kerak:
+# docs/deployment.md, "Baza serverning o'zida" bo'limi.
+#
+# `!override` Docker Compose 2.24.4+ ni talab qiladi (`docker compose version`).
+
+services:
+  db:
+    # Baza konteyneri ishga tushmaydi (faqat `--profile bundled-db` bilan)
+    profiles: ['bundled-db']
+
+  backend:
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL berilmagan}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on: !override
+      redis:
+        condition: service_healthy
+
+  worker:
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL berilmagan}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on: !override
+      redis:
+        condition: service_healthy
+
+  beat:
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL berilmagan}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'

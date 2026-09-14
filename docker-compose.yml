@@ -1,11 +1,14 @@
 # Ishlab chiqarish uchun tarkib.
 #
-# Ishga tushirish:
+# Ishga tushirish (to'liq tartib: docs/deployment.md):
 #   cp .env.production.example .env.production
 #   # .env.production ni to'ldiring (parollar, domen)
+#   ln -s .env.production .env     # compose ${...} qiymatlarini `.env` dan oladi
 #   docker compose up -d --build
 #   docker compose exec backend python manage.py migrate
 #   docker compose exec backend python manage.py createsuperuser
+#
+# Baza serverning o'zida (native PostgreSQL) bo'lsa — docker-compose.hostdb.yml.
 #
 # HTTPS bu yerda yo'q: sertifikatni tashqi reverse proxy (Caddy,
 # Traefik yoki nginx + certbot) bergani ma'qul. Sabab — sertifikat
@@ -111,8 +114,11 @@ services:
       # Yuklangan fayllarni nginx beradi — faqat o'qish uchun
       - media_data:/usr/share/nginx/media:ro
     ports:
-      # Tashqi reverse proxy shu portga ulanadi
-      - '${WEB_PORT:-8080}:80'
+      # Faqat serverning o'zida ochiq — tashqaridan faqat reverse proxy
+      # (Caddy) orqali. Docker o'z portlarini UFW dan chetlab ochadi,
+      # shuning uchun `0.0.0.0` bo'lsa firewall uni to'smasdi va HTTPS
+      # ni chetlab o'tib bo'lardi.
+      - '${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:80'
     depends_on:
       - backend
 
