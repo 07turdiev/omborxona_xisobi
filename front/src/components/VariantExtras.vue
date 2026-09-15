@@ -269,7 +269,7 @@ async function onRemoveBarcode(barcode: Barcode) {
   text-align: left;
 }
 
-.mini-table th.mini-table td {
+.mini-table td {
   padding: 4px 6px;
   border-bottom: 1px solid var(--border);
 }

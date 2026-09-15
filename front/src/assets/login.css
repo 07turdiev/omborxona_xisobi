@@ -425,6 +425,112 @@ svg {
 
 
 /* =========================================================
+   BRAND
+
+   Ilgari bu bo'lim umuman yo'q edi: logotip SVG o'lchamsiz
+   qolib, butun chap panelni egallardi (~480px), rangi esa
+   havolaning standart ko'k rangi edi.
+   ========================================================= */
+
+.showcase-content {
+
+    min-height:
+        calc(100vh - 96px);
+
+    display: flex;
+    flex-direction: column;
+
+}
+
+
+.brand {
+
+    align-self: flex-start;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 12px;
+
+    color: #ffffff;
+
+}
+
+
+.brand-logo {
+
+    flex: 0 0 44px;
+
+    width: 44px;
+    height: 44px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: var(--radius-md);
+
+    border:
+        1px solid
+        rgba(255,255,255,.12);
+
+    background:
+        rgba(255,255,255,.06);
+
+}
+
+
+.brand-logo svg {
+
+    width: 26px;
+    height: 26px;
+
+}
+
+
+.brand-text {
+
+    display: flex;
+    flex-direction: column;
+
+    line-height: 1.2;
+
+}
+
+
+.brand-text strong {
+
+    font-size: 15px;
+    font-weight: 700;
+
+    letter-spacing: .6px;
+
+}
+
+
+.brand-text strong span {
+
+    color:
+        rgba(255,255,255,.55);
+
+}
+
+
+.brand-text small {
+
+    margin-top: 3px;
+
+    color:
+        rgba(255,255,255,.5);
+
+    font-size: 11px;
+
+    letter-spacing: .4px;
+    text-transform: uppercase;
+
+}
+
+
+/* =========================================================
    SHOWCASE FOOTER
    ========================================================= */
 
@@ -1831,7 +1937,7 @@ svg {
 
         gap: 12px;
 
-        margin-bottom: 50px;
+        margin-bottom: 32px;
 
     }
 
@@ -1871,6 +1977,14 @@ svg {
 
     }
 
+    .mobile-brand
+    .brand-text strong span {
+
+        color:
+            var(--primary);
+
+    }
+
 }
 
 
@@ -1899,7 +2013,7 @@ svg {
 
     .mobile-brand {
 
-        margin-bottom: 50px;
+        margin-bottom: 28px;
 
     }
 

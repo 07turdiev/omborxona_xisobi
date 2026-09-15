@@ -117,100 +117,104 @@ const dailyMax = computed(() =>
         </article>
       </div>
 
-      <div class="dash-grid">
-        <div class="table-card card-padded chart-card">
-          <h3>Kunlik tushum</h3>
+      <div class="dash-layout">
+        <!-- Asosiy ustun: tushum va harakatlar -->
+        <div class="dash-column">
+          <div class="table-card card-padded">
+            <h3>Kunlik tushum</h3>
 
-          <p v-if="!data.daily_sales.length" class="empty-state">
-            Bu davrda sotuv bo‘lmagan.
-          </p>
+            <p v-if="!data.daily_sales.length" class="empty-state">
+              Bu davrda sotuv bo‘lmagan.
+            </p>
 
-          <div v-else class="day-chart">
-            <div v-for="row in data.daily_sales" :key="row.date" class="day-column">
-              <div
-                class="day-bar"
-                :style="{ height: `${Math.max(4, (Number(row.revenue) / dailyMax) * 100)}%` }"
-                :title="`${row.date}: ${money(row.revenue)}`"
-              ></div>
-              <small>{{ row.date.slice(5) }}</small>
+            <div v-else class="day-chart">
+              <div v-for="row in data.daily_sales" :key="row.date" class="day-column">
+                <div
+                  class="day-bar"
+                  :style="{ height: `${Math.max(4, (Number(row.revenue) / dailyMax) * 100)}%` }"
+                  :title="`${row.date}: ${money(row.revenue)}`"
+                ></div>
+                <small>{{ row.date.slice(5) }}</small>
+              </div>
             </div>
+          </div>
+
+          <div class="table-card card-padded movements-card">
+            <h3>Oxirgi harakatlar</h3>
+
+            <p v-if="!data.recent_movements.length" class="empty-state">
+              Hali harakat yo‘q.
+            </p>
+
+            <ul v-else class="move-list">
+              <li v-for="row in data.recent_movements" :key="row.id">
+                <div class="move-main">
+                  <strong>{{ row.product_name }}</strong>
+                  <small>{{ row.warehouse_name }} · {{ time(row.occurred_at) }}</small>
+                </div>
+
+                <span class="pill move-reason" :class="row.is_loss ? 'pill-red' : 'pill-grey'">
+                  {{ row.reason_display }}
+                </span>
+
+                <span
+                  class="move-qty"
+                  :class="Number(row.quantity) > 0 ? 'positive' : 'negative'"
+                >
+                  {{ Number(row.quantity) > 0 ? '+' : '' }}{{ number(row.quantity) }}
+                </span>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <div class="table-card card-padded">
-          <h3>
-            Kam qolgan tovarlar
-            <b v-if="data.low_stock.length" class="count-badge">
-              {{ data.low_stock.length }}
-            </b>
-          </h3>
+        <!-- Yon ustun: diqqat talab qiladigan qisqa ro'yxatlar -->
+        <div class="dash-column">
+          <div class="table-card card-padded">
+            <h3>
+              Kam qolgan tovarlar
+              <b v-if="data.low_stock.length" class="count-badge">
+                {{ data.low_stock.length }}
+              </b>
+            </h3>
 
-          <p v-if="!data.low_stock.length" class="empty-state">Hammasi yetarli.</p>
+            <p v-if="!data.low_stock.length" class="empty-state">Hammasi yetarli.</p>
 
-          <ul v-else class="mini-list">
-            <li v-for="row in data.low_stock" :key="`${row.variant_id}-${row.warehouse_name}`">
-              <div>
-                <strong>{{ row.product_name }}</strong>
-                <small>{{ row.warehouse_name }}</small>
-              </div>
-              <span class="warn">{{ number(row.quantity) }} {{ row.unit }}</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+            <ul v-else class="mini-list">
+              <li v-for="row in data.low_stock" :key="`${row.variant_id}-${row.warehouse_name}`">
+                <div>
+                  <strong>{{ row.product_name }}</strong>
+                  <small>{{ row.warehouse_name }}</small>
+                </div>
+                <span class="warn">{{ number(row.quantity) }} {{ row.unit }}</span>
+              </li>
+            </ul>
+          </div>
 
-      <div class="dash-grid">
-        <div class="table-card card-padded">
-          <h3>Oxirgi harakatlar</h3>
+          <div class="table-card card-padded">
+            <h3>
+              Muddati yaqin partiyalar
+              <b v-if="data.expiring.length" class="count-badge danger">
+                {{ data.expiring.length }}
+              </b>
+            </h3>
 
-          <p v-if="!data.recent_movements.length" class="empty-state">
-            Hali harakat yo‘q.
-          </p>
+            <p v-if="!data.expiring.length" class="empty-state">
+              30 kun ichida muddati tugaydigan tovar yo‘q.
+            </p>
 
-          <table v-else class="data-table">
-            <tbody>
-              <tr v-for="row in data.recent_movements" :key="row.id">
-                <td class="dim">{{ time(row.occurred_at) }}</td>
-                <td>
-                  {{ row.product_name }}
-                  <small class="cell-sub">{{ row.warehouse_name }}</small>
-                </td>
-                <td>
-                  <span class="pill" :class="row.is_loss ? 'pill-red' : 'pill-grey'">
-                    {{ row.reason_display }}
-                  </span>
-                </td>
-                <td class="num" :class="Number(row.quantity) > 0 ? 'positive' : 'negative'">
-                  {{ Number(row.quantity) > 0 ? '+' : '' }}{{ number(row.quantity) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="table-card card-padded">
-          <h3>
-            Muddati yaqin partiyalar
-            <b v-if="data.expiring.length" class="count-badge danger">
-              {{ data.expiring.length }}
-            </b>
-          </h3>
-
-          <p v-if="!data.expiring.length" class="empty-state">
-            30 kun ichida muddati tugaydigan tovar yo‘q.
-          </p>
-
-          <ul v-else class="mini-list">
-            <li v-for="row in data.expiring" :key="row.batch_code">
-              <div>
-                <strong>{{ row.product_name }}</strong>
-                <small>{{ row.batch_code }} · {{ row.warehouse_name }}</small>
-              </div>
-              <span :class="row.is_expired ? 'danger' : 'warn'">
-                {{ row.is_expired ? 'muddati o‘tgan' : `${row.days_left} kun` }}
-              </span>
-            </li>
-          </ul>
+            <ul v-else class="mini-list">
+              <li v-for="row in data.expiring" :key="row.batch_code">
+                <div>
+                  <strong>{{ row.product_name }}</strong>
+                  <small>{{ row.batch_code }} · {{ row.warehouse_name }}</small>
+                </div>
+                <span :class="row.is_expired ? 'danger' : 'warn'">
+                  {{ row.is_expired ? 'muddati o‘tgan' : `${row.days_left} kun` }}
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </template>
@@ -225,11 +229,29 @@ const dailyMax = computed(() =>
   gap: 6px;
 }
 
-.dash-grid {
+/* Ikki ustun: chapda asosiy ma'lumot, o'ngda qisqa ro'yxatlar.
+   Ilgari kartalar juft-juft qatorlarda edi va qisqa ro'yxat
+   qo'shnisining balandligiga cho'zilib, yarim ekran bo'sh quti
+   bo'lib turardi. Ustunlar mustaqil — har karta o'z balandligida. */
+.dash-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  align-items: start;
   gap: 12px;
-  margin-bottom: 12px;
+}
+
+.dash-column {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .dash-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .count-badge {
@@ -245,41 +267,8 @@ const dailyMax = computed(() =>
   color: var(--red);
 }
 
-.chart-card {
-  min-height: 200px;
-}
-
-.day-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 150px;
-  padding-top: 8px;
-}
-
-.day-column {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  height: 100%;
-  gap: 4px;
-}
-
-.day-bar {
-  width: 100%;
-  max-width: 26px;
-  border-radius: var(--radius) 4px 0 0;
-  background: var(--accent);
-}
-
-.day-column small {
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-.mini-list {
+.mini-list,
+.move-list {
   list-style: none;
 }
 
@@ -293,7 +282,8 @@ const dailyMax = computed(() =>
   font-size: 13px;
 }
 
-.mini-list li:last-child {
+.mini-list li:last-child,
+.move-list li:last-child {
   border-bottom: none;
 }
 
@@ -301,11 +291,71 @@ const dailyMax = computed(() =>
   display: block;
 }
 
-.mini-list small {
+.mini-list small,
+.move-main small {
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
   font-size: 12px;
+}
+
+/* Harakatlar ro'yxati. Jadval edi — telefonda sabab yorlig'i karta
+   chetidan kesilib qolardi. Endi karta tor bo'lsa, yorliq nom ostiga
+   tushadi (container query: sahifa emas, kartaning o'z kengligi). */
+.movements-card {
+  container: movements / inline-size;
+}
+
+.move-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 72px;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.move-main {
+  min-width: 0;
+}
+
+.move-main strong {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.move-reason {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.move-qty {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@container movements (max-width: 520px) {
+  .move-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .move-reason {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .move-qty {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
 }
 
 .warn {
@@ -319,11 +369,4 @@ const dailyMax = computed(() =>
   font-weight: 700;
   white-space: nowrap;
 }
-
-.dim {
-  color: var(--text-muted);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
 </style>

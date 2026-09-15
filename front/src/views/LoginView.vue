@@ -35,7 +35,7 @@ async function onSubmit() {
   <main class="login-layout">
     <section class="login-showcase">
       <div class="showcase-content">
-        <a href="#" class="brand">
+        <div class="brand">
           <div class="brand-logo">
             <svg viewBox="0 0 64 64" fill="none">
               <path d="M10 18L32 7L54 18V46L32 57L10 46V18Z" stroke="currentColor" stroke-width="3" />
@@ -49,7 +49,7 @@ async function onSubmit() {
             <strong>OMBOR<span>XONA</span></strong>
             <small>Hisob tizimi</small>
           </div>
-        </a>
+        </div>
 
         <div class="showcase-main">
           <div class="showcase-label">
@@ -121,6 +121,23 @@ async function onSubmit() {
 
     <section class="login-panel">
       <div class="login-box">
+        <!-- Telefonda chap panel yashirin — brend shu yerda ko'rinadi -->
+        <div class="mobile-brand">
+          <div class="brand-logo">
+            <svg viewBox="0 0 64 64" fill="none">
+              <path d="M10 18L32 7L54 18V46L32 57L10 46V18Z" stroke="currentColor" stroke-width="3" />
+              <path d="M10 18L32 30L54 18" stroke="currentColor" stroke-width="3" />
+              <path d="M32 30V57" stroke="currentColor" stroke-width="3" />
+              <path d="M21 13L43 25" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            </svg>
+          </div>
+
+          <div class="brand-text">
+            <strong>OMBOR<span>XONA</span></strong>
+            <small>Hisob tizimi</small>
+          </div>
+        </div>
+
         <div class="login-heading">
           <div class="welcome-badge">Xush kelibsiz</div>
           <h2>Tizimga kirish</h2>

@@ -728,6 +728,7 @@ const fieldError = (field: string): string => {
 
 .grant-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   margin-top: 12px;

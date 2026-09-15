@@ -468,7 +468,7 @@ const totals = computed(() =>
   text-align: left;
 }
 
-.inner-table th.inner-table td {
+.inner-table td {
   padding: 6px 8px;
   border-top: 1px solid var(--border);
   font-size: 13px;

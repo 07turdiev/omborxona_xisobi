@@ -403,7 +403,7 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
 <style scoped>
 .stock-totals {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 12px;
   padding: 16px;
@@ -420,9 +420,11 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
   font-size: 13px;
 }
 
+/* Summa va "so'm" bir qatorda — ikkiga bo'linsa ustunlar notekis */
 .stock-totals strong {
   display: block;
   margin-top: 6px;
+  white-space: nowrap;
   font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;

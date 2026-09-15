@@ -4,6 +4,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+// Backend manzili. 8000 port boshqa loyihada band bo'lsa:
+//   VITE_API_TARGET=http://127.0.0.1:8001 npm run dev
+const apiTarget = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8000'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), vueDevTools()],
@@ -17,11 +21,11 @@ export default defineConfig({
     proxy: {
       // Django backend'ga proxy — CORS'siz ishlash uchun
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: apiTarget,
         changeOrigin: true,
       },
       '/media': {
-        target: 'http://127.0.0.1:8000',
+        target: apiTarget,
         changeOrigin: true,
       },
     },

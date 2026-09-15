@@ -100,6 +100,15 @@
     --radius-small: 2px;
 
     --transition: .12s ease;
+
+    /* Tugma, maydon va filtr bir xil balandlikda: bir qatorda turganda
+       tepa va past chiziqlari mos kelsin. Ilgari tugma 32px, maydon
+       34px edi — toolbar'da "zinapoya" hosil bo'lardi. */
+    --control-height: 34px;
+
+    /* Brauzerning o'z elementlari (sana tanlagich, select ro'yxati,
+       aylantirish chizig'i) ham temaga mos chizilsin */
+    color-scheme: light;
 }
 
 
@@ -108,6 +117,8 @@
 ========================================================= */
 
 body.dark-mode {
+    color-scheme: dark;
+
     /* Mantine dark[0..9] */
     --dark-0: #c9c9c9;
     --dark-1: #b8b8b8;
@@ -120,7 +131,7 @@ body.dark-mode {
     --dark-8: #1f1f1f;
     --dark-9: #141414;
 
-    --bg: var(--dark-8);
+    --bg: #1a1a1a;
     --surface: var(--dark-7);
     --surface-soft: var(--dark-6);
     --surface-hover: var(--dark-5);
@@ -261,6 +272,99 @@ textarea {
 
 svg {
     display: block;
+}
+
+
+/* =========================================================
+   FORMA ELEMENTLARI — ASOS
+
+   Sinfsiz maydonlar (jadvaldagi rol tanlovi, sana filtri,
+   modal qatorlaridagi input) brauzerning xom ko'rinishida
+   qolardi: tungi rejimda oq qutilar, balandligi 21px.
+
+   `:where()` o'ziga xoslikni nolga tushiradi — sahifadagi
+   har qanday aniq qoida (`.field input`, `.search-field
+   input`) baribir ustun turadi. Kirish sahifasi qobiqdan
+   tashqarida va o'z uslubiga ega, shuning uchun faqat
+   `.main-area` ichida.
+========================================================= */
+
+:where(.main-area) :where(
+    input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"]),
+    select,
+    textarea
+) {
+    min-height:
+        var(--control-height);
+
+    padding:
+        0 8px;
+
+    border:
+        1px solid
+        var(--border-strong);
+
+    border-radius:
+        var(--radius);
+
+    color:
+        var(--text);
+
+    background-color:
+        var(--surface);
+
+    font-size: 13px;
+
+    transition:
+        border-color var(--transition),
+        box-shadow var(--transition);
+}
+
+
+:where(.main-area) :where(textarea) {
+    padding: 8px;
+}
+
+
+/* O'q belgisi o'zimizniki: brauzernikisi har tizimda boshqacha va
+   tungi rejimda ko'rinmay qoladi.
+
+   Bu qoida ataylab `:where()` siz, o'ziga xosligi (0,2,1): aks holda
+   `.filters select`, `.field select` kabi qoidalar `background` qisqa
+   yozuvi bilan o'q rasmini, `padding` bilan esa uning joyini o'chirib
+   yuborardi va tanlov oddiy qutiga aylanardi. */
+.main-area select:not([multiple], [size]) {
+    padding-right: 28px;
+
+    appearance: none;
+
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23868e96' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+
+
+:where(.main-area) :where(input, select, textarea):focus {
+    border-color:
+        var(--accent);
+
+    box-shadow:
+        0 0 0 3px
+        var(--accent-soft);
+}
+
+
+:where(.main-area) :where(input, select, textarea):disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+
+:where(input[type="checkbox"], input[type="radio"]) {
+    accent-color:
+        var(--accent);
 }
 
 
@@ -1192,6 +1296,19 @@ svg {
 }
 
 
+.user-chevron {
+    width: 14px;
+    height: 14px;
+
+    color:
+        var(--text-muted);
+
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+
 .user-dropdown {
     width: 220px;
     padding: 6px;
@@ -1273,7 +1390,7 @@ svg {
 
 .content {
     padding:
-        16px 20px 48px;
+        16px 20px 32px;
 }
 
 
@@ -1397,10 +1514,19 @@ svg {
 ========================================================= */
 
 .button {
-    min-height: 32px;
+    min-height:
+        var(--control-height);
 
     padding:
         0 12px;
+
+    /* `RouterLink` ham tugma bo'lib keladi — havola chizig'i kerak emas.
+       Matn qatorga bo'linmaydi: joy yetmasa tugmaning o'zi keyingi
+       qatorga o'tadi, "Excel / import" bo'lib ikki qavat bo'lmaydi. */
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1.2;
+    cursor: pointer;
 
     display: inline-flex;
     align-items: center;
@@ -1547,13 +1673,12 @@ svg {
    mazmuniga qarab belgilanadi. Ikkita ko'rsatkich bo'lsa ikkita
    ixcham plitka chiqadi, ekranning yarmi emas.
 
-   Nega grid emas, flex: grid ustuni qat'iy kenglik talab qiladi
-   (`minmax(180px, 230px)`), va 230px kartada 12 xonali summa —
-   qurilish do'konining yillik tushumi uchun oddiy holat — sig'maydi
-   va `1 234 56…` bo'lib kesiladi. Moliyaviy panelda sonni kesib
-   ko'rsatish yolg'on ko'rsatish bilan teng. Flex'da karta songa
-   qarab kengayadi, `min-width` esa kichik sonli kartalarni bir
-   xil o'lchamda ushlab turadi.
+   Kartalar to'rda teng kenglikda va qatorni oxirigacha to'ldiradi
+   (ilgari o'ng tomonda bo'sh joy qolardi). Uzun summa kesilmasligi
+   uchun son o'lchami kartaning o'z kengligiga bog'langan (`cqi` —
+   container query birligi): tor kartada son kichrayadi, lekin
+   `1 234 56…` bo'lib kesilmaydi. Moliyaviy panelda sonni kesib
+   ko'rsatish yolg'on ko'rsatish bilan teng.
 
    `.kpi-purple`, `.kpi-green` va shunga o'xshash sinflar
    shablonlarda hali bor va ataylab uslubsiz: rang hech narsani
@@ -1561,8 +1686,12 @@ svg {
 ========================================================= */
 
 .kpi-grid {
-    display: flex;
-    flex-wrap: wrap;
+    margin-bottom: 12px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(170px, 1fr));
 
     gap: 8px;
 }
@@ -1571,10 +1700,10 @@ svg {
 .kpi-card {
     position: relative;
 
-    flex: 0 0 auto;
+    /* Ichidagi son o'lchami shu kartaning kengligidan olinadi */
+    container-type: inline-size;
 
-    min-width: 180px;
-    max-width: 100%;
+    min-width: 0;
 
     padding:
         10px 12px;
@@ -1667,7 +1796,8 @@ svg {
 
 
 .kpi-card > strong {
-    font-size: 18px;
+    font-size:
+        clamp(15px, 7.5cqi, 20px);
     font-weight: 600;
 
     letter-spacing: -.2px;
@@ -1676,7 +1806,8 @@ svg {
 
 
 .kpi-card > strong.money-value {
-    font-size: 16px;
+    font-size:
+        clamp(14px, 7cqi, 18px);
 }
 
 
@@ -1860,6 +1991,75 @@ svg {
 }
 
 
+/* Kunlik tushum ustunlari. Ilgari panel va hisobot sahifasida
+   ikki nusxada yozilgan edi. Orqadagi yo'l-yo'l chiziqlar ustun
+   balandligini ko'z bilan solishtirishga yordam beradi. */
+.day-chart {
+    height: 160px;
+
+    padding:
+        8px 4px 0;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 6px;
+
+    background-image:
+        linear-gradient(
+            var(--border) 1px,
+            transparent 1px
+        );
+
+    background-size:
+        100% 25%;
+}
+
+
+.day-column {
+    min-width: 0;
+    height: 100%;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 4px;
+}
+
+
+.day-bar {
+    width: 70%;
+    max-width: 32px;
+
+    border-radius:
+        3px 3px 0 0;
+
+    background:
+        var(--accent);
+
+    transition:
+        opacity var(--transition);
+}
+
+
+.day-bar:hover {
+    opacity: .8;
+}
+
+
+.day-column small {
+    color:
+        var(--text-muted);
+
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+
 /* =========================================================
    PROGRESS
 ========================================================= */
@@ -2039,7 +2239,8 @@ svg {
     margin-bottom: 12px;
 
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
     justify-content: space-between;
 
     gap: 12px;
@@ -2057,7 +2258,8 @@ svg {
 
 .search-field {
     width: 245px;
-    height: 34px;
+    height:
+        var(--control-height);
 
     display: flex;
     align-items: center;
@@ -2112,8 +2314,30 @@ svg {
 }
 
 
+/* Fokus halqasi ichki inputda emas, butun maydonda */
+.search-field:focus-within {
+    border-color:
+        var(--accent);
+
+    box-shadow:
+        0 0 0 3px
+        var(--accent-soft);
+}
+
+
+.search-field input,
+.global-search input {
+    height: 100%;
+    min-height: 0;
+
+    border: 0;
+    box-shadow: none;
+}
+
+
 .filters select {
-    height: 34px;
+    height:
+        var(--control-height);
 
     padding:
         0 8px;
@@ -2131,6 +2355,16 @@ svg {
         var(--surface);
 
     font-size: 13px;
+}
+
+
+/* Sana filtri (tarix, hisobotlar) tanlovlar bilan bir qatorda */
+.filters input[type="date"] {
+    height:
+        var(--control-height);
+
+    color:
+        var(--text-secondary);
 }
 
 
@@ -3790,6 +4024,7 @@ svg {
         12px 16px;
 
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
 
     gap: 8px;
@@ -4070,7 +4305,12 @@ svg {
 
 /* Sahifa yuqorisidagi amal tugmalari */
 .toolbar-actions {
+    margin-left: auto;
+
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
     gap: 8px;
 }
 
@@ -4103,6 +4343,36 @@ svg {
 }
 
 
+/* Ko'p sahifada sinf to'g'ridan-to'g'ri `<td>` ga berilgan. `display:
+   flex` katakni jadval katagi bo'lishdan chiqarib yuborardi: qator
+   chegaralari siljirdi, tugmalar esa keyingi qatorga toshib, bir-
+   birining ustiga chiqardi. Katak katakligicha qoladi.
+
+   Joy yetsa tugmalar bir qatorda. Yetmasa (qoralama hujjatda beshta
+   amal) — katak ichida keyingi qatorga o'tadi: katak balandlashadi,
+   lekin jadval kengayib ekrandan chiqib ketmaydi. */
+.data-table td.row-actions {
+    display: table-cell;
+
+    white-space: normal;
+    text-align: right;
+}
+
+
+.data-table td.row-actions > * {
+    margin:
+        2px 0 2px 6px;
+
+    vertical-align: middle;
+}
+
+
+/* Jadval ichidagi maydonlar qatorni cho'zib yubormasin */
+.data-table :where(select, input:not([type="checkbox"], [type="radio"])) {
+    min-height: 30px;
+}
+
+
 /* `.table-card` odatda jadvalni o'raydi va o'z to'ldirishi
    yo'q. Ba'zi bloklarda esa ichida jadval emas, oddiy tarkib
    bo'ladi — o'shanda to'ldirish kerak. Oldin har sahifa buni
@@ -4117,6 +4387,30 @@ svg {
 
     font-size: 15px;
     font-weight: 600;
+}
+
+
+/* Kartadagi oxirgi jadval karta chetigacha yoyiladi — sarlavha foni
+   ichki hoshiyada "osilib" qolmasin. Chetki ustunlar matni esa karta
+   sarlavhasi bilan bir chiziqda. */
+.card-padded > .data-table:last-child,
+.card-padded > .table-scroll:last-child {
+    width: calc(100% + 32px);
+
+    margin:
+        0 -16px -16px;
+}
+
+
+.card-padded > .data-table:last-child :is(th, td):first-child,
+.card-padded > .table-scroll:last-child :is(th, td):first-child {
+    padding-left: 16px;
+}
+
+
+.card-padded > .data-table:last-child :is(th, td):last-child,
+.card-padded > .table-scroll:last-child :is(th, td):last-child {
+    padding-right: 16px;
 }
 
 
@@ -4378,7 +4672,7 @@ svg {
 
     .content {
         padding:
-            20px 16px 45px;
+            16px 16px 32px;
     }
 
     .global-search {
@@ -4419,10 +4713,26 @@ svg {
         grid-template-columns: 1fr;
     }
 
-    /* Telefonda ikkita 180px karta bir qatorga sig'maydi; bittadan
-       chapga yopishib qolmasin — to'liq kenglikka yoyiladi. */
+    /* Telefonda ko'rsatkichlar ikki ustunda: bittadan to'liq kenglikda
+       bo'lsa, to'rtta karta butun ekranni egallardi. Belgi joy
+       olmasin — joy son uchun kerak. */
+    .kpi-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
     .kpi-card {
-        flex-basis: 100%;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .kpi-icon {
+        display: none;
+    }
+
+    .kpi-card p,
+    .kpi-card > strong,
+    .kpi-card small {
+        grid-column: 1;
     }
 
     .section-toolbar {
@@ -4434,6 +4744,23 @@ svg {
     .search-field,
     .filters select {
         width: 100%;
+    }
+
+    /* Ikkita sana bir qatorda yonma-yon */
+    .filters input[type="date"] {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .toolbar-actions {
+        margin-left: 0;
+    }
+
+    /* Tugmalar qatorni teng to'ldiradi — tor ekranda chapga yopishib,
+       o'ngda bo'sh joy qoldirmaydi */
+    .toolbar-actions > .button,
+    .modal-footer > .button {
+        flex: 1 1 auto;
     }
 
     .form-grid.two,
@@ -4496,18 +4823,14 @@ svg {
 @media
 (max-width: 430px) {
 
-    .user-menu {
-        display: none;
-    }
-
     .content {
         padding:
-            12px 8px 40px;
+            12px 12px 32px;
     }
 
     .topbar {
         padding:
-            0 8px;
+            0 12px;
     }
 
     .calculation-strip {

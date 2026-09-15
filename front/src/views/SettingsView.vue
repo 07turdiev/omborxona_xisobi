@@ -58,6 +58,18 @@ const syncCreated = ref(false)
 /** Sozlamalarni o'zgartirish — `settings` ruxsati (egasi va menejerda standart) */
 const canManage = computed(() => auth.can('settings'))
 
+/**
+ * Ro'yxat sahifalangan (`{ results }`) yoki oddiy massiv bo'lib kelishi
+ * mumkin: valyutalar endpointida sahifalash o'chirilgan. Ilgari har ikkisi
+ * `.results` deb o'qilardi va valyutalar `undefined` bo'lib, shablon
+ * `currencies.length` da yiqilardi — sahifa "Yuklanmoqda…" da qotib qolardi.
+ */
+type ListResponse<T> = T[] | { results: T[] }
+
+function listOf<T>(data: ListResponse<T>): T[] {
+  return Array.isArray(data) ? data : (data.results ?? [])
+}
+
 async function load() {
   loading.value = true
 
@@ -66,12 +78,12 @@ async function load() {
     Object.assign(form, info.value)
 
     const [currencyData, rateData] = await Promise.all([
-      api.get<{ results: Currency[] }>('/currencies/'),
-      api.get<{ results: Rate[] }>('/exchange-rates/'),
+      api.get<ListResponse<Currency>>('/currencies/'),
+      api.get<ListResponse<Rate>>('/exchange-rates/'),
     ])
 
-    currencies.value = currencyData.data.results
-    rates.value = rateData.data.results
+    currencies.value = listOf(currencyData.data)
+    rates.value = listOf(rateData.data)
   } catch {
     // Valyuta endpointlari hali ulanmagan bo'lishi mumkin — sozlamalar
     // baribir ko'rsatiladi
@@ -648,6 +660,7 @@ const fieldError = (field: string): string => errors.value[field]?.[0] ?? ''
 
 .grant-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   margin-top: 12px;

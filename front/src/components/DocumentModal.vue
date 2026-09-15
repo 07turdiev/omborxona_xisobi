@@ -628,14 +628,16 @@ const fieldError = (field: string): string => {
 
 .lines-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
   margin-bottom: 8px;
 }
 
 .lines-tools {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
@@ -643,12 +645,13 @@ const fieldError = (field: string): string => {
 /* Skaner maydoni — kiritish tugagach fokus shu yerda qoladi, ya'ni
    ketma-ket skanerlash uzilmaydi. */
 .scan-field {
+  min-height: var(--control-height);
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 8px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius);
   background: var(--surface);
   transition: var(--transition);
 }
@@ -663,10 +666,17 @@ const fieldError = (field: string): string => {
 }
 
 .scan-field input {
-  width: 210px;
+  width: min(210px, 52vw);
+  min-height: 0;
   border: none;
   background: none;
+  box-shadow: none;
   padding: 6px 0;
+}
+
+.scan-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .scan-field.ok {
@@ -700,7 +710,18 @@ const fieldError = (field: string): string => {
 
 .lines-table input,
 .lines-table select {
-  min-width: 70px;
+  width: 100%;
+  min-width: 90px;
+}
+
+/* Mahsulot nomi to'liq ko'rinsin */
+.lines-table td:first-child select {
+  min-width: 220px;
+}
+
+.lines-table .button {
+  min-height: 30px;
+  padding: 0 8px;
 }
 
 .lines-table td {

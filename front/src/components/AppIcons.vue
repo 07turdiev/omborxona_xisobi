@@ -15,6 +15,10 @@
           <rect x="14" y="14" width="7" height="7" rx="2"/>
       </symbol>
   
+      <symbol id="i-chevron-down" viewBox="0 0 24 24">
+          <path d="M6 9L12 15L18 9"/>
+      </symbol>
+
       <symbol id="i-warehouse" viewBox="0 0 24 24">
           <path d="M3 9L12 3L21 9V21H3V9Z"/>
           <path d="M8 21V14H16V21"/>

@@ -695,7 +695,7 @@ const formError = (field: string): string => {
   text-align: left;
 }
 
-.inner-table th.inner-table td {
+.inner-table td {
   padding: 6px 8px;
   border-top: 1px solid var(--border);
   font-size: 13px;
@@ -709,8 +709,10 @@ const formError = (field: string): string => {
 
 .lines-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 8px 12px;
   margin-bottom: 8px;
 }
 
@@ -723,7 +725,18 @@ const formError = (field: string): string => {
 
 .lines-table input,
 .lines-table select {
-  min-width: 70px;
+  width: 100%;
+  min-width: 90px;
+}
+
+/* Mahsulot nomi to'liq ko'rinsin */
+.lines-table td:first-child select {
+  min-width: 220px;
+}
+
+.lines-table .button {
+  min-height: 30px;
+  padding: 0 8px;
 }
 
 .lines-table td {

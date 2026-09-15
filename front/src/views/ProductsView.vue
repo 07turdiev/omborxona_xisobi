@@ -301,10 +301,6 @@ const totalVariants = computed(() =>
 
 <style scoped>
 
-.kpi-grid.compact {
-  margin-bottom: 16px;
-}
-
 .attr-cell {
   max-width: 220px;
   color: var(--text-secondary);

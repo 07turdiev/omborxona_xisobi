@@ -215,7 +215,7 @@ function onPrint() {
 
       <div class="report-grid">
         <!-- Kategoriya bo'yicha -->
-        <div class="table-card card-padded chart-card">
+        <div class="table-card card-padded">
           <h3>Kategoriya bo‘yicha sotuv</h3>
 
           <p v-if="!data.by_category.length" class="empty-state">
@@ -240,7 +240,7 @@ function onPrint() {
         </div>
 
         <!-- Kunlik tushum -->
-        <div class="table-card card-padded chart-card">
+        <div class="table-card card-padded">
           <h3>Kunlik tushum</h3>
 
           <p v-if="!data.daily_sales.length" class="empty-state">
@@ -265,54 +265,58 @@ function onPrint() {
         <div class="table-card card-padded">
           <h3>Ombor bo‘yicha</h3>
 
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Ombor</th>
-                <th class="num">Sotuv</th>
-                <th class="num">Tushum</th>
-                <th v-if="canSeeProfit" class="num">Foyda</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="!data.by_warehouse.length">
-                <td :colspan="canSeeProfit ? 4 : 3" class="empty-state">Ma’lumot yo‘q</td>
-              </tr>
-              <tr v-for="row in data.by_warehouse" :key="row.warehouse_id">
-                <td>{{ row.name }}</td>
-                <td class="num">{{ row.count }}</td>
-                <td class="num">{{ money(row.revenue) }}</td>
-                <td v-if="canSeeProfit" class="num profit">{{ money(row.profit) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ombor</th>
+                  <th class="num">Sotuv</th>
+                  <th class="num">Tushum</th>
+                  <th v-if="canSeeProfit" class="num">Foyda</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="!data.by_warehouse.length">
+                  <td :colspan="canSeeProfit ? 4 : 3" class="empty-state">Ma’lumot yo‘q</td>
+                </tr>
+                <tr v-for="row in data.by_warehouse" :key="row.warehouse_id">
+                  <td>{{ row.name }}</td>
+                  <td class="num">{{ row.count }}</td>
+                  <td class="num">{{ money(row.revenue) }}</td>
+                  <td v-if="canSeeProfit" class="num profit">{{ money(row.profit) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Yo'qotishlar -->
         <div class="table-card card-padded">
           <h3>Yo‘qotishlar</h3>
 
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Sababi</th>
-                <th class="num">Soni</th>
-                <th class="num">Miqdor</th>
-                <th v-if="canSeePurchase" class="num">Summa</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="!data.losses.by_reason.length">
-                <td :colspan="canSeePurchase ? 4 : 3" class="empty-state">Yo‘qotish yo‘q</td>
-              </tr>
-              <tr v-for="row in data.losses.by_reason" :key="row.reason">
-                <td>{{ row.label }}</td>
-                <td class="num">{{ row.count }}</td>
-                <td class="num">{{ number(row.quantity) }}</td>
-                <td v-if="canSeePurchase" class="num loss-amount">{{ money(row.amount) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Sababi</th>
+                  <th class="num">Soni</th>
+                  <th class="num">Miqdor</th>
+                  <th v-if="canSeePurchase" class="num">Summa</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="!data.losses.by_reason.length">
+                  <td :colspan="canSeePurchase ? 4 : 3" class="empty-state">Yo‘qotish yo‘q</td>
+                </tr>
+                <tr v-for="row in data.losses.by_reason" :key="row.reason">
+                  <td>{{ row.label }}</td>
+                  <td class="num">{{ row.count }}</td>
+                  <td class="num">{{ number(row.quantity) }}</td>
+                  <td v-if="canSeePurchase" class="num loss-amount">{{ money(row.amount) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -384,11 +388,12 @@ function onPrint() {
 <style scoped>
 .period-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .period-button {
-  min-height: 32px;
+  min-height: var(--control-height);
   padding: 0 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -414,7 +419,7 @@ function onPrint() {
   display: flex;
   align-items: stretch;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .net-card {
@@ -470,10 +475,6 @@ function onPrint() {
   margin-bottom: 12px;
 }
 
-.chart-card {
-  min-height: 200px;
-}
-
 .bar-row {
   margin-bottom: 12px;
 }
@@ -503,36 +504,6 @@ function onPrint() {
   margin-top: 4px;
   color: var(--text-muted);
   font-size: 12px;
-}
-
-.day-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 140px;
-  padding-top: 8px;
-}
-
-.day-column {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  height: 100%;
-  gap: 4px;
-}
-
-.day-bar {
-  width: 100%;
-  max-width: 26px;
-  border-radius: var(--radius) 4px 0 0;
-  background: var(--accent);
-}
-
-.day-column small {
-  color: var(--text-muted);
-  font-size: 11px;
 }
 
 .valuation-grid {
@@ -575,6 +546,20 @@ function onPrint() {
 .loss-amount {
   color: var(--red);
   font-weight: 700;
+}
+
+/* Telefonda "yalpi − yo'qotish = sof" uchta tor ustunga siqilib,
+   sarlavhalar ikki-uch qatorga bo'linardi — ustma-ust qo'yiladi */
+@media (max-width: 660px) {
+  .net-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .net-sign {
+    justify-content: center;
+    line-height: 1;
+  }
 }
 
 @media print {

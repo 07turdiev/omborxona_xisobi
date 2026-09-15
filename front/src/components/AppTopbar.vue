@@ -80,7 +80,7 @@ function onLogout() {
             <span>{{ roleName }}</span>
           </div>
 
-          <span>⌄</span>
+          <svg class="user-chevron"><use href="#i-chevron-down" /></svg>
         </button>
 
         <div class="user-dropdown" :class="{ show: menuOpen }">
