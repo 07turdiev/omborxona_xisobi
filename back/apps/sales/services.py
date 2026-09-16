@@ -81,9 +81,18 @@ def create_sale(
         if quantity <= 0:
             raise ValidationError('Miqdor noldan katta bo‘lishi kerak')
 
-        unit_price = Decimal(
-            line.get('unit_price') if line.get('unit_price') is not None else variant.price
-        )
+        # Narx doim bazadan olinadi — kassa yuborgan qiymatga ishonilmaydi.
+        # Mijoz narx yuborsa, u joriy narxga teng bo'lishi shart: aks holda
+        # savatdagi narx eskirgan yoki qo'lda o'zgartirilgan bo'ladi.
+        unit_price = Decimal(variant.price)
+        sent_price = line.get('unit_price')
+
+        if sent_price is not None and Decimal(sent_price) != unit_price:
+            raise ValidationError(
+                f'{variant} — narxi o‘zgargan: joriy narx {unit_price}. '
+                'Savatni yangilang.'
+            )
+
         base = round_money(unit_price * quantity)
 
         discount = _discount_amount(
@@ -186,6 +195,9 @@ def void_sale(sale: Sale, user=None) -> Sale:
     Faqat o'sha kuni — mahalliy sana bo'yicha. Eski chek uchun qaytarish
     ishlatiladi, chunki kunlik kassa allaqachon yopilgan bo'ladi.
     """
+    # Bekor qilish va qaytarish bir vaqtda kelmasligi uchun qulf
+    sale = Sale.objects.select_for_update().get(pk=sale.pk)
+
     if sale.status != Sale.Status.COMPLETED:
         raise ValidationError('Chek allaqachon bekor qilingan')
 
@@ -228,6 +240,10 @@ def create_return(*, sale: Sale, items, refund_method, user=None, request_key=No
     hisobga olinadi. Qator to'liq qaytarilganda qoldiq tiyinlar ham
     qaytadi (yaxlitlash yo'qolmaydi).
     """
+    # Chekni qulflaymiz: ikkita qaytarish bir vaqtda kelsa, ikkinchisi
+    # birinchisi tugagandan keyin qaytarilgan miqdorni to'liq ko'radi.
+    sale = Sale.objects.select_for_update().get(pk=sale.pk)
+
     if sale.status != Sale.Status.COMPLETED:
         raise ValidationError('Bekor qilingan chekdan qaytarib bo‘lmaydi')
 
@@ -317,6 +333,9 @@ def exchange(
     — kirim), kassirga esa bitta son ko'rsatiladi: `difference` musbat
     bo'lsa mijoz qo'shimcha to'laydi, manfiy bo'lsa qaytarib olinadi.
     """
+    # Qaytarishdan oldin chek qulflanadi
+    sale = Sale.objects.select_for_update().get(pk=sale.pk)
+
     sale_return = create_return(
         sale=sale,
         items=return_items,

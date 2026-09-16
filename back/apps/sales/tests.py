@@ -281,6 +281,10 @@ class ExchangeTests(TestCase):
         receive_stock(medium, 3, '150000')
         receive_stock(large, 3, '150000')
 
+        # Katta o'lcham qimmatroq — almashtirishda farq chiqsin
+        large.sale_price = Decimal('300000')
+        large.save(update_fields=['sale_price'])
+
         sale = create_sale(
             user=cashier,
             lines=[{'variant': medium, 'quantity': 1, 'unit_price': Decimal('250000')}],
@@ -402,6 +406,9 @@ class IdempotencyTests(TestCase):
 
         receive_stock(self.medium, 5, '150000')
         receive_stock(self.large, 5, '150000')
+
+        self.large.sale_price = Decimal('300000')
+        self.large.save(update_fields=['sale_price'])
 
     def test_repeated_sale_returns_the_same_receipt(self):
         payload = {
@@ -554,6 +561,9 @@ class DrawerCashTests(TestCase):
         receive_stock(medium, 5, '100000')
         receive_stock(large, 5, '100000')
 
+        large.sale_price = Decimal('250000')
+        large.save(update_fields=['sale_price'])
+
         # 1) Karta bilan sotuv — kassaga naqd tushmaydi
         card_sale = create_sale(
             user=cashier,
@@ -564,8 +574,8 @@ class DrawerCashTests(TestCase):
         # 2) Naqd sotuv va uni to'liq qaytarish — kassa nolga qaytadi
         cash_sale = create_sale(
             user=cashier,
-            lines=[{'variant': medium, 'quantity': 1, 'unit_price': Decimal('150000')}],
-            cash_amount=Decimal('150000'),
+            lines=[{'variant': medium, 'quantity': 1}],
+            cash_amount=Decimal('200000'),
         )
         create_return(
             sale=cash_sale,
@@ -653,3 +663,156 @@ class ConcurrentSaleTests(TransactionTestCase):
         self.assertEqual(results.count('rad etildi'), 1, results)
         self.assertEqual(Variant.objects.get(pk=variant.pk).stock_quantity, 0)
         self.assertEqual(Sale.objects.count(), 1)
+
+
+class PriceIntegrityTests(TestCase):
+    """Narx faqat bazadan olinadi — kassa yuborgan narx qabul qilinmaydi."""
+
+    def setUp(self):
+        self.cashier = create_cashier()
+        self.admin = create_admin()
+        self.variant = create_product(price='250000').variants.get()
+        receive_stock(self.variant, 10, '150000')
+
+    def _sell_at(self, user, price):
+        return api_client(user).post(
+            '/api/sales/',
+            {
+                'lines': [
+                    {'variant': self.variant.pk, 'quantity': 1, 'unit_price': price}
+                ],
+                'cash_amount': price,
+            },
+            format='json',
+        )
+
+    def test_cashier_cannot_set_own_price(self):
+        """250 000 lik tovarni 1 000 ga sotib bo'lmaydi."""
+        response = self._sell_at(self.cashier, '1000')
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn('narxi o‘zgargan', ' '.join(response.json()['detail']))
+
+        self.assertEqual(Sale.objects.count(), 0)
+        self.assertEqual(Variant.objects.get(pk=self.variant.pk).stock_quantity, 10)
+
+    def test_admin_cannot_set_own_price_either(self):
+        """Administrator narxni mahsulot kartochkasida o'zgartiradi, kassada emas."""
+        response = self._sell_at(self.admin, '1000')
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_price_comes_from_the_variant(self):
+        """Narx umuman yuborilmasa, bazadagi narx qo'yiladi."""
+        response = api_client(self.cashier).post(
+            '/api/sales/',
+            {
+                'lines': [{'variant': self.variant.pk, 'quantity': 1}],
+                'cash_amount': '250000',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        line = Sale.objects.get().lines.get()
+
+        self.assertEqual(line.unit_price, Decimal('250000.00'))
+        self.assertEqual(line.line_total, Decimal('250000.00'))
+
+    def test_discount_limit_still_applies(self):
+        """Narx qulflangach ham chegirma chegarasi o'z kuchida."""
+        settings = ShopSettings.load()
+        settings.max_discount_percent = Decimal('10')
+        settings.save()
+
+        response = api_client(self.cashier).post(
+            '/api/sales/',
+            {
+                'lines': [
+                    {'variant': self.variant.pk, 'quantity': 1, 'discount_percent': '20'}
+                ],
+                'cash_amount': '200000',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn('Chegirma', ' '.join(response.json()['detail']))
+        self.assertEqual(Sale.objects.count(), 0)
+
+
+class ReceiptCodeTests(TestCase):
+    """Chekdagi raqamli kod ham, to'liq raqam ham chekni topadi."""
+
+    def test_lookup_by_digits_and_by_full_number(self):
+        cashier = create_cashier()
+        variant = create_product(price='100000').variants.get()
+        receive_stock(variant, 5, '40000')
+
+        sale = create_sale(
+            user=cashier,
+            lines=[{'variant': variant, 'quantity': 1}],
+            cash_amount=Decimal('100000'),
+        )
+
+        digits = sale.number.replace('SOT-', '').replace('-', '')
+        client = api_client(cashier)
+
+        self.assertEqual(len(digits), 10, digits)
+
+        for value in (sale.number, digits):
+            response = client.get(f'/api/sales/?number={value}')
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['count'], 1, value)
+            self.assertEqual(response.json()['results'][0]['number'], sale.number)
+
+
+class ConcurrentReturnTests(TransactionTestCase):
+    """Bitta qatorni ikki marta bir vaqtda qaytarib bo'lmaydi."""
+
+    reset_sequences = True
+
+    def test_only_one_of_two_parallel_returns_succeeds(self):
+        cashier = create_cashier()
+        variant = create_product(price='250000').variants.get()
+        receive_stock(variant, 5, '150000')
+
+        sale = create_sale(
+            user=cashier,
+            lines=[{'variant': variant, 'quantity': 1}],
+            cash_amount=Decimal('250000'),
+        )
+        line = sale.lines.get()
+
+        results = []
+
+        def refund():
+            try:
+                create_return(
+                    sale=sale,
+                    items=[{'sale_line': line, 'quantity': 1}],
+                    refund_method=SaleReturn.RefundMethod.CASH,
+                    user=cashier,
+                )
+                results.append('ok')
+            except ValidationError:
+                results.append('rad etildi')
+            finally:
+                connections.close_all()
+
+        threads = [Thread(target=refund) for _ in range(2)]
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        self.assertEqual(results.count('ok'), 1, results)
+        self.assertEqual(results.count('rad etildi'), 1, results)
+        self.assertEqual(SaleReturn.objects.count(), 1)
+        # 5 kelgan − 1 sotilgan + 1 qaytgan
+        self.assertEqual(Variant.objects.get(pk=variant.pk).stock_quantity, 5)

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import BarcodeImage from '@/components/BarcodeImage.vue'
 import { formatMoney } from '@/utils/money'
+import { printWithPageSize } from '@/utils/print'
 import { useAuthStore } from '@/stores/auth'
 import type { Sale } from '@/types'
 
@@ -11,6 +12,12 @@ const props = defineProps<{ sale: Sale | null }>()
 const auth = useAuthStore()
 
 const shopName = computed(() => auth.shop?.shop_name ?? 'Do‘kon')
+
+/**
+ * Chekdagi shtrix-kod faqat raqamdan iborat: 'SOT-2026-000001' dagi
+ * harflarni skaner klaviatura tiliga qarab boshqacha yozib yuborardi.
+ */
+const barcodeValue = computed(() => (props.sale?.number ?? '').replace(/\D/g, ''))
 
 const printedAt = computed(() => {
   if (!props.sale) return ''
@@ -24,23 +31,28 @@ const printedAt = computed(() => {
   })
 })
 
+const sheet = ref<HTMLElement | null>(null)
+
 /**
- * Chekni chop etadi.
+ * Chekni chop etadi: 80 mm lenta, bo'yi chek mazmuniga qarab.
  *
- * `body.printing` sinfi qo'yiladi: shunda sahifadagi hamma narsa
- * yashirinadi va faqat `.print-sheet` qog'ozga tushadi (assets/main.css).
+ * `size: 80mm auto` deb yozib bo'lmaydi — CSS uzunlik bilan `auto` ni
+ * aralashtirishga ruxsat bermaydi va brauzer butun qoidani tashlab
+ * yuboradi (natijada A4/Letter qog'oz chiqadi). Shuning uchun balandlik
+ * chekning o'zidan o'lchanadi: ekranda 96px = 25.4 mm.
  */
 function printReceipt() {
-  document.body.classList.add('printing')
-  window.print()
-  document.body.classList.remove('printing')
+  const element = sheet.value
+  const heightMm = element ? Math.ceil((element.scrollHeight / 96) * 25.4) + 6 : 200
+
+  printWithPageSize(`@page { size: 80mm ${heightMm}mm; margin: 0; }`)
 }
 
 defineExpose({ printReceipt })
 </script>
 
 <template>
-  <div v-if="sale" class="print-sheet receipt">
+  <div v-if="sale" ref="sheet" class="print-sheet receipt">
     <div class="receipt-head">
       <strong>{{ shopName }}</strong>
       <span>{{ printedAt }}</span>
@@ -86,7 +98,7 @@ defineExpose({ printReceipt })
     </div>
 
     <div class="receipt-barcode">
-      <BarcodeImage :value="sale.number" format="CODE128" :height="34" :width="1.3" />
+      <BarcodeImage :value="barcodeValue" format="CODE128" :height="34" :width="1.3" />
       <small>Qaytarish uchun shu chekni saqlang</small>
     </div>
   </div>
@@ -96,6 +108,7 @@ defineExpose({ printReceipt })
 .receipt {
   width: 72mm;
   margin: 0 auto;
+  padding: 3mm 0;
   font-family: 'Segoe UI', sans-serif;
   font-size: 11px;
   color: #000;

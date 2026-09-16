@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import ScanField from '@/components/ScanField.vue'
 import { catalogApi } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { inventoryApi } from '@/api/inventory'
 import { formatDate, todayIso } from '@/utils/date'
-import type { Category, StockCount, StockCountLine } from '@/types'
-
-interface EditorLine extends StockCountLine {
-  product_name: string
-  variant_label: string
-  expected_quantity: number
-}
+import { differingLines, findScanned, uncountedLines, type CountLine } from '@/utils/stockCount'
+import type { Category, StockCount } from '@/types'
 
 const counts = ref<StockCount[]>([])
 const categories = ref<Category[]>([])
@@ -23,12 +19,12 @@ const error = ref('')
 const notice = ref('')
 
 const editorOpen = ref(false)
+const scanner = ref<InstanceType<typeof ScanField> | null>(null)
 const draft = ref({ date: todayIso(), category: null as number | null, note: '' })
-const lines = ref<EditorLine[]>([])
+const lines = ref<CountLine[]>([])
 
-const differences = computed(() =>
-  lines.value.filter((line) => line.counted_quantity !== line.expected_quantity),
-)
+const uncounted = computed(() => uncountedLines(lines.value))
+const differing = computed(() => differingLines(lines.value))
 
 async function load() {
   loading.value = true
@@ -49,14 +45,19 @@ async function load() {
   }
 }
 
-/** Tanlangan kategoriya bo'yicha hamma variantni qatorlarga yig'adi. */
+/**
+ * Tanlangan kategoriya bo'yicha qatorlarni yig'adi.
+ *
+ * Sanalgan soni **noldan** boshlanadi: tizimdagi qoldiq bilan
+ * to'ldirilsa, sanalmagan tovar «bor» bo'lib qolar va kamomad umuman
+ * ko'rinmasdi.
+ */
 async function fillLines() {
   error.value = ''
   lines.value = []
 
   let page = 1
 
-  // Katalog sahifalab keladi — hammasi yig'iladi
   for (;;) {
     const result = await catalogApi.variants({
       category: draft.value.category ?? undefined,
@@ -67,10 +68,11 @@ async function fillLines() {
     lines.value.push(
       ...result.results.map((variant) => ({
         variant: variant.id,
+        barcode: variant.barcode,
         product_name: variant.product_name,
         variant_label: variant.label,
         expected_quantity: variant.stock_quantity,
-        counted_quantity: variant.stock_quantity,
+        counted_quantity: 0,
       })),
     )
 
@@ -83,13 +85,44 @@ async function fillLines() {
 async function openEditor() {
   editorOpen.value = true
   opened.value = null
+  notice.value = ''
   draft.value = { date: todayIso(), category: null, note: '' }
 
   await fillLines()
+  scanner.value?.focus()
+}
+
+/** Har skan — mos qatorga +1. */
+function onScan(code: string) {
+  error.value = ''
+
+  const result = findScanned(lines.value, code)
+  const line = result.ok ? lines.value[result.index] : undefined
+
+  if (!result.ok) {
+    error.value = result.message
+  } else if (line) {
+    line.counted_quantity += 1
+    notice.value = `${line.product_name} ${line.variant_label} — ${line.counted_quantity} dona`
+  }
+
+  scanner.value?.focus()
 }
 
 async function onSave(confirmAfter: boolean) {
   if (!lines.value.length || saving.value) return
+
+  // Sanalmagan qatorlar nol bo'lib yoziladi — bu kamomad demakdir.
+  // Shuning uchun tasdiqlashdan oldin ogohlantiramiz.
+  if (confirmAfter && uncounted.value > 0) {
+    const ok = window.confirm(
+      `${uncounted.value} ta qator hali sanalmagan (0 turibdi).\n\n` +
+        'Tasdiqlansa, ular yo‘q hisoblanadi va qoldiqdan chiqariladi.\n' +
+        'Davom etasizmi?',
+    )
+
+    if (!ok) return
+  }
 
   saving.value = true
   error.value = ''
@@ -128,7 +161,7 @@ async function onOpen(count: StockCount) {
 }
 
 async function onConfirm(count: StockCount) {
-  if (!window.confirm(`${count.number} tasdiqlansinmi? Qoldiq hisoblangan songa tenglashtiriladi.`)) {
+  if (!window.confirm(`${count.number} tasdiqlansinmi? Qoldiq sanalgan songa tenglashtiriladi.`)) {
     return
   }
 
@@ -170,7 +203,9 @@ onMounted(load)
           <label>Kategoriya</label>
           <select v-model="draft.category" @change="fillLines">
             <option :value="null">Hammasi</option>
-            <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
+            <option v-for="item in categories" :key="item.id" :value="item.id">
+              {{ item.name }}
+            </option>
           </select>
         </div>
 
@@ -180,10 +215,19 @@ onMounted(load)
         </div>
       </div>
 
-      <p class="field-hint">
-        Sanab chiqilgan sonni kiriting. Farqi bo‘lganlar ajratib ko‘rsatiladi
-        ({{ differences.length }} ta).
-      </p>
+      <ScanField
+        ref="scanner"
+        placeholder="Tovarni skanerlang — har skan +1 dona"
+        @scan="onScan"
+      />
+
+      <div class="counters">
+        <span>Jami qator: <strong>{{ lines.length }}</strong></span>
+        <span :class="{ warn: uncounted > 0 }">
+          Sanalmagan: <strong>{{ uncounted }}</strong>
+        </span>
+        <span>Farqli: <strong>{{ differing }}</strong></span>
+      </div>
 
       <div class="table-scroll tall">
         <table class="data-table">
@@ -215,7 +259,12 @@ onMounted(load)
               <td class="num">{{ line.expected_quantity }}</td>
 
               <td class="num">
-                <input v-model.number="line.counted_quantity" class="cart-number" type="number" min="0" />
+                <input
+                  v-model.number="line.counted_quantity"
+                  class="cart-number"
+                  type="number"
+                  min="0"
+                />
               </td>
 
               <td class="num">{{ line.counted_quantity - line.expected_quantity }}</td>
@@ -332,8 +381,20 @@ onMounted(load)
   margin-bottom: 8px;
 }
 
+.counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+
+.counters .warn strong {
+  color: var(--red);
+}
+
 .table-scroll.tall {
-  max-height: 420px;
+  max-height: 380px;
   overflow-y: auto;
 }
 

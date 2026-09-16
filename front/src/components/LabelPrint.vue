@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 import BarcodeImage from '@/components/BarcodeImage.vue'
 import { formatMoney } from '@/utils/money'
+import { printWithPageSize } from '@/utils/print'
 import { useAuthStore } from '@/stores/auth'
 
 interface LabelItem {
@@ -23,45 +24,34 @@ const height = computed(() => auth.shop?.label_height_mm ?? 30)
 
 /** Har dona uchun bitta yorliq. */
 const labels = computed(() =>
-  props.items.flatMap((item) =>
-    Array.from({ length: Math.max(1, item.quantity) }, () => item),
-  ),
+  props.items.flatMap((item) => Array.from({ length: Math.max(1, item.quantity) }, () => item)),
 )
 
+/** Har yorliq — alohida sahifa, o'lchami sozlamalardan. */
 function printLabels() {
-  document.body.classList.add('printing')
-  window.print()
-  document.body.classList.remove('printing')
+  printWithPageSize(`@page { size: ${width.value}mm ${height.value}mm; margin: 0; }`)
 }
 
 defineExpose({ printLabels })
 </script>
 
 <template>
-  <div class="print-sheet labels" :style="{ '--label-w': `${width}mm`, '--label-h': `${height}mm` }">
+  <div
+    class="print-sheet labels"
+    :style="{ '--label-w': `${width}mm`, '--label-h': `${height}mm` }"
+  >
     <div v-for="(item, index) in labels" :key="index" class="label">
       <span class="label-shop">{{ shopName }}</span>
       <span class="label-name">{{ item.name }}</span>
       <span class="label-variant">{{ item.label }}</span>
       <strong class="label-price">{{ formatMoney(item.price) }} so‘m</strong>
 
-      <BarcodeImage
-        :value="item.barcode"
-        format="EAN13"
-        :height="22"
-        :width="1.1"
-        :font-size="9"
-      />
+      <BarcodeImage :value="item.barcode" format="EAN13" :height="22" :width="1.1" :font-size="9" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.labels {
-  display: flex;
-  flex-wrap: wrap;
-}
-
 .label {
   width: var(--label-w);
   height: var(--label-h);
@@ -74,8 +64,15 @@ defineExpose({ printLabels })
   color: #000;
   font-family: 'Segoe UI', sans-serif;
   text-align: center;
-  page-break-inside: avoid;
-  break-inside: avoid;
+
+  /* Har yorliq o'z sahifasida chiqadi */
+  page-break-after: always;
+  break-after: page;
+}
+
+.label:last-child {
+  page-break-after: auto;
+  break-after: auto;
 }
 
 .label-shop {
@@ -96,12 +93,5 @@ defineExpose({ printLabels })
 
 .label-price {
   font-size: 9pt;
-}
-
-@media print {
-  @page {
-    size: var(--label-w) var(--label-h);
-    margin: 0;
-  }
 }
 </style>

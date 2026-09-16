@@ -143,6 +143,12 @@ class Variant(TimeStampedModel):
                 # O'lchamsiz/rangsiz variant ikki marta yaratilmasin
                 nulls_distinct=False,
             ),
+            # Xizmat darajasidagi tekshiruv ortidagi so'nggi himoya:
+            # qoldiq hech qachon manfiy bo'lmasin (migratsiya 0003)
+            models.CheckConstraint(
+                condition=models.Q(stock_quantity__gte=0),
+                name='variant_stock_not_negative',
+            ),
         ]
         indexes = [models.Index(fields=['barcode'])]
 

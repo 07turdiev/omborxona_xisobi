@@ -32,9 +32,8 @@
     padding: 0;
   }
 
-  /* Sahifa hoshiyasi: A4 uchun qulay, termal printerda brauzer o'zi
-     kichraytiradi */
-  @page {
-    margin: 12mm;
-  }
+  /* Qog'oz o'lchami bu yerda emas: chek 80 mm lenta, yorliq 40×30 mm.
+     Har biri chop etishdan oldin o'z o'lchamini beradi —
+     `utils/print.ts`. Bu yerda umumiy hoshiya qo'yilsa, u chekni
+     80 mm lentada 56 mm ga siqib qo'yardi. */
 }

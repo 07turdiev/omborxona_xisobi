@@ -37,6 +37,20 @@ def full_returns():
     )
 
 
+def receipt_number(value: str) -> str:
+    """Chek raqami yoki chekdagi raqamli kod.
+
+    Chekka faqat raqam bosiladi ('2026000001'): skaner kodni klaviatura
+    orqali yozadi va 'SOT-' harflari klaviatura tiliga bog'liq bo'lib
+    qolardi. Shuning uchun raqamli kod ham, to'liq raqam ham qabul
+    qilinadi.
+    """
+    if value.isdigit() and len(value) == 10:
+        return f'SOT-{value[:4]}-{value[4:]}'
+
+    return value
+
+
 class SaleViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -60,7 +74,7 @@ class SaleViewSet(
             # Qaytarish uchun: kassir istalgan chekni raqami (yoki chekdagi
             # shtrix-kod) bo'yicha topa oladi — aks holda kechagi chekni
             # qaytarib bo'lmasdi.
-            return queryset.filter(number__iexact=number)
+            return queryset.filter(number__iexact=receipt_number(number))
 
         if not self.request.user.is_admin:
             # Ro'yxatda kassir faqat o'zining bugungi cheklarini ko'radi
