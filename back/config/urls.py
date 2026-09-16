@@ -1,13 +1,21 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
-    # API manzillari 2-bosqichda qo'shiladi
+    path("api/", include("apps.accounts.urls")),
+    path("api/", include("apps.core.urls")),
+    path("api/", include("apps.catalog.urls")),
+    path("api/", include("apps.inventory.urls")),
+    path("api/", include("apps.purchases.urls")),
+    path("api/", include("apps.sales.urls")),
+    path("api/", include("apps.expenses.urls")),
+    path("api/", include("apps.reports.urls")),
+
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
 ]

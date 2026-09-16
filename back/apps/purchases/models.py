@@ -71,10 +71,15 @@ class Purchase(TimeStampedModel):
     number = models.CharField(_('Raqami'), max_length=20, unique=True)
     date = models.DateField(_('Sanasi'))
 
+    #: Bo'sh bo'lishi mumkin: do'kon tizimga o'tganda javondagi tovar
+    #: boshlang'ich qoldiq sifatida kiritiladi va hech kimning balansiga
+    #: tushmaydi.
     supplier = models.ForeignKey(
         Supplier,
         on_delete=models.PROTECT,
         related_name='purchases',
+        null=True,
+        blank=True,
         verbose_name=_('Ta’minotchi'),
     )
 
