@@ -4,6 +4,10 @@ Sotuv bitta tranzaksiyada yoziladi: qator, jurnal yozuvi va qoldiq
 birgalikda o'zgaradi. Har qatorga o'sha paytdagi o'rtacha tannarx nusxa
 sifatida tushadi — keyin tannarx o'zgarsa ham eski chek foydasi
 o'zgarmaydi.
+
+Kassa yuboradigan `request_key` (bir martalik kalit) hujjatda saqlanadi:
+tugma ikki marta bosilsa yoki tarmoq uzilib so'rov qaytarilsa, ikkinchi
+so'rov yangi chek yaratmaydi (`apps.sales.api` tekshiradi).
 """
 
 from decimal import Decimal
@@ -55,6 +59,7 @@ def create_sale(
     discount_percent=None,
     cash_amount=ZERO,
     card_amount=ZERO,
+    request_key=None,
 ) -> Sale:
     """Chekni yozadi va tovarni ombordan chiqaradi.
 
@@ -76,7 +81,9 @@ def create_sale(
         if quantity <= 0:
             raise ValidationError('Miqdor noldan katta bo‘lishi kerak')
 
-        unit_price = Decimal(line.get('unit_price') if line.get('unit_price') is not None else variant.price)
+        unit_price = Decimal(
+            line.get('unit_price') if line.get('unit_price') is not None else variant.price
+        )
         base = round_money(unit_price * quantity)
 
         discount = _discount_amount(
@@ -138,6 +145,7 @@ def create_sale(
 
     sale = Sale.objects.create(
         number=next_number('SOT', Sale.objects),
+        request_key=request_key,
         cashier=user,
         subtotal=subtotal,
         discount_total=discount_total,
@@ -213,7 +221,7 @@ def returned_quantity(sale_line: SaleLine) -> int:
 
 
 @transaction.atomic
-def create_return(*, sale: Sale, items, refund_method, user=None) -> SaleReturn:
+def create_return(*, sale: Sale, items, refund_method, user=None, request_key=None) -> SaleReturn:
     """Qaytarish: tovar asl tannarxi bilan omborga qaytadi.
 
     Qaytariladigan summa qator summasidan olinadi, ya'ni chegirma
@@ -228,6 +236,7 @@ def create_return(*, sale: Sale, items, refund_method, user=None) -> SaleReturn:
 
     sale_return = SaleReturn.objects.create(
         number=next_number('QAY', SaleReturn.objects),
+        request_key=request_key,
         sale=sale,
         refund_method=refund_method,
         created_by=user,
@@ -300,14 +309,20 @@ def exchange(
     card_amount=ZERO,
     discount_amount=None,
     discount_percent=None,
+    request_key=None,
 ) -> dict:
     """Almashtirish: qaytarish va yangi sotuv bitta amalda.
 
-    `difference` — mijoz qo'shimcha to'laydigan (musbat) yoki qaytib
-    oladigan (manfiy) summa.
+    Buxgalteriyada ikki hujjat qoladi (qaytarish — kassadan chiqim, sotuv
+    — kirim), kassirga esa bitta son ko'rsatiladi: `difference` musbat
+    bo'lsa mijoz qo'shimcha to'laydi, manfiy bo'lsa qaytarib olinadi.
     """
     sale_return = create_return(
-        sale=sale, items=return_items, refund_method=refund_method, user=user
+        sale=sale,
+        items=return_items,
+        refund_method=refund_method,
+        user=user,
+        request_key=request_key,
     )
 
     new_sale = create_sale(
@@ -317,6 +332,7 @@ def exchange(
         discount_percent=discount_percent,
         cash_amount=cash_amount,
         card_amount=card_amount,
+        request_key=request_key,
     )
 
     return {

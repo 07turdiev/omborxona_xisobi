@@ -13,15 +13,16 @@ class SaleLineSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     product_name = serializers.CharField(source='variant.product.name', read_only=True)
     variant_label = serializers.CharField(source='variant.label', read_only=True)
     sku = serializers.CharField(source='variant.sku', read_only=True)
+    barcode = serializers.CharField(source='variant.barcode', read_only=True)
     profit = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     returned_quantity = serializers.SerializerMethodField()
 
     class Meta:
         model = SaleLine
         fields = (
-            'id', 'variant', 'product_name', 'variant_label', 'sku', 'quantity',
-            'unit_price', 'discount_amount', 'line_total', 'unit_cost', 'line_cost',
-            'profit', 'returned_quantity',
+            'id', 'variant', 'product_name', 'variant_label', 'sku', 'barcode',
+            'quantity', 'unit_price', 'discount_amount', 'line_total', 'unit_cost',
+            'line_cost', 'profit', 'returned_quantity',
         )
 
     def get_returned_quantity(self, obj) -> int:
@@ -84,6 +85,9 @@ class SaleCreateSerializer(serializers.Serializer):
     cash_amount = serializers.DecimalField(max_digits=14, decimal_places=2, default=0)
     card_amount = serializers.DecimalField(max_digits=14, decimal_places=2, default=0)
 
+    #: Takroriy yuborishdan himoya
+    request_key = serializers.UUIDField(required=False, allow_null=True)
+
 
 class SaleReturnLineSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     admin_only_fields = ('unit_cost',)
@@ -129,6 +133,7 @@ class SaleReturnCreateSerializer(serializers.Serializer):
     refund_method = serializers.ChoiceField(
         choices=SaleReturn.RefundMethod.choices, default=SaleReturn.RefundMethod.CASH
     )
+    request_key = serializers.UUIDField(required=False, allow_null=True)
 
 
 class ExchangeSerializer(SaleReturnCreateSerializer):

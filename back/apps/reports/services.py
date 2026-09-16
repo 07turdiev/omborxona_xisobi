@@ -15,7 +15,6 @@ kerak (`quantity` → `units`), aks holda `F('quantity')` maydonga emas,
 o'sha agregatning o'ziga ishora qiladi.
 """
 
-from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.db.models import Count, DecimalField, F, Sum, Value
@@ -23,6 +22,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from apps.catalog.models import Variant
+from apps.core.dates import local_bounds
 from apps.expenses.models import Expense
 from apps.inventory.models import MovementReason, StockMovement
 from apps.purchases.models import Purchase, Supplier
@@ -40,16 +40,6 @@ def money_sum(expression):
 def unit_sum(field='quantity'):
     """Donalar yig'indisi."""
     return Coalesce(Sum(field), Value(0))
-
-
-def local_bounds(date_from, date_to):
-    """Mahalliy kun chegaralari: [boshlanish, tugash) — UTC ga o'girilgan."""
-    tz = timezone.get_current_timezone()
-
-    start = datetime.combine(date_from, time.min, tzinfo=tz)
-    end = datetime.combine(date_to + timedelta(days=1), time.min, tzinfo=tz)
-
-    return start, end
 
 
 def _sales(date_from, date_to):

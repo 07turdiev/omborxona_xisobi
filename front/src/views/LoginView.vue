@@ -24,7 +24,8 @@ async function onSubmit() {
 
   try {
     await auth.login(username.value, password.value)
-    await router.push((route.query.redirect as string) ?? { name: 'dashboard' })
+    // Kassir boshqaruv paneliga kira olmaydi — hamma kassadan boshlaydi
+    await router.push((route.query.redirect as string) ?? { name: 'pos' })
   } catch {
     error.value = 'Login yoki parol noto‘g‘ri.'
   }

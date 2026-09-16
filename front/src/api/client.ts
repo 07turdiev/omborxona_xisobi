@@ -1,88 +1,64 @@
-import axios, {
-  AxiosError,
-  type AxiosInstance,
-  type InternalAxiosRequestConfig,
-} from 'axios'
+import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
 
 const ACCESS_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
-const TENANT_KEY = 'active_tenant'
 
-/**
- * Tanlangan tashkilot.
- *
- * Foydalanuvchi bir nechta do'konda ishlashi mumkin. Server `X-Tenant-Id`
- * sarlavhasini ko'rsa o'shani ishlatadi, aks holda birinchi a'zolikni
- * oladi. Tanlov brauzerda saqlanadi — sahifa yangilanganda ham qoladi.
- *
- * A'zoligi yo'q tashkilot ID si yuborilsa server hech narsa qaytarmaydi
- * (fail-closed), ya'ni bu sarlavha ruxsat bermaydi — u faqat tanlov.
- */
-export const tenantStorage = {
-  get id(): string | null {
+export const tokenStorage = {
+  get access(): string | null {
     try {
-      return localStorage.getItem(TENANT_KEY)
+      return localStorage.getItem(ACCESS_KEY)
     } catch {
       return null
     }
   },
-  set(id: string) {
+  get refresh(): string | null {
     try {
-      localStorage.setItem(TENANT_KEY, id)
+      return localStorage.getItem(REFRESH_KEY)
     } catch {
-      // Shaxsiy oynada localStorage yopiq bo'lishi mumkin
+      return null
+    }
+  },
+  set(access: string, refresh?: string) {
+    try {
+      localStorage.setItem(ACCESS_KEY, access)
+      if (refresh) localStorage.setItem(REFRESH_KEY, refresh)
+    } catch {
+      // Shaxsiy oynada saqlash yopiq bo'lishi mumkin
     }
   },
   clear() {
     try {
-      localStorage.removeItem(TENANT_KEY)
+      localStorage.removeItem(ACCESS_KEY)
+      localStorage.removeItem(REFRESH_KEY)
     } catch {
       // e'tiborsiz
     }
   },
 }
 
-export const tokenStorage = {
-  get access() {
-    return localStorage.getItem(ACCESS_KEY)
-  },
-  get refresh() {
-    return localStorage.getItem(REFRESH_KEY)
-  },
-  set(access: string, refresh?: string) {
-    localStorage.setItem(ACCESS_KEY, access)
-    if (refresh) localStorage.setItem(REFRESH_KEY, refresh)
-  },
-  clear() {
-    localStorage.removeItem(ACCESS_KEY)
-    localStorage.removeItem(REFRESH_KEY)
-  },
-}
-
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
+  baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = tokenStorage.access
-  if (token) config.headers.Authorization = `Bearer ${token}`
 
-  const tenant = tenantStorage.id
-  if (tenant) config.headers['X-Tenant-Id'] = tenant
+  if (token) config.headers.Authorization = `Bearer ${token}`
 
   return config
 })
 
-/** 401 kelganda refresh token bilan bir marta qayta urinamiz. */
+/** Bir vaqtda kelgan 401 larda token bir marta yangilanadi. */
 let refreshing: Promise<string> | null = null
 
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const original = error.config as InternalAxiosRequestConfig & { _retried?: boolean }
+    const refresh = tokenStorage.refresh
 
-    if (error.response?.status !== 401 || original?._retried || !tokenStorage.refresh) {
+    if (error.response?.status !== 401 || !refresh || original?._retried) {
       return Promise.reject(error)
     }
 
@@ -90,12 +66,10 @@ api.interceptors.response.use(
 
     try {
       refreshing ??= axios
-        .post<{ access: string }>(`${api.defaults.baseURL}/auth/refresh/`, {
-          refresh: tokenStorage.refresh,
-        })
-        .then((res) => {
-          tokenStorage.set(res.data.access)
-          return res.data.access
+        .post<{ access: string }>('/api/auth/refresh/', { refresh })
+        .then((response) => {
+          tokenStorage.set(response.data.access)
+          return response.data.access
         })
         .finally(() => {
           refreshing = null
@@ -103,38 +77,31 @@ api.interceptors.response.use(
 
       const access = await refreshing
       original.headers.Authorization = `Bearer ${access}`
+
       return api(original)
     } catch {
       tokenStorage.clear()
       window.location.href = '/login'
+
       return Promise.reject(error)
     }
   },
 )
 
 /**
- * Serverdan fayl yuklab oladi.
+ * Faylni yuklab oladi (Excel eksport).
  *
- * Oddiy havola bilan bo'lmaydi: yuklashda ham `Authorization` va
- * `X-Tenant-Id` sarlavhalari kerak, ular esa `<a href>` da yuborilmaydi.
- * Shuning uchun faylni `blob` sifatida olib, vaqtinchalik havola
- * yaratamiz.
- *
- * Fayl nomi serverdan `Content-Disposition` orqali keladi — sana va
- * kengaytma o'sha yerda belgilangan.
+ * Oddiy havola ishlamaydi: `Authorization` sarlavhasi `<a href>` da
+ * yuborilmaydi. Shuning uchun fayl `blob` sifatida olinadi.
  */
-export async function downloadFile(
-  url: string,
-  params: Record<string, unknown> = {},
-  fallbackName = 'export.xlsx',
-): Promise<void> {
+export async function downloadFile(url: string, params: Record<string, unknown> = {}) {
   const response = await api.get<Blob>(url, { params, responseType: 'blob' })
 
   const disposition = String(response.headers['content-disposition'] ?? '')
   const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1]
   const plain = /filename="?([^";]+)"?/i.exec(disposition)?.[1]
 
-  let name = fallbackName
+  let name = 'hisobot.xlsx'
 
   if (encoded) {
     try {
@@ -155,8 +122,23 @@ export async function downloadFile(
   link.click()
   link.remove()
 
-  // Brauzer yuklashni boshlaguncha havola kerak — darhol tozalamaymiz
   setTimeout(() => URL.revokeObjectURL(href), 10_000)
+}
+
+/** Server xatosini foydalanuvchiga ko'rsatiladigan matnga aylantiradi. */
+export function errorMessage(error: unknown, fallback = 'Xatolik yuz berdi.'): string {
+  const data = (error as AxiosError<Record<string, unknown>>)?.response?.data
+
+  if (!data) return fallback
+
+  const detail = data.detail
+
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) return detail.join(' ')
+
+  const first = Object.values(data).flat()[0]
+
+  return typeof first === 'string' ? first : fallback
 }
 
 export default api

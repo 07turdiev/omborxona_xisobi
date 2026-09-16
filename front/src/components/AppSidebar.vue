@@ -4,64 +4,45 @@ import { RouterLink } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 
-defineProps<{ show: boolean; warehouseCount: number }>()
+defineProps<{ show: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 
 const auth = useAuthStore()
 
-const tenantName = computed(
-  () => auth.user?.current_tenant?.tenant_name ?? 'Tashkilot tanlanmagan',
-)
-const roleName = computed(() => auth.user?.current_tenant?.role_display ?? '')
-const initials = computed(() => {
-  const name = auth.user?.full_name ?? ''
-  return name.slice(0, 1).toUpperCase() || 'F'
-})
-
-/**
- * Menyu tarkibi dizayndagi tartibda (store/index.html).
- *
- * `perm` — bo'limni ko'rsatish uchun kerakli ruxsat. Ruxsatsiz bo'lim
- * menyuda umuman ko'rinmaydi; unga manzil orqali kirilsa, router
- * boshqaruv paneliga qaytaradi, server esa 403 beradi.
- */
-const operations = [
-  { to: '/', icon: 'i-dashboard', label: 'Boshqaruv paneli', perm: 'dashboard' },
-  { to: '/warehouses', icon: 'i-warehouse', label: 'Omborlar', perm: 'warehouses', badge: true },
-  { to: '/stock', icon: 'i-stock', label: 'Qoldiqlar', perm: 'stock' },
-  { to: '/imports', icon: 'i-import', label: 'Kirim', perm: 'imports' },
-  { to: '/sales', icon: 'i-sale', label: 'Sotuv', perm: 'sales' },
-  { to: '/debtors', icon: 'i-users', label: 'Qarzdorlar', perm: 'debtors' },
-  { to: '/transfers', icon: 'i-warehouse', label: 'Ko‘chirish', perm: 'transfers' },
-  { to: '/products', icon: 'i-company', label: 'Mahsulotlar', perm: 'products' },
-  { to: '/counterparties', icon: 'i-users', label: 'Kontragentlar', perm: 'counterparties' },
+/** Kassirga ochiq bo'limlar */
+const daily = [
+  { to: '/', icon: 'i-sale', label: 'Kassa' },
+  { to: '/returns', icon: 'i-import', label: 'Qaytarish' },
+  { to: '/receipts', icon: 'i-print', label: 'Cheklar' },
+  { to: '/products', icon: 'i-company', label: 'Mahsulotlar' },
+  { to: '/stock', icon: 'i-stock', label: 'Qoldiq' },
 ]
 
-const analytics = [
-  { to: '/reports', icon: 'i-report', label: 'Hisobotlar', perm: 'reports' },
-  { to: '/history', icon: 'i-calendar', label: 'Tarix', perm: 'history' },
-  { to: '/users', icon: 'i-users', label: 'Foydalanuvchilar', perm: 'users' },
-  { to: '/settings', icon: 'i-settings', label: 'Sozlamalar', perm: 'settings' },
-  // Faqat tizim superadmini — tashkilot ruxsatiga bog'liq emas
-  { to: '/companies', icon: 'i-company', label: 'Kompaniyalar', perm: 'superuser' },
+/** Faqat administrator uchun */
+const management = [
+  { to: '/dashboard', icon: 'i-dashboard', label: 'Boshqaruv paneli' },
+  { to: '/purchases', icon: 'i-import', label: 'Kirim' },
+  { to: '/suppliers', icon: 'i-users', label: 'Ta’minotchilar' },
+  { to: '/stock-counts', icon: 'i-warehouse', label: 'Inventarizatsiya' },
+  { to: '/write-offs', icon: 'i-trash', label: 'Hisobdan chiqarish' },
+  { to: '/expenses', icon: 'i-report', label: 'Xarajatlar' },
+  { to: '/reports', icon: 'i-report', label: 'Hisobotlar' },
+  { to: '/users', icon: 'i-users', label: 'Xodimlar' },
+  { to: '/settings', icon: 'i-settings', label: 'Sozlamalar' },
 ]
 
-const visibleOperations = computed(() => operations.filter((item) => auth.can(item.perm)))
-const visibleAnalytics = computed(() =>
-  analytics.filter((item) =>
-    item.perm === 'superuser' ? Boolean(auth.user?.is_superuser) : auth.can(item.perm),
-  ),
-)
+const shopName = computed(() => auth.shop?.shop_name ?? 'Do‘kon')
+const initials = computed(() => (auth.user?.full_name ?? 'X').slice(0, 1).toUpperCase())
 </script>
 
 <template>
   <aside class="sidebar" :class="{ show }">
     <div class="sidebar-brand">
-      <div class="brand-symbol">O</div>
+      <div class="brand-symbol">{{ shopName.slice(0, 1) }}</div>
 
       <div class="brand-copy">
-        <strong>Omborxona</strong>
-        <span>Hisob tizimi</span>
+        <strong>{{ shopName }}</strong>
+        <span>Savdo tizimi</span>
       </div>
 
       <button class="sidebar-close" type="button" @click="emit('close')">
@@ -69,54 +50,38 @@ const visibleAnalytics = computed(() =>
       </button>
     </div>
 
-    <div class="workspace-card">
-      <span>Ish maydoni</span>
-      <strong>{{ tenantName }}</strong>
-
-      <div class="workspace-status">
-        <i></i>
-        <small>Tizim faol</small>
-      </div>
-    </div>
-
     <nav class="sidebar-menu">
-      <span class="menu-caption">Operatsiyalar</span>
+      <span class="menu-caption">Kundalik ish</span>
 
       <RouterLink
-        v-for="item in visibleOperations"
+        v-for="item in daily"
         :key="item.to"
         v-slot="{ isActive, navigate }"
         :to="item.to"
         custom
       >
         <button class="menu-item" :class="{ active: isActive }" @click="navigate">
-          <span class="menu-icon">
-            <svg><use :href="`#${item.icon}`" /></svg>
-          </span>
-
-          <span>{{ item.label }}</span>
-
-          <b v-if="item.badge" class="menu-badge">{{ warehouseCount }}</b>
-        </button>
-      </RouterLink>
-
-      <span v-if="visibleAnalytics.length" class="menu-caption second">Tahlil</span>
-
-      <RouterLink
-        v-for="item in visibleAnalytics"
-        :key="item.to"
-        v-slot="{ isActive, navigate }"
-        :to="item.to"
-        custom
-      >
-        <button class="menu-item" :class="{ active: isActive }" @click="navigate">
-          <span class="menu-icon">
-            <svg><use :href="`#${item.icon}`" /></svg>
-          </span>
-
+          <span class="menu-icon"><svg><use :href="`#${item.icon}`" /></svg></span>
           <span>{{ item.label }}</span>
         </button>
       </RouterLink>
+
+      <template v-if="auth.isAdmin">
+        <span class="menu-caption second">Boshqaruv</span>
+
+        <RouterLink
+          v-for="item in management"
+          :key="item.to"
+          v-slot="{ isActive, navigate }"
+          :to="item.to"
+          custom
+        >
+          <button class="menu-item" :class="{ active: isActive }" @click="navigate">
+            <span class="menu-icon"><svg><use :href="`#${item.icon}`" /></svg></span>
+            <span>{{ item.label }}</span>
+          </button>
+        </RouterLink>
+      </template>
     </nav>
 
     <div class="sidebar-footer">
@@ -124,7 +89,7 @@ const visibleAnalytics = computed(() =>
 
       <div class="sidebar-user-copy">
         <strong>{{ auth.user?.full_name }}</strong>
-        <span>{{ roleName }}</span>
+        <span>{{ auth.user?.role_display }}</span>
       </div>
     </div>
   </aside>

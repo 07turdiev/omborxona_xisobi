@@ -15,6 +15,7 @@ from apps.core.export import (
     build_workbook,
     excel_response,
 )
+from apps.core.dates import local_bounds
 from apps.core.permissions import IsAdmin
 from apps.inventory.models import StockMovement
 from apps.reports import services
@@ -136,7 +137,7 @@ class ReportViewSet(ViewSet):
     @action(detail=False, url_path='movements/export')
     def movements_export(self, request):
         date_from, date_to = self._period(request)
-        start, end = services.local_bounds(date_from, date_to)
+        start, end = local_bounds(date_from, date_to)
 
         movements = (
             StockMovement.objects.select_related('variant__product', 'user')

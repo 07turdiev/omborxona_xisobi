@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 from threading import Thread
+from uuid import uuid4
 
 from django.core.exceptions import ValidationError
 from django.db import connections
@@ -19,6 +20,7 @@ from apps.core.factories import (
 )
 from apps.core.models import ShopSettings
 from apps.inventory.models import MovementReason, StockMovement
+from apps.reports.services import sales_report
 from apps.sales.models import Sale, SaleReturn
 from apps.sales.services import create_return, create_sale, void_sale
 
@@ -380,13 +382,236 @@ class LocalDayTests(TestCase):
 
             self.assertEqual(timezone.localdate(), timezone.localdate(sale.created_at))
 
-        from apps.reports.services import sales_report
-
         june_15 = timezone.datetime(2026, 6, 15).date()
         june_16 = timezone.datetime(2026, 6, 16).date()
 
         self.assertEqual(sales_report(june_15, june_15)['revenue'], Decimal('100000.00'))
         self.assertEqual(sales_report(june_16, june_16)['revenue'], Decimal('0'))
+
+
+class IdempotencyTests(TestCase):
+    """Tugma ikki marta bosilsa, ikkinchi hujjat yaratilmaydi."""
+
+    def setUp(self):
+        self.cashier = create_cashier()
+        self.client_cashier = api_client(self.cashier)
+
+        product = create_product(sizes=('M', 'L'), price='250000')
+        self.medium = product.variants.get(size__name='M')
+        self.large = product.variants.get(size__name='L')
+
+        receive_stock(self.medium, 5, '150000')
+        receive_stock(self.large, 5, '150000')
+
+    def test_repeated_sale_returns_the_same_receipt(self):
+        payload = {
+            'lines': [{'variant': self.medium.pk, 'quantity': 1, 'unit_price': '250000'}],
+            'cash_amount': '250000',
+            'request_key': str(uuid4()),
+        }
+
+        first = self.client_cashier.post('/api/sales/', payload, format='json')
+        second = self.client_cashier.post('/api/sales/', payload, format='json')
+
+        self.assertEqual(first.status_code, 201, first.content)
+        self.assertEqual(second.status_code, 200, second.content)
+        self.assertEqual(first.json()['id'], second.json()['id'])
+        self.assertEqual(first.json()['number'], second.json()['number'])
+
+        self.assertEqual(Sale.objects.count(), 1)
+        # Tovar bir marta chiqadi
+        self.assertEqual(Variant.objects.get(pk=self.medium.pk).stock_quantity, 4)
+
+    def test_repeated_return_returns_the_same_document(self):
+        sale = create_sale(
+            user=self.cashier,
+            lines=[{'variant': self.medium, 'quantity': 2, 'unit_price': Decimal('250000')}],
+            cash_amount=Decimal('500000'),
+        )
+
+        payload = {
+            'sale': sale.pk,
+            'items': [{'sale_line': sale.lines.get().pk, 'quantity': 1}],
+            'refund_method': 'cash',
+            'request_key': str(uuid4()),
+        }
+
+        first = self.client_cashier.post('/api/returns/', payload, format='json')
+        second = self.client_cashier.post('/api/returns/', payload, format='json')
+
+        self.assertEqual(first.status_code, 201, first.content)
+        self.assertEqual(second.status_code, 200, second.content)
+        self.assertEqual(first.json()['id'], second.json()['id'])
+
+        self.assertEqual(SaleReturn.objects.count(), 1)
+        self.assertEqual(Variant.objects.get(pk=self.medium.pk).stock_quantity, 4)
+
+    def test_repeated_exchange_returns_the_same_pair(self):
+        sale = create_sale(
+            user=self.cashier,
+            lines=[{'variant': self.medium, 'quantity': 1, 'unit_price': Decimal('250000')}],
+            cash_amount=Decimal('250000'),
+        )
+
+        payload = {
+            'sale': sale.pk,
+            'items': [{'sale_line': sale.lines.get().pk, 'quantity': 1}],
+            'lines': [{'variant': self.large.pk, 'quantity': 1, 'unit_price': '300000'}],
+            'refund_method': 'cash',
+            'cash_amount': '300000',
+            'request_key': str(uuid4()),
+        }
+
+        first = self.client_cashier.post('/api/exchanges/', payload, format='json')
+        second = self.client_cashier.post('/api/exchanges/', payload, format='json')
+
+        self.assertEqual(first.status_code, 201, first.content)
+        self.assertEqual(second.status_code, 200, second.content)
+        self.assertEqual(first.json()['sale']['id'], second.json()['sale']['id'])
+        self.assertEqual(
+            first.json()['sale_return']['id'], second.json()['sale_return']['id']
+        )
+
+        # Bitta sotuv (asl chek + almashtirish) va bitta qaytarish
+        self.assertEqual(Sale.objects.count(), 2)
+        self.assertEqual(SaleReturn.objects.count(), 1)
+        self.assertEqual(Variant.objects.get(pk=self.large.pk).stock_quantity, 4)
+
+
+class CashierReceiptAccessTests(TestCase):
+    """Kassir ro'yxatda faqat o'zining bugungi cheklarini ko'radi."""
+
+    def setUp(self):
+        self.cashier = create_cashier('kassir_bir')
+        self.other = create_cashier('kassir_ikki')
+        self.admin = create_admin()
+
+        self.variant = create_product(price='100000').variants.get()
+        receive_stock(self.variant, 20, '40000')
+
+    def _sell(self, user):
+        return create_sale(
+            user=user,
+            lines=[{'variant': self.variant, 'quantity': 1, 'unit_price': Decimal('100000')}],
+            cash_amount=Decimal('100000'),
+        )
+
+    def test_list_shows_only_own_receipts_from_today(self):
+        mine = self._sell(self.cashier)
+        theirs = self._sell(self.other)
+
+        with freeze_time('2026-06-15 10:00:00+05:00'):
+            yesterday = self._sell(self.cashier)
+
+        numbers = {
+            row['number']
+            for row in api_client(self.cashier).get('/api/sales/').json()['results']
+        }
+
+        self.assertIn(mine.number, numbers)
+        self.assertNotIn(theirs.number, numbers)
+        self.assertNotIn(yesterday.number, numbers)
+
+    def test_cashier_can_find_any_receipt_by_number(self):
+        """Qaytarish uchun: chekdagi raqam bo'yicha istalgan chek topiladi."""
+        theirs = self._sell(self.other)
+
+        with freeze_time('2026-06-15 10:00:00+05:00'):
+            old = self._sell(self.cashier)
+
+        client = api_client(self.cashier)
+
+        for sale in (theirs, old):
+            response = client.get(f'/api/sales/?number={sale.number}')
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['count'], 1, sale.number)
+            self.assertEqual(response.json()['results'][0]['number'], sale.number)
+
+    def test_admin_sees_every_receipt(self):
+        mine = self._sell(self.cashier)
+        theirs = self._sell(self.other)
+
+        numbers = {
+            row['number']
+            for row in api_client(self.admin).get('/api/sales/').json()['results']
+        }
+
+        self.assertEqual(numbers, {mine.number, theirs.number})
+
+
+class DrawerCashTests(TestCase):
+    """Kun oxirida kassadagi naqd hisobotdagi naqd bilan bir xil bo'lishi kerak."""
+
+    def test_cash_matches_after_card_sale_cash_return_and_exchange(self):
+        cashier = create_cashier()
+        client = api_client(cashier)
+
+        product = create_product(sizes=('M', 'L'), price='200000')
+        medium = product.variants.get(size__name='M')
+        large = product.variants.get(size__name='L')
+
+        receive_stock(medium, 5, '100000')
+        receive_stock(large, 5, '100000')
+
+        # 1) Karta bilan sotuv — kassaga naqd tushmaydi
+        card_sale = create_sale(
+            user=cashier,
+            lines=[{'variant': medium, 'quantity': 1, 'unit_price': Decimal('200000')}],
+            card_amount=Decimal('200000'),
+        )
+
+        # 2) Naqd sotuv va uni to'liq qaytarish — kassa nolga qaytadi
+        cash_sale = create_sale(
+            user=cashier,
+            lines=[{'variant': medium, 'quantity': 1, 'unit_price': Decimal('150000')}],
+            cash_amount=Decimal('150000'),
+        )
+        create_return(
+            sale=cash_sale,
+            items=[{'sale_line': cash_sale.lines.get(), 'quantity': 1}],
+            refund_method=SaleReturn.RefundMethod.CASH,
+            user=cashier,
+        )
+
+        # 3) Almashtirish: 200 000 lik tovar qaytdi, 250 000 lik olindi.
+        #    Kassir mijozdan faqat farqni — 50 000 — naqd oladi.
+        exchange = client.post(
+            '/api/exchanges/',
+            {
+                'sale': card_sale.pk,
+                'items': [{'sale_line': card_sale.lines.get().pk, 'quantity': 1}],
+                'lines': [{'variant': large.pk, 'quantity': 1, 'unit_price': '250000'}],
+                'refund_method': 'cash',
+                'cash_amount': '250000',
+                'request_key': str(uuid4()),
+            },
+            format='json',
+        )
+
+        self.assertEqual(exchange.status_code, 201, exchange.content)
+        self.assertEqual(Decimal(exchange.json()['difference']), Decimal('50000.00'))
+
+        # Kassadagi haqiqiy naqd: sotuvlardagi naqd − naqd qaytarishlar
+        drawer = sum(
+            sale.cash_amount for sale in Sale.objects.filter(status=Sale.Status.COMPLETED)
+        ) - sum(
+            item.total
+            for item in SaleReturn.objects.filter(
+                refund_method=SaleReturn.RefundMethod.CASH
+            )
+        )
+
+        today = timezone.localdate()
+        report = sales_report(today, today)
+
+        self.assertEqual(drawer, Decimal('50000.00'))
+        self.assertEqual(report['payments']['cash'], drawer)
+        self.assertEqual(report['payments']['card'], Decimal('200000.00'))
+
+        # Qoldiq ham to'g'ri: M — 5 ta joyida, L — bittasi sotildi
+        self.assertEqual(Variant.objects.get(pk=medium.pk).stock_quantity, 5)
+        self.assertEqual(Variant.objects.get(pk=large.pk).stock_quantity, 4)
 
 
 class ConcurrentSaleTests(TransactionTestCase):

@@ -1,35 +1,39 @@
 import api from '@/api/client'
-import type {
-  AttributeDefinition,
-  Barcode,
-  Category,
-  Paginated,
-  Product,
-  ProductInput,
-  ProductUnit,
-  Variant,
-} from '@/types'
+import type { Category, Color, Paginated, Product, Size, Variant } from '@/types'
 
-export interface ProductFilters {
+export interface ProductInput {
+  category: number
+  name: string
+  brand?: string
+  description?: string
+  sale_price: string
+  is_active?: boolean
+  size_ids?: number[]
+  color_ids?: number[]
+}
+
+export interface VariantFilters {
   search?: string
-  category?: string | number
-  is_active?: string
+  category?: number | string
+  low_stock?: 'true'
+  active?: 'true'
+  page?: number
+}
+
+function clean(params: object) {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== '' && value != null),
+  )
 }
 
 export const catalogApi = {
   async categories() {
-    // Kategoriya ro'yxati sahifalanmaydi — daraxt to'liq kerak
     const { data } = await api.get<Category[]>('/categories/')
     return data
   },
 
-  async createCategory(payload: Partial<Category>) {
-    const { data } = await api.post<Category>('/categories/', payload)
-    return data
-  },
-
-  async updateCategory(id: number, payload: Partial<Category>) {
-    const { data } = await api.patch<Category>(`/categories/${id}/`, payload)
+  async createCategory(name: string) {
+    const { data } = await api.post<Category>('/categories/', { name })
     return data
   },
 
@@ -37,43 +41,41 @@ export const catalogApi = {
     await api.delete(`/categories/${id}/`)
   },
 
-  /** Kategoriyada amal qiladigan atributlar — **meros bilan**. */
-  async categoryAttributes(id: number) {
-    const { data } = await api.get<AttributeDefinition[]>(`/categories/${id}/attributes/`)
+  async sizes() {
+    const { data } = await api.get<Size[]>('/sizes/')
     return data
   },
 
-  /** Faqat shu kategoriyaning **o'z** atributlari — meros olganlarisiz. */
-  async attributeDefinitions(category: number) {
-    const { data } = await api.get<Paginated<AttributeDefinition>>(
-      '/attribute-definitions/',
-      { params: { category } },
-    )
-    return data.results
-  },
-
-  async createAttributeDefinition(payload: Partial<AttributeDefinition>) {
-    const { data } = await api.post<AttributeDefinition>('/attribute-definitions/', payload)
+  async createSize(payload: { name: string; position: number }) {
+    const { data } = await api.post<Size>('/sizes/', payload)
     return data
   },
 
-  async updateAttributeDefinition(id: number, payload: Partial<AttributeDefinition>) {
-    const { data } = await api.patch<AttributeDefinition>(
-      `/attribute-definitions/${id}/`,
-      payload,
-    )
+  async removeSize(id: number) {
+    await api.delete(`/sizes/${id}/`)
+  },
+
+  async colors() {
+    const { data } = await api.get<Color[]>('/colors/')
     return data
   },
 
-  async removeAttributeDefinition(id: number) {
-    await api.delete(`/attribute-definitions/${id}/`)
+  async createColor(name: string) {
+    const { data } = await api.post<Color>('/colors/', { name })
+    return data
   },
 
-  async products(filters: ProductFilters = {}) {
-    const params = Object.fromEntries(
-      Object.entries(filters).filter(([, value]) => value !== '' && value != null),
-    )
-    const { data } = await api.get<Paginated<Product>>('/products/', { params })
+  async removeColor(id: number) {
+    await api.delete(`/colors/${id}/`)
+  },
+
+  async products(filters: { search?: string; category?: number | string; page?: number } = {}) {
+    const { data } = await api.get<Paginated<Product>>('/products/', { params: clean(filters) })
+    return data
+  },
+
+  async product(id: number) {
+    const { data } = await api.get<Product>(`/products/${id}/`)
     return data
   },
 
@@ -82,17 +84,13 @@ export const catalogApi = {
     return data
   },
 
-  async updateProduct(id: number, payload: ProductInput) {
+  async updateProduct(id: number, payload: Partial<ProductInput>) {
     const { data } = await api.patch<Product>(`/products/${id}/`, payload)
     return data
   },
 
-  async removeProduct(id: number) {
-    await api.delete(`/products/${id}/`)
-  },
-
-  async variant(id: number) {
-    const { data } = await api.get<Variant>(`/variants/${id}/`)
+  async variants(filters: VariantFilters = {}) {
+    const { data } = await api.get<Paginated<Variant>>('/variants/', { params: clean(filters) })
     return data
   },
 
@@ -101,31 +99,9 @@ export const catalogApi = {
     return data
   },
 
-  async createVariant(payload: Partial<Variant>) {
-    const { data } = await api.post<Variant>('/variants/', payload)
-    return data
-  },
-
+  /** Skaner uchun: kod bo'yicha variant. Topilmasa 404 qaytadi. */
   async byBarcode(code: string) {
     const { data } = await api.get<Variant>('/variants/by-barcode/', { params: { code } })
     return data
-  },
-
-  async createProductUnit(payload: Partial<ProductUnit>) {
-    const { data } = await api.post<ProductUnit>('/product-units/', payload)
-    return data
-  },
-
-  async removeProductUnit(id: number) {
-    await api.delete(`/product-units/${id}/`)
-  },
-
-  async createBarcode(payload: Partial<Barcode>) {
-    const { data } = await api.post<Barcode>('/barcodes/', payload)
-    return data
-  },
-
-  async removeBarcode(id: number) {
-    await api.delete(`/barcodes/${id}/`)
   },
 }

@@ -1,121 +1,66 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
-import { stockApi } from '@/api/stock'
-import { useExport } from '@/composables/useExport'
+import { catalogApi } from '@/api/catalog'
+import { errorMessage } from '@/api/client'
+import { reportsApi } from '@/api/reports'
 import { useAuthStore } from '@/stores/auth'
-import { useCatalogStore } from '@/stores/catalog'
-import { useStockStore } from '@/stores/stock'
-import { useWarehouseStore } from '@/stores/warehouses'
-import type { StockBalance } from '@/types'
+import { useExport } from '@/composables/useExport'
+import { formatMoney } from '@/utils/money'
+import type { Category, StockReport, Variant } from '@/types'
 
-const store = useStockStore()
-const warehouses = useWarehouseStore()
-const catalog = useCatalogStore()
 const auth = useAuthStore()
 
-/** Tannarx kirim narxidan hisoblanadi — `view_purchase_price` ruxsati bilan */
-const canSeeCost = computed(() => auth.can('view_purchase_price'))
+const variants = ref<Variant[]>([])
+const categories = ref<Category[]>([])
+const summary = ref<StockReport | null>(null)
 
-// Ekrandagi filtrlar bilan bir xil kesim yuklab olinadi
+const search = ref('')
+const category = ref<string>('')
+const lowOnly = ref(false)
+const loading = ref(false)
+const error = ref('')
+
 const { exporting, exportError, onExport } = useExport(() =>
-  stockApi.exportBalances(store.filters),
+  reportsApi.exportStock({
+    category: category.value || undefined,
+    low_stock: lowOnly.value ? 'true' : undefined,
+  }),
 )
 
-// Jurnal — qoldiq qanday shakllangani. Buxgalter qoldiqni tekshirganda
-// «bu son qayerdan chiqdi?» degan savolga javob shu faylda bo'ladi.
-const journal = useExport(() =>
-  stockApi.exportMovements({ warehouse: store.filters.warehouse }),
-)
+async function load() {
+  loading.value = true
+  error.value = ''
 
-const adjustOpen = ref(false)
-const target = ref<StockBalance | null>(null)
-const formErrors = ref<Record<string, string[]>>({})
+  try {
+    const page = await catalogApi.variants({
+      search: search.value || undefined,
+      category: category.value || undefined,
+      low_stock: lowOnly.value ? 'true' : undefined,
+    })
 
-const adjustForm = reactive({
-  mode: 'adjust' as 'adjust' | 'stocktake',
-  quantity: '',
-  reason: 'manual_add',
-  note: '',
-})
+    variants.value = page.results
+
+    // Tannarx va umumiy qiymat faqat administratorga ko'rinadi
+    if (auth.isAdmin) {
+      summary.value = await reportsApi.stock({
+        category: category.value || undefined,
+        low_stock: lowOnly.value ? 'true' : undefined,
+      })
+    }
+  } catch (err) {
+    error.value = errorMessage(err, 'Qoldiqni yuklab bo‘lmadi.')
+  } finally {
+    loading.value = false
+  }
+}
 
 onMounted(async () => {
-  await Promise.all([
-    store.load(),
-    store.loadReasons(),
-    warehouses.load(),
-    catalog.loadCategories(),
-  ])
+  categories.value = await catalogApi.categories()
+  await load()
 })
 
-let searchTimer: ReturnType<typeof setTimeout> | undefined
-
-function onSearchInput() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => store.load(), 300)
-}
-
-function openAdjust(row: StockBalance, mode: 'adjust' | 'stocktake') {
-  target.value = row
-  formErrors.value = {}
-
-  adjustForm.mode = mode
-  adjustForm.quantity = mode === 'stocktake' ? row.quantity : ''
-  adjustForm.reason = 'manual_add'
-  adjustForm.note = ''
-
-  adjustOpen.value = true
-}
-
-async function onSubmitAdjust() {
-  if (!target.value) return
-
-  formErrors.value = {}
-
-  const base = {
-    variant: target.value.variant,
-    warehouse: target.value.warehouse,
-    batch: target.value.batch,
-    note: adjustForm.note,
-  }
-
-  const result =
-    adjustForm.mode === 'stocktake'
-      ? await store.stocktake({ ...base, counted_quantity: adjustForm.quantity })
-      : await store.adjust({
-          ...base,
-          quantity: adjustForm.quantity,
-          reason: adjustForm.reason,
-        })
-
-  if (result.ok) {
-    adjustOpen.value = false
-    return
-  }
-
-  formErrors.value = result.errors
-}
-
-function number(value: string | null | undefined): string {
-  if (value == null) return '—'
-  return new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: 3 }).format(Number(value))
-}
-
-function money(value: string | null | undefined): string {
-  if (value == null) return '—'
-  return `${new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: 0 }).format(Number(value))} so'm`
-}
-
-/** Qatorning holati — dizayndagi rangli belgi. */
-function rowState(row: StockBalance): { label: string; tone: string } | null {
-  if (row.is_expired) return { label: 'Muddati o‘tgan', tone: 'red' }
-  if (!row.is_sellable) return { label: 'Sotuvga chiqmaydi', tone: 'orange' }
-  if (row.is_low) return { label: 'Kam qoldi', tone: 'yellow' }
-  if (Number(row.reserved_quantity) > 0) return { label: 'Qisman band', tone: 'blue' }
-  return null
-}
-
-const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
+watch([category, lowOnly], load)
 </script>
 
 <template>
@@ -124,103 +69,61 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
       <div class="filters">
         <div class="search-field">
           <svg><use href="#i-search" /></svg>
-
           <input
-            v-model="store.filters.search"
+            v-model="search"
             type="search"
-            placeholder="Mahsulot, SKU yoki partiya..."
-            @input="onSearchInput"
+            placeholder="Nomi, SKU yoki shtrix-kod…"
+            @keydown.enter.prevent="load"
           />
         </div>
 
-        <select v-model="store.filters.warehouse" @change="store.load()">
-          <option value="">Barcha omborlar</option>
-          <option v-for="w in warehouses.items" :key="w.id" :value="w.id">
-            {{ w.name }}
-          </option>
+        <select v-model="category">
+          <option value="">Barcha kategoriya</option>
+          <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
         </select>
 
-        <select v-model="store.filters.category" @change="store.load()">
-          <option value="">Barcha kategoriyalar</option>
-          <option v-for="c in catalog.categoryOptions" :key="c.id" :value="c.id">
-            {{ c.label }}
-          </option>
-        </select>
+        <label class="check">
+          <input v-model="lowOnly" type="checkbox" />
+          <span>Faqat kam qolganlar</span>
+        </label>
 
-        <select v-model="store.filters.status" @change="store.load()">
-          <option value="">Barcha holatlar</option>
-          <option value="low">Kam qolganlar</option>
-          <option value="expired">Muddati o‘tganlar</option>
-          <option value="reserved">Band qilinganlar</option>
-          <option value="sellable">Sotuvga tayyor</option>
-        </select>
+        <button class="button button-outline" type="button" @click="load">Qidirish</button>
       </div>
 
-      <div class="toolbar-actions">
-        <button
-          class="button button-outline"
-          type="button"
-          :disabled="journal.exporting.value"
-          @click="journal.onExport"
-        >
-          <svg><use href="#i-download" /></svg>
-          <span>{{ journal.exporting.value ? 'Tayyorlanmoqda…' : 'Jurnal' }}</span>
-        </button>
-
-        <button
-          class="button button-outline"
-          type="button"
-          :disabled="exporting"
-          @click="onExport"
-        >
-          <svg><use href="#i-download" /></svg>
-          <span>{{ exporting ? 'Tayyorlanmoqda…' : 'Qoldiqlar' }}</span>
-        </button>
-      </div>
+      <button
+        v-if="auth.isAdmin"
+        class="button button-outline"
+        type="button"
+        :disabled="exporting"
+        @click="onExport"
+      >
+        <svg><use href="#i-download" /></svg>
+        <span>{{ exporting ? 'Tayyorlanmoqda…' : 'Excel' }}</span>
+      </button>
     </div>
 
+    <p v-if="error" class="load-error">{{ error }}</p>
     <p v-if="exportError" class="load-error">{{ exportError }}</p>
-    <p v-if="journal.exportError.value" class="load-error">
-      {{ journal.exportError.value }}
-    </p>
 
-    <p v-if="store.error" class="load-error">{{ store.error }}</p>
-
-    <!-- Jamlanma kartalari -->
-    <div class="stock-totals">
-      <div>
-        <span>Pozitsiyalar</span>
-        <strong>{{ store.summary?.positions ?? 0 }}</strong>
+    <div v-if="auth.isAdmin && summary" class="kpi-row">
+      <div class="kpi-card">
+        <span>Pozitsiya</span>
+        <strong>{{ summary.positions }}</strong>
       </div>
 
-      <div>
-        <span>Umumiy miqdor</span>
-        <strong>{{ number(store.summary?.units) }}</strong>
+      <div class="kpi-card">
+        <span>Jami dona</span>
+        <strong>{{ summary.units }}</strong>
       </div>
 
-      <div>
-        <span>Band qilingan</span>
-        <strong>{{ number(store.summary?.reserved) }}</strong>
+      <div class="kpi-card">
+        <span>Tannarx bo‘yicha</span>
+        <strong>{{ formatMoney(summary.cost_value) }}</strong>
       </div>
 
-      <div v-if="canSeeCost" class="accent">
-        <span>Tannarx (FIFO)</span>
-        <strong>{{ money(store.summary?.cost_value) }}</strong>
-      </div>
-
-      <div>
-        <span>Chakana qiymati</span>
-        <strong>{{ money(store.summary?.retail_value) }}</strong>
-      </div>
-
-      <div :class="{ warn: (store.summary?.low_count ?? 0) > 0 }">
-        <span>Kam qolgan</span>
-        <strong>{{ store.summary?.low_count ?? 0 }}</strong>
-      </div>
-
-      <div :class="{ danger: (store.summary?.expired_count ?? 0) > 0 }">
-        <span>Muddati o‘tgan</span>
-        <strong>{{ store.summary?.expired_count ?? 0 }}</strong>
+      <div class="kpi-card">
+        <span>Sotuv narxida</span>
+        <strong>{{ formatMoney(summary.retail_value) }}</strong>
       </div>
     </div>
 
@@ -230,221 +133,94 @@ const formError = (field: string) => formErrors.value[field]?.[0] ?? ''
           <thead>
             <tr>
               <th>Mahsulot</th>
-              <th>Ombor</th>
-              <th>Partiya</th>
-              <th>Muddati</th>
+              <th>SKU</th>
+              <th>Shtrix-kod</th>
               <th class="num">Qoldiq</th>
-              <th class="num">Band</th>
-              <th class="num">Mavjud</th>
-              <th v-if="canSeeCost" class="num">Tannarx</th>
-              <th>Holat</th>
-              <th></th>
+              <th class="num">Eng kam</th>
+              <th v-if="auth.isAdmin" class="num">Tannarx</th>
+              <th class="num">Narx</th>
             </tr>
           </thead>
 
           <tbody>
-            <tr v-if="store.loading">
-              <td :colspan="canSeeCost ? 10 : 9" class="empty-state">Yuklanmoqda…</td>
+            <tr v-if="loading">
+              <td :colspan="auth.isAdmin ? 7 : 6" class="empty-state">Yuklanmoqda…</td>
             </tr>
 
-            <tr v-else-if="store.isEmpty">
-              <td :colspan="canSeeCost ? 10 : 9" class="empty-state">
-                Qoldiq topilmadi. Kirim qilinganidan keyin bu yerda paydo bo‘ladi.
-              </td>
+            <tr v-else-if="!variants.length">
+              <td :colspan="auth.isAdmin ? 7 : 6" class="empty-state">Tovar topilmadi.</td>
             </tr>
 
-            <tr v-for="row in store.items" v-else :key="row.id">
+            <tr v-for="variant in variants" v-else :key="variant.id">
               <td>
-                <strong>{{ row.product_name }}</strong>
-                <small class="cell-sub">
-                  {{ row.sku }}
-                  <template v-if="row.variant_name"> · {{ row.variant_name }}</template>
-                </small>
+                <strong>{{ variant.product_name }}</strong>
+                <small class="cell-sub">{{ variant.label }}</small>
               </td>
 
-              <td>{{ row.warehouse_name }}</td>
-              <td>{{ row.batch_code || '—' }}</td>
-
-              <td>
-                <span v-if="row.expiry_date" :class="{ 'expiry-bad': row.is_expired }">
-                  {{ row.expiry_date }}
-                </span>
-                <span v-else>—</span>
-              </td>
-
-              <td class="num">{{ number(row.quantity) }} {{ row.unit }}</td>
+              <td>{{ variant.sku }}</td>
+              <td>{{ variant.barcode }}</td>
 
               <td class="num">
-                <span :class="{ muted: Number(row.reserved_quantity) === 0 }">
-                  {{ number(row.reserved_quantity) }}
+                <span :class="{ low: variant.stock_quantity <= variant.min_stock }">
+                  {{ variant.stock_quantity }}
                 </span>
               </td>
 
-              <td class="num">
-                <strong>{{ number(row.available_quantity) }}</strong>
-              </td>
-
-              <td v-if="canSeeCost" class="num">
-                <span v-if="Number(row.cost_value) > 0">
-                  {{ money(row.cost_value) }}
-                  <small class="cell-sub">{{ money(row.avg_unit_cost) }} / {{ row.unit }}</small>
-                </span>
-                <span v-else class="muted" title="Tannarxsiz kiritilgan tovar">—</span>
-              </td>
-
-              <td>
-                <span
-                  v-if="rowState(row)"
-                  class="pill"
-                  :class="`pill-${rowState(row)!.tone}`"
-                >
-                  {{ rowState(row)!.label }}
-                </span>
-                <span v-else class="pill pill-green">Sotuvga tayyor</span>
-              </td>
-
-              <td class="row-actions">
-                <button class="button button-soft" type="button" @click="openAdjust(row, 'adjust')">
-                  Tuzatish
-                </button>
-
-                <button
-                  class="button button-outline"
-                  type="button"
-                  @click="openAdjust(row, 'stocktake')"
-                >
-                  Sanash
-                </button>
-              </td>
+              <td class="num">{{ variant.min_stock }}</td>
+              <td v-if="auth.isAdmin" class="num">{{ formatMoney(variant.average_cost ?? null) }}</td>
+              <td class="num">{{ formatMoney(variant.price) }}</td>
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-
-    <!-- Tuzatish / inventarizatsiya oynasi -->
-    <div class="modal" :class="{ show: adjustOpen }">
-      <div class="modal-backdrop" @click="adjustOpen = false"></div>
-
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <div>
-            <span class="modal-eyebrow">QOLDIQ</span>
-            <h3>
-              {{ adjustForm.mode === 'stocktake' ? 'Inventarizatsiya' : 'Qoldiqni tuzatish' }}
-            </h3>
-            <p v-if="target">{{ target.product_name }} — {{ target.warehouse_name }}</p>
-          </div>
-
-          <button class="modal-close" type="button" @click="adjustOpen = false">
-            <svg><use href="#i-close" /></svg>
-          </button>
-        </div>
-
-        <form @submit.prevent="onSubmitAdjust">
-          <div class="modal-body">
-            <p class="hint">
-              <template v-if="adjustForm.mode === 'stocktake'">
-                Sanab chiqilgan miqdorni kiriting. Farq «Inventarizatsiya farqi»
-                sababi bilan jurnalga yoziladi va hisobotda yo‘qotish sifatida
-                ko‘rinadi.
-              </template>
-              <template v-else>
-                Qoldiq to‘g‘ridan-to‘g‘ri o‘zgartirilmaydi — jurnalga yangi
-                yozuv qo‘shiladi. Chiqim uchun miqdorni manfiy kiriting.
-              </template>
-            </p>
-
-            <div class="form-grid two">
-              <div class="field">
-                <label>
-                  {{ adjustForm.mode === 'stocktake' ? 'Sanalgan miqdor' : 'Miqdor' }}
-                </label>
-                <input v-model="adjustForm.quantity" type="number" step="0.001" required />
-              </div>
-
-              <div v-if="adjustForm.mode === 'adjust'" class="field">
-                <label>Sababi</label>
-                <select v-model="adjustForm.reason">
-                  <option
-                    v-for="reason in store.reasons"
-                    :key="reason.value"
-                    :value="reason.value"
-                  >
-                    {{ reason.label }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="field full">
-                <label>Izoh</label>
-                <input v-model="adjustForm.note" />
-              </div>
-            </div>
-
-            <p v-if="formError('detail')" class="form-error">{{ formError('detail') }}</p>
-          </div>
-
-          <div class="modal-footer">
-            <button class="button button-outline" type="button" @click="adjustOpen = false">
-              Bekor qilish
-            </button>
-
-            <button class="button button-gradient" type="submit" :disabled="store.saving">
-              {{ store.saving ? 'Saqlanmoqda…' : 'Saqlash' }}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.stock-totals {
+.kpi-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 12px;
-  padding: 16px;
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
 }
 
-/* Yorliq va son KPI kartalaridagi kabi: katta harf yo'q,
-   son tabular shaklda. */
-.stock-totals span {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 13px;
+.kpi-card span {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
-/* Summa va "so'm" bir qatorda — ikkiga bo'linsa ustunlar notekis */
-.stock-totals strong {
-  display: block;
-  margin-top: 6px;
-  white-space: nowrap;
+.kpi-card strong {
   font-size: 18px;
-  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.stock-totals .accent strong {
-  color: var(--accent);
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
-.stock-totals .warn strong {
-  color: var(--yellow);
+.check input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
 }
 
-.stock-totals .danger strong {
-  color: var(--red);
-}
-
-.expiry-bad {
+.low {
   color: var(--red);
   font-weight: 700;
 }
-
 </style>

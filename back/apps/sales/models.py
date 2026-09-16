@@ -14,6 +14,11 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.fields import MoneyField
 from apps.core.models import TimeStampedModel
 
+REQUEST_KEY_HELP = _(
+    'Kassa yuboradigan bir martalik kalit: tugma ikki marta bosilsa ham '
+    'ikkinchi so\'rov yangi hujjat yaratmaydi'
+)
+
 
 class Sale(TimeStampedModel):
     """Chek."""
@@ -23,6 +28,11 @@ class Sale(TimeStampedModel):
         VOIDED = 'voided', _('Bekor qilingan')
 
     number = models.CharField(_('Raqami'), max_length=20, unique=True)
+
+    #: Takroriy so'rovni ajratish uchun (idempotentlik)
+    request_key = models.UUIDField(
+        _('So‘rov kaliti'), null=True, blank=True, unique=True, help_text=REQUEST_KEY_HELP
+    )
 
     cashier = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -62,7 +72,10 @@ class Sale(TimeStampedModel):
         verbose_name = _('Sotuv')
         verbose_name_plural = _('Sotuvlar')
         ordering = ['-created_at', '-id']
-        indexes = [models.Index(fields=['status', '-created_at'])]
+        indexes = [
+            models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['cashier', '-created_at']),
+        ]
 
     def __str__(self):
         return self.number
@@ -116,6 +129,10 @@ class SaleReturn(TimeStampedModel):
         CARD = 'card', _('Karta')
 
     number = models.CharField(_('Raqami'), max_length=20, unique=True)
+
+    request_key = models.UUIDField(
+        _('So‘rov kaliti'), null=True, blank=True, unique=True, help_text=REQUEST_KEY_HELP
+    )
 
     sale = models.ForeignKey(
         Sale,

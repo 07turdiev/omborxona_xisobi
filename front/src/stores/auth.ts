@@ -1,74 +1,46 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import api, { tenantStorage, tokenStorage } from '@/api/client'
-import type { TokenPair, User } from '@/types'
+import api, { tokenStorage } from '@/api/client'
+import { accountsApi } from '@/api/accounts'
+import type { ShopSettings, User } from '@/types'
+import { settingsApi } from '@/api/accounts'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
+  const shop = ref<ShopSettings | null>(null)
   const loading = ref(false)
 
   const isAuthenticated = computed(() => Boolean(tokenStorage.access))
+  const isAdmin = computed(() => user.value?.role === 'admin')
 
   async function login(username: string, password: string) {
     loading.value = true
+
     try {
-      const { data } = await api.post<TokenPair>('/auth/login/', { username, password })
+      const { data } = await api.post<{ access: string; refresh: string }>('/auth/login/', {
+        username,
+        password,
+      })
+
       tokenStorage.set(data.access, data.refresh)
-      await fetchMe()
+      await loadProfile()
     } finally {
       loading.value = false
     }
   }
 
-  // Router qo'riqchisi va App.vue birinchi yuklanishda `/me` ni bir vaqtda
-  // so'rashi mumkin — bitta so'rov ikkalasiga yetadi
-  let pendingMe: Promise<User> | null = null
-
-  async function fetchMe() {
-    pendingMe ??= api
-      .get<User>('/auth/me/')
-      .then(({ data }) => {
-        user.value = data
-        return data
-      })
-      .finally(() => {
-        pendingMe = null
-      })
-
-    return pendingMe
-  }
-
-  /**
-   * Joriy tashkilotdagi ruxsat.
-   *
-   * Faqat interfeys uchun: menyu va ustunlarni yashiradi. Haqiqiy himoya
-   * serverda — ruxsatsiz so'rov 403 oladi, moliyaviy maydonlar esa
-   * javobning o'zida tozalanadi.
-   */
-  function can(permission: string): boolean {
-    return user.value?.current_tenant?.permissions?.includes(permission) ?? false
+  /** Xodim va do'kon sozlamalari — kassa ekrani ikkalasiga tayanadi. */
+  async function loadProfile() {
+    user.value = await accountsApi.me()
+    shop.value = await settingsApi.get()
   }
 
   function logout() {
     tokenStorage.clear()
-    tenantStorage.clear()
     user.value = null
+    shop.value = null
   }
 
-  /**
-   * Boshqa tashkilotga o'tadi.
-   *
-   * Sahifa butunlay qayta yuklanadi. Sabab: o'nlab store da oldingi
-   * tashkilot ma'lumoti qolgan bo'ladi va ularni bittalab tozalash
-   * xatoga yo'l ochadi — bittasi unutilsa, foydalanuvchi begona
-   * ma'lumotni ko'rib qoladi. Server tomondan bunday sizish mumkin
-   * emas (RLS), lekin interfeysda chalkashlik bo'lardi.
-   */
-  function switchTenant(tenantId: string) {
-    tenantStorage.set(tenantId)
-    window.location.reload()
-  }
-
-  return { user, loading, isAuthenticated, can, login, fetchMe, logout, switchTenant }
+  return { user, shop, loading, isAuthenticated, isAdmin, login, loadProfile, logout }
 })

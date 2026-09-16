@@ -1,40 +1,5 @@
-export interface MembershipBrief {
-  tenant_id: string
-  tenant_name: string
-  tenant_slug: string
-  role: string
-  role_display: string
-  /** Rol ma'lumot kiritishga ruxsat beradimi (kuzatuvchi — yo'q) */
-  can_write: boolean
-  /** Amaldagi ruxsatlar (`apps.core.access.Perm` kodlari) */
-  permissions: string[]
-}
+/** Server javoblarining tiplari. Pul qiymatlari doim satr. */
 
-/** Ruxsatlar katalogi — xodim formasidagi katakchalar uchun */
-export interface PermissionCatalog {
-  groups: Record<string, string>
-  items: { value: string; label: string; group: string }[]
-}
-
-export interface User {
-  id: number
-  username: string
-  email: string
-  first_name: string
-  last_name: string
-  full_name: string
-  phone: string
-  is_superuser: boolean
-  memberships: MembershipBrief[]
-  current_tenant: MembershipBrief | null
-}
-
-export interface TokenPair {
-  access: string
-  refresh: string
-}
-
-/** DRF PageNumberPagination javobi */
 export interface Paginated<T> {
   count: number
   next: string | null
@@ -42,130 +7,63 @@ export interface Paginated<T> {
   results: T[]
 }
 
-export type GoodsType =
-  | 'universal'
-  | 'electronics'
-  | 'clothing'
-  | 'food'
-  | 'household'
-  | 'construction'
+export type Role = 'admin' | 'cashier'
 
-export type WarehousePurpose = 'main' | 'retail' | 'transit'
-
-export interface Warehouse {
+export interface User {
   id: number
-  code: string
-  name: string
-  goods_type: GoodsType
-  goods_type_display: string
-  purpose: WarehousePurpose
-  purpose_display: string
-  is_sellable: boolean
-  manager: string
+  username: string
+  first_name: string
+  last_name: string
+  full_name: string
   phone: string
-  address: string
-  /** Decimal — backend satr sifatida qaytaradi, aniqlik yo'qolmasin */
-  area: string | null
-  capacity: string | null
-  temperature: string
-  notes: string
+  role: Role
+  role_display: string
   is_active: boolean
-  created_at: string
+  last_login: string | null
 }
 
-/** Yangi ombor yaratish / tahrirlash uchun forma qiymatlari */
-export type WarehouseInput = Omit<
-  Warehouse,
-  'id' | 'created_at' | 'goods_type_display' | 'purpose_display' | 'is_sellable'
->
-
-export interface WarehouseSummary {
-  total: number
-  active: number
-  sellable: number
-  by_goods_type: { goods_type: GoodsType; count: number }[]
+export interface ShopSettings {
+  shop_name: string
+  label_width_mm: number
+  label_height_mm: number
+  max_discount_percent: string
 }
-
-export interface Choice {
-  value: string
-  label: string
-}
-
-export interface WarehouseChoices {
-  goods_types: Choice[]
-  purposes: Choice[]
-}
-
-// -- Katalog ---------------------------------------------------------
 
 export interface Category {
   id: number
   name: string
-  parent: number | null
-  path: string
-  depth: number
-  default_unit: string
-  code_prefix: string
-  is_active: boolean
-  product_count: number
+  product_count?: number
 }
 
-export type AttributeValueType = 'text' | 'number' | 'choice' | 'boolean'
-
-export interface AttributeDefinition {
+export interface Size {
   id: number
-  category: number
-  category_name: string
-  key: string
   name: string
-  value_type: AttributeValueType
-  value_type_display: string
-  unit: string
-  choices: string[]
-  default_value: string
-  is_required: boolean
-  is_variant_axis: boolean
-  uniqueness: number
   position: number
 }
 
-export interface ProductUnit {
+export interface Color {
   id: number
-  variant: number
-  unit: string
-  /** Decimal — satr sifatida keladi */
-  factor_to_base: string
-  is_default_purchase: boolean
-  is_default_sale: boolean
-}
-
-export interface Barcode {
-  id: number
-  variant: number
-  code: string
-  code_normalized: string
-  code_type: string
+  name: string
 }
 
 export interface Variant {
   id: number
   product: number
   product_name: string
-  category: number
+  size: number | null
+  size_name: string | null
+  color: number | null
+  color_name: string | null
+  label: string
   sku: string
-  name: string
-  display_name: string
-  /** Xom qiymatlar: {"qalinlik": "12 mm"} */
-  attributes: Record<string, string | boolean | null>
-  /** To'liq juftliklar: {"qalinlik": {"raw": "12 mm", "num": "0.012"}} */
-  attributes_full: Record<string, { raw: unknown; num: string | null }>
-  purchase_price: string | null
+  barcode: string
   sale_price: string | null
-  currency: string
-  min_stock: string | null
+  price: string
+  /** Faqat administrator javobida bo'ladi */
+  average_cost?: string
+  stock_quantity: number
+  min_stock: number
   is_active: boolean
-  units: ProductUnit[]
-  barcodes: Barcode[]
 }
 
 export interface Product {
@@ -174,562 +72,276 @@ export interface Product {
   category_name: string
   name: string
   brand: string
-  model: string
   description: string
-  base_unit: string
-  effective_unit: string
+  photo: string | null
+  sale_price: string
   is_active: boolean
   variants: Variant[]
 }
 
-export type ProductInput = Partial<
-  Omit<Product, 'id' | 'category_name' | 'effective_unit' | 'variants'>
-> & { sku?: string }
+export interface Supplier {
+  id: number
+  name: string
+  phone: string
+  note: string
+  is_active: boolean
+  balance: string
+}
 
-// -- Qoldiqlar -------------------------------------------------------
+export interface SupplierPayment {
+  id: number
+  supplier: number
+  supplier_name: string
+  date: string
+  amount: string
+  note: string
+  created_at: string
+}
 
-export interface StockBalance {
+export type PurchaseStatus = 'draft' | 'confirmed' | 'cancelled'
+
+export interface PurchaseLine {
+  id?: number
+  variant: number
+  product_name?: string
+  variant_label?: string
+  sku?: string
+  barcode?: string
+  quantity: number
+  unit_cost: string
+  line_total?: string
+}
+
+export interface Purchase {
+  id: number
+  number: string
+  date: string
+  supplier: number | null
+  supplier_name: string | null
+  status: PurchaseStatus
+  status_display: string
+  note: string
+  total: string
+  amount_paid: string
+  debt: string
+  is_editable: boolean
+  confirmed_at: string | null
+  cancelled_at: string | null
+  lines: PurchaseLine[]
+  created_at: string
+}
+
+export interface SaleLine {
   id: number
   variant: number
   product_name: string
-  variant_name: string
+  variant_label: string
   sku: string
-  unit: string
-  category_name: string
-  warehouse: number
-  warehouse_name: string
-  warehouse_purpose: WarehousePurpose
-  batch: number | null
-  batch_code: string | null
-  expiry_date: string | null
-  is_expired: boolean
-  /** Decimal — satr sifatida keladi, aniqlik yo'qolmasin */
-  quantity: string
-  reserved_quantity: string
-  available_quantity: string
-  is_sellable: boolean
-  is_overallocated: boolean
-  is_low: boolean
-  purchase_price: string | null
-  sale_price: string | null
-  /** FIFO qatlamlaridan hisoblangan haqiqiy qiymat */
-  cost_value: string
-  /** Qatlamlar bo'yicha vaznlangan o'rtacha birlik tannarxi */
-  avg_unit_cost: string | null
+  barcode: string
+  quantity: number
+  unit_price: string
+  discount_amount: string
+  line_total: string
+  /** Faqat administrator javobida */
+  unit_cost?: string
+  line_cost?: string
+  profit?: string
+  returned_quantity: number
 }
 
-export interface StockSummary {
-  positions: number
-  units: string
-  reserved: string
-  /** FIFO bo'yicha haqiqiy tannarx */
-  cost_value: string
-  purchase_value: string
-  retail_value: string
-  low_count: number
-  expired_count: number
+export interface Sale {
+  id: number
+  number: string
+  created_at: string
+  cashier: number | null
+  cashier_name: string | null
+  subtotal: string
+  discount_total: string
+  total: string
+  cash_amount: string
+  card_amount: string
+  status: 'completed' | 'voided'
+  status_display: string
+  voided_at: string | null
+  fiscal_receipt_id: string
+  fiscal_qr_url: string
+  lines: SaleLine[]
+  /** Faqat administrator javobida */
+  profit?: string
+}
+
+export type RefundMethod = 'cash' | 'card'
+
+export interface SaleReturnLine {
+  id: number
+  sale_line: number
+  product_name: string
+  variant_label: string
+  sku: string
+  quantity: number
+  unit_cost?: string
+  refund_amount: string
+}
+
+export interface SaleReturn {
+  id: number
+  number: string
+  created_at: string
+  sale: number
+  sale_number: string
+  total: string
+  refund_method: RefundMethod
+  refund_method_display: string
+  fiscal_receipt_id: string
+  fiscal_qr_url: string
+  lines: SaleReturnLine[]
+}
+
+export interface ExchangeResult {
+  sale_return: SaleReturn
+  sale: Sale
+  difference: string
 }
 
 export interface StockMovement {
   id: number
   variant: number
   product_name: string
+  variant_label: string
   sku: string
-  warehouse: number
-  warehouse_name: string
-  batch: number | null
-  batch_code: string | null
-  quantity: string
+  quantity: number
   reason: string
   reason_display: string
-  unit_cost: string | null
-  currency: string
   document_type: string
   document_id: number | null
-  note: string
-  meta: Record<string, unknown>
-  occurred_at: string
-  user_name: string
-}
-
-export interface MovementReasonChoice {
-  value: string
-  label: string
-  direction: 'in' | 'out' | 'both'
-  is_loss: boolean
-}
-
-// -- Kontragentlar ---------------------------------------------------
-
-export interface Partner {
-  id: number
-  name: string
-  is_supplier: boolean
-  is_customer: boolean
-  role_display: string
-  inn: string
-  phone: string
-  email: string
-  contact: string
-  address: string
-  bank: string
-  note: string
-  is_active: boolean
+  unit_cost: string
+  user: number | null
+  user_name: string | null
   created_at: string
 }
 
-// -- Hujjatlar -------------------------------------------------------
+export interface StockCountLine {
+  id?: number
+  variant: number
+  product_name?: string
+  variant_label?: string
+  sku?: string
+  expected_quantity?: number
+  counted_quantity: number
+  difference?: number
+  average_cost?: string
+}
 
-export type DocumentKind = 'purchase' | 'sale' | 'return_in' | 'return_out'
-export type DocumentStatus = 'draft' | 'confirmed' | 'cancelled'
+export interface StockCount {
+  id: number
+  number: string
+  date: string
+  status: 'draft' | 'confirmed'
+  status_display: string
+  category: number | null
+  category_name: string | null
+  note: string
+  confirmed_at: string | null
+  lines: StockCountLine[]
+  created_at: string
+}
 
-export interface DocumentLine {
+export interface WriteOff {
   id: number
   variant: number
   product_name: string
-  variant_name: string
+  variant_label: string
   sku: string
-  batch: number | null
-  batch_code: string | null
-  unit: string
-  base_unit: string
-  /** Decimal — satr sifatida */
-  factor: string
-  quantity: string
-  quantity_base: string
-  unit_price: string
-  unit_price_base: string
-  discount_percent: string
-  line_total: string
-  line_cost: string
-  note: string
-  position: number
+  quantity: number
+  reason: string
+  unit_cost: string
+  created_at: string
 }
 
-/** Hujjat yaratishda yuboriladigan qator */
-export interface DocumentLineInput {
-  variant: number | null
-  batch?: number | null
-  unit?: string
-  quantity: string
-  unit_price: string
-  discount_percent?: string
-  note?: string
-}
+export type ExpenseCategory = 'rent' | 'salary' | 'utilities' | 'other'
 
-export interface Document {
+export interface Expense {
   id: number
-  kind: DocumentKind
-  kind_display: string
-  number: string
   date: string
-  status: DocumentStatus
-  status_display: string
-  is_editable: boolean
-  warehouse: number
-  warehouse_name: string
-  partner: number | null
-  partner_name: string | null
-  currency: string
-  external_number: string
-  note: string
-  payment_method: PaymentMethod
-  payment_method_display: string
-  /** Qarzga sotuv — tasdiqlanganda qarz yaratiladi */
-  is_credit: boolean
-  credit_markup_percent: string
-  due_date: string | null
-  customer_name: string
-  customer_phone: string
-  customer_document: string
-  /** Tasdiqlangan qarzga sotuvning qarzi */
-  debt: DocumentDebtBrief | null
-  total_amount: string
-  total_cost: string
-  profit: string
-  confirmed_at: string | null
-  cancelled_at: string | null
-  lines: DocumentLine[]
-  line_count: number
-}
-
-export interface DocumentTotals {
-  count: number
+  category: ExpenseCategory
+  category_display: string
   amount: string
-  cost: string
-  profit: string
+  note: string
+  created_at: string
 }
 
-export interface DocumentSummary {
-  purchases: DocumentTotals
-  sales: DocumentTotals
-  profit: string
-  margin_percent: number
-}
-
-// -- Hisobotlar ------------------------------------------------------
-
-export interface PeriodSummary {
-  purchase_count: number
-  purchase_amount: string
-  sale_count: number
+export interface DashboardPeriod {
   revenue: string
+  receipts: number
+  average_receipt: string
+  gross_profit: string
+}
+
+export interface Dashboard {
+  today: DashboardPeriod
+  month: DashboardPeriod
+  low_stock_count: number
+}
+
+export interface SalesReport {
+  date_from: string
+  date_to: string
+  revenue: string
+  receipts: number
+  discounts: string
+  returns: string
+  net_revenue: string
   cost: string
   gross_profit: string
-  margin_percent: number
-  loss_amount: string
-  /** Yo'qotishlar ayirilgan foyda */
+  losses: string
+  expenses: string
   net_profit: string
+  payments: { cash: string; card: string }
+  by_category: { name: string; quantity: number; revenue: string; cost: string; profit: string }[]
+  by_cashier: { name: string | null; receipts: number; revenue: string }[]
+  loss_rows: { reason: string; quantity: number; amount: string }[]
+  expense_rows: { category: string; amount: string }[]
 }
 
-export interface CategoryRow {
+export interface TopProduct {
+  product_id: number
   name: string
+  quantity: number
   revenue: string
   cost: string
   profit: string
-  quantity: string
-  margin_percent: number
+  variants: { sku: string; size: string | null; color: string | null; quantity: number; revenue: string }[]
 }
 
-export interface WarehouseRow {
-  warehouse_id: number
-  name: string
-  count: number
-  revenue: string
-  cost: string
-  profit: string
-}
-
-export interface TopProductRow {
+export interface StockReportRow {
   variant_id: number
-  name: string
   sku: string
-  revenue: string
-  cost: string
-  profit: string
-  quantity: string
-}
-
-export interface DailySaleRow {
-  date: string
-  revenue: string
-  profit: string
-  count: number
-}
-
-export interface LossRow {
-  reason: string
+  barcode: string
+  product: string
+  category: string
   label: string
-  count: number
-  quantity: string
-  amount: string
+  quantity: number
+  min_stock: number
+  average_cost: string
+  price: string
+  cost_value: string
+  retail_value: string
 }
 
-export interface LossSummary {
-  total: string
-  by_reason: LossRow[]
-}
-
-export interface StockValuation {
+export interface StockReport {
+  rows: StockReportRow[]
   positions: number
-  units: string
-  reserved: string
+  units: number
   cost_value: string
   retail_value: string
   potential_profit: string
-  margin_percent: number
 }
 
-export interface ReportBundle {
-  summary: PeriodSummary
-  by_category: CategoryRow[]
-  by_warehouse: WarehouseRow[]
-  top_products: TopProductRow[]
-  daily_sales: DailySaleRow[]
-  losses: LossSummary
-  valuation: StockValuation
-}
-
-export interface RecentMovement {
-  id: number
-  occurred_at: string
-  product_name: string
-  warehouse_name: string
-  quantity: string
-  reason: string
-  reason_display: string
-  is_loss: boolean
-}
-
-export interface LowStockRow {
-  variant_id: number
-  product_name: string
-  sku: string
-  warehouse_name: string
-  quantity: string
-  min_stock: string
-  unit: string
-}
-
-export interface ExpiringRow {
-  batch_code: string
-  product_name: string
-  warehouse_name: string
-  quantity: string
-  expiry_date: string
-  days_left: number
-  is_expired: boolean
-}
-
-export interface DashboardBundle {
-  summary: PeriodSummary
-  valuation: StockValuation
-  daily_sales: DailySaleRow[]
-  recent_movements: RecentMovement[]
-  low_stock: LowStockRow[]
-  expiring: ExpiringRow[]
-}
-
-// -- Omborlararo ko'chirish ------------------------------------------
-
-export type TransferStatus = 'draft' | 'sent' | 'received' | 'cancelled'
-
-export interface TransferLine {
-  id: number
-  variant: number
-  product_name: string
-  sku: string
-  batch: number | null
-  batch_code: string | null
-  unit: string
-  base_unit: string
-  factor: string
-  quantity_sent: string
-  quantity_sent_base: string
-  quantity_received: string | null
-  quantity_received_base: string | null
-  shortfall: string
-  is_complete: boolean
-  note: string
-  position: number
-}
-
-export interface TransferLineInput {
-  variant: number | null
-  batch?: number | null
-  unit?: string
-  quantity: string
-  note?: string
-}
-
-export interface Transfer {
-  id: number
-  number: string
-  date: string
-  status: TransferStatus
-  status_display: string
-  from_warehouse: number
-  from_warehouse_name: string
-  to_warehouse: number
-  to_warehouse_name: string
-  transit_warehouse: number
-  transit_warehouse_name: string
-  note: string
-  is_editable: boolean
-  in_transit: boolean
-  has_shortfall: boolean
-  total_shortfall: string
-  sent_at: string | null
-  received_at: string | null
-  cancelled_at: string | null
-  lines: TransferLine[]
-  line_count: number
-}
-
-// -- Xodimlar va sozlamalar ------------------------------------------
-
-export interface MembershipRow {
-  id: number
-  user: number
-  username: string
-  full_name: string
-  email: string
-  phone: string
-  role: string
-  role_display: string
-  is_active: boolean
-  can_write: boolean
-  is_admin: boolean
-  permissions: string[]
-  /** Ruxsatlar roldan olinadimi (alohida sozlanmaganmi) */
-  uses_role_defaults: boolean
-  /** Nechta omborga cheklangan. Nol — hammasi ochiq. */
-  warehouse_count: number
-  created_at: string
-}
-
-export interface RoleChoice {
-  value: string
-  label: string
-  can_write: boolean
-  is_admin: boolean
-  default_permissions: string[]
-}
-
-export interface TenantSettings {
-  id: string
+export interface SupplierBalance {
+  supplier_id: number
   name: string
-  slug: string
-  business_type: string
-  business_type_display: string
-  base_currency: string
-  short_name: string
-  code: string
-  legal_form: string
-  legal_form_display: string
-  inn: string
-  registration_number: string
-  vat_code: string
-  director: string
   phone: string
-  email: string
-  website: string
-  /** Yuridik manzil */
-  address: string
-  actual_address: string
-  bank_name: string
-  mfo: string
-  bank_account: string
-  /** Logotip URL — yuklash alohida multipart so'rov bilan */
-  logo: string | null
-  notes: string
-  purchase_prefix: string
-  sale_prefix: string
-  transfer_prefix: string
-  debt_prefix: string
-  debt_default_days: number
-  credit_markup_default: string
-  expiry_warning_days: number
-  is_active: boolean
-  member_count: number
-}
-
-/** Kompaniya (tashkilot) — superadmin boshqaradi */
-export interface Company extends TenantSettings {
-  warehouse_count: number
-  owner: { username: string; full_name: string } | null
-  created_at: string
-}
-
-export interface CompanyInput extends Partial<Omit<Company, 'owner'>> {
-  /** Faqat yaratishda: login mavjud bo'lsa — o'sha foydalanuvchi ega bo'ladi */
-  owner_username?: string
-  owner_password?: string
-  owner_first_name?: string
-  owner_last_name?: string
-}
-
-export interface CompanySummary {
-  total: number
-  active: number
-  warehouses: number
-  users: number
-}
-
-export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'mixed' | 'deferred'
-
-export interface DocumentDebtBrief {
-  id: number
-  number: string
-  /** `active` | `overdue` | `paid` | `cancelled` */
-  status: string
-  remaining: string
-}
-
-export interface DebtPayment {
-  id: number
-  amount: string
-  method: string
-  method_display: string
-  paid_at: string
-  note: string
-  created_by_name: string
-}
-
-export interface Debt {
-  id: number
-  number: string
-  document: number
-  document_number: string
-  warehouse: number
-  warehouse_name: string
-  partner: number | null
-  partner_name: string | null
-  /** `counterparty` — kontragent, `retail` — chakana mijoz */
-  customer_type: 'counterparty' | 'retail'
-  customer_name: string
-  customer_phone: string
-  customer_document: string
-  issued_date: string
-  due_date: string
-  is_overdue: boolean
-  overdue_days: number
-  base_amount: string
-  markup_percent: string
-  markup_amount: string
-  amount: string
-  paid_amount: string
-  remaining: string
-  currency: string
-  status: 'active' | 'paid' | 'cancelled'
-  status_display: string
-  /** Muddati o'tgan faol qarz `overdue` bo'lib ko'rinadi */
-  display_status: 'active' | 'overdue' | 'paid' | 'cancelled'
-  paid_at: string | null
-  note: string
-  payments: DebtPayment[]
-}
-
-export interface DebtSummary {
-  active_count: number
-  active_amount: string
-  overdue_count: number
-  overdue_amount: string
-  paid_amount: string
-}
-
-/** Tarix yozuvi — kim, qachon, nimani qildi */
-export interface AuditEventRow {
-  id: number
-  created_at: string
-  action: string
-  action_display: string
-  object_type: string
-  object_type_display: string
-  object_id: string
-  object_repr: string
-  warehouse_id: number | null
-  warehouse_name: string
-  user: number | null
-  user_name: string
-  details: string
-  /** Tahrirda nima o'zgargani. Ruxsatsiz moliyaviy maydon — `null`. */
-  changes: Record<string, [unknown, unknown] | null>
-}
-
-export interface HistoryMeta {
-  /** `all` — barcha xodimlar, `own` — faqat o'zingizning amallaringiz */
-  scope: 'all' | 'own'
-  object_types: { value: string; label: string }[]
-  actions: { value: string; label: string }[]
-}
-
-export interface WarehouseAccessRow {
-  id: number
-  warehouse: number
-  warehouse_name: string
-  user: number
-  user_name: string
-  level: string
-  level_display: string
+  purchases: string
+  paid: string
+  balance: string
 }

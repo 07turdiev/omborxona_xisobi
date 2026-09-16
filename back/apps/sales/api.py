@@ -1,9 +1,11 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.dates import today_bounds
 from apps.core.permissions import IsAdmin
 from apps.sales import services
 from apps.sales.models import Sale, SaleReturn
@@ -23,6 +25,18 @@ SALE_RELATIONS = (
 )
 
 
+def full_sales():
+    return Sale.objects.select_related('cashier').prefetch_related(*SALE_RELATIONS)
+
+
+def full_returns():
+    return SaleReturn.objects.select_related('sale').prefetch_related(
+        'lines__sale_line__variant__product',
+        'lines__sale_line__variant__size',
+        'lines__sale_line__variant__color',
+    )
+
+
 class SaleViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
@@ -38,11 +52,20 @@ class SaleViewSet(
     serializer_class = SaleSerializer
 
     def get_queryset(self):
-        queryset = Sale.objects.select_related('cashier').prefetch_related(*SALE_RELATIONS)
+        queryset = full_sales()
         params = self.request.query_params
+        number = (params.get('number') or '').strip()
 
-        if number := params.get('number'):
-            queryset = queryset.filter(number__iexact=number.strip())
+        if number:
+            # Qaytarish uchun: kassir istalgan chekni raqami (yoki chekdagi
+            # shtrix-kod) bo'yicha topa oladi — aks holda kechagi chekni
+            # qaytarib bo'lmasdi.
+            return queryset.filter(number__iexact=number)
+
+        if not self.request.user.is_admin:
+            # Ro'yxatda kassir faqat o'zining bugungi cheklarini ko'radi
+            start, _end = today_bounds()
+            queryset = queryset.filter(cashier=self.request.user, created_at__gte=start)
 
         if status_filter := params.get('status'):
             queryset = queryset.filter(status=status_filter)
@@ -56,16 +79,37 @@ class SaleViewSet(
         return queryset
 
     def create(self, request, *args, **kwargs):
-        """Chekni yozadi: qatorlar, jurnal va qoldiq bitta tranzaksiyada."""
+        """Chekni yozadi: qatorlar, jurnal va qoldiq bitta tranzaksiyada.
+
+        `request_key` berilgan bo'lsa, o'sha kalit bilan yozilgan chek
+        allaqachon bor-yo'qligi tekshiriladi: tugma ikki marta bosilsa
+        ikkinchi chek yaratilmaydi.
+        """
         form = SaleCreateSerializer(data=request.data)
         form.is_valid(raise_exception=True)
 
+        data = dict(form.validated_data)
+        request_key = data.pop('request_key', None)
+
+        if request_key:
+            existing = full_sales().filter(request_key=request_key).first()
+
+            if existing is not None:
+                return Response(self.get_serializer(existing).data, status=200)
+
         try:
-            sale = services.create_sale(user=request.user, **form.validated_data)
+            sale = services.create_sale(user=request.user, request_key=request_key, **data)
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
+        except IntegrityError:
+            # Ikki so'rov bir vaqtda kelgan: birinchisi yozdi, bu — takror
+            existing = full_sales().get(request_key=request_key)
 
-        return Response(self.get_serializer(self._reload(sale)).data, status=201)
+            return Response(self.get_serializer(existing).data, status=200)
+
+        return Response(
+            self.get_serializer(full_sales().get(pk=sale.pk)).data, status=201
+        )
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
     def void(self, request, pk=None):
@@ -77,10 +121,7 @@ class SaleViewSet(
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
 
-        return Response(self.get_serializer(self._reload(sale)).data)
-
-    def _reload(self, sale):
-        return self.get_queryset().get(pk=sale.pk)
+        return Response(self.get_serializer(full_sales().get(pk=sale.pk)).data)
 
 
 class SaleReturnViewSet(
@@ -89,16 +130,16 @@ class SaleReturnViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
-    """Qaytarishlar."""
+    """Qaytarishlar. Kassir ro'yxatda o'zining bugungilarini ko'radi."""
 
     serializer_class = SaleReturnSerializer
 
     def get_queryset(self):
-        queryset = SaleReturn.objects.select_related('sale').prefetch_related(
-            'lines__sale_line__variant__product',
-            'lines__sale_line__variant__size',
-            'lines__sale_line__variant__color',
-        )
+        queryset = full_returns()
+
+        if not self.request.user.is_admin:
+            start, _end = today_bounds()
+            queryset = queryset.filter(created_by=self.request.user, created_at__gte=start)
 
         if sale := self.request.query_params.get('sale'):
             queryset = queryset.filter(sale_id=sale)
@@ -109,29 +150,56 @@ class SaleReturnViewSet(
         form = SaleReturnCreateSerializer(data=request.data)
         form.is_valid(raise_exception=True)
 
+        data = form.validated_data
+        request_key = data.get('request_key')
+
+        if request_key:
+            existing = full_returns().filter(request_key=request_key).first()
+
+            if existing is not None:
+                return Response(self.get_serializer(existing).data, status=200)
+
         try:
             sale_return = services.create_return(
-                sale=form.validated_data['sale'],
-                items=form.validated_data['items'],
-                refund_method=form.validated_data['refund_method'],
+                sale=data['sale'],
+                items=data['items'],
+                refund_method=data['refund_method'],
                 user=request.user,
+                request_key=request_key,
             )
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
+        except IntegrityError:
+            existing = full_returns().get(request_key=request_key)
+
+            return Response(self.get_serializer(existing).data, status=200)
 
         return Response(
-            self.get_serializer(self.get_queryset().get(pk=sale_return.pk)).data, status=201
+            self.get_serializer(full_returns().get(pk=sale_return.pk)).data, status=201
         )
 
 
 class ExchangeView(APIView):
-    """Almashtirish: qaytarish + yangi sotuv, farqi bilan."""
+    """Almashtirish: qaytarish + yangi sotuv, farqi bilan.
+
+    Kassir bitta sonni ko'radi: `difference` musbat bo'lsa mijozdan
+    olinadi, manfiy bo'lsa mijozga qaytariladi.
+    """
 
     def post(self, request):
         form = ExchangeSerializer(data=request.data)
         form.is_valid(raise_exception=True)
 
         data = form.validated_data
+        request_key = data.get('request_key')
+        context = {'request': request}
+
+        if request_key:
+            existing_sale = full_sales().filter(request_key=request_key).first()
+            existing_return = full_returns().filter(request_key=request_key).first()
+
+            if existing_sale is not None and existing_return is not None:
+                return Response(self._payload(existing_return, existing_sale, context), status=200)
 
         try:
             result = services.exchange(
@@ -144,17 +212,24 @@ class ExchangeView(APIView):
                 card_amount=data['card_amount'],
                 discount_amount=data.get('discount_amount'),
                 discount_percent=data.get('discount_percent'),
+                request_key=request_key,
             )
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=400)
+        except IntegrityError:
+            existing_sale = full_sales().get(request_key=request_key)
+            existing_return = full_returns().get(request_key=request_key)
 
-        context = {'request': request}
+            return Response(self._payload(existing_return, existing_sale, context), status=200)
 
         return Response(
-            {
-                'sale_return': SaleReturnSerializer(result['sale_return'], context=context).data,
-                'sale': SaleSerializer(result['sale'], context=context).data,
-                'difference': str(result['difference']),
-            },
-            status=201,
+            self._payload(result['sale_return'], result['sale'], context), status=201
         )
+
+    @staticmethod
+    def _payload(sale_return, sale, context) -> dict:
+        return {
+            'sale_return': SaleReturnSerializer(sale_return, context=context).data,
+            'sale': SaleSerializer(sale, context=context).data,
+            'difference': str(sale.total - sale_return.total),
+        }
