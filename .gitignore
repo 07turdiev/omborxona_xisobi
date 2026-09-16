@@ -99,9 +99,9 @@ $RECYCLE.BIN/
 # Faqat o'qish uchun ma'lumotnomalar — repoga kirmaydi
 # =====================================================================
 
-# InvenTree manba kodi (MIT). Undan olingan qismlar NOTICE da qayd
-# etilgan; manbaning o'zi repoda saqlanmaydi, chunki u 2770 fayl va
-# bizning kodimiz undan hech qachon import qilmaydi.
+# InvenTree manba kodi — faqat o'qish uchun ma'lumotnoma bo'lgan.
+# Undan olingan kod loyihada qolmagan, manbaning o'zi esa repoga
+# kirmaydi (2770 fayl).
 InvenTree-master/
 reference/
 
@@ -110,9 +110,6 @@ reference/
 # bu papkasiz ham to'liq ishlaydi. Prototipning o'zi 26 000 qatorlik
 # statik HTML/JS — repoda ikkinchi index.html bo'lib chalkashtiradi.
 store/
-
-# Celery beat jadval holati (lokal)
-back/celerybeat-schedule*
 
 # Yangi prototip manbasi (PHP) — baza paroli va foydalanuvchilar dump bor, repoga kirmaydi
 new/

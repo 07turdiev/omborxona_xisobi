@@ -63,6 +63,8 @@ class SaleViewSet(
     (`HideFromCashierMixin`).
     """
 
+    # Haqiqiy tanlov `get_queryset` da; bu — sxema generatori uchun
+    queryset = Sale.objects.none()
     serializer_class = SaleSerializer
 
     def get_queryset(self):
@@ -146,6 +148,7 @@ class SaleReturnViewSet(
 ):
     """Qaytarishlar. Kassir ro'yxatda o'zining bugungilarini ko'radi."""
 
+    queryset = SaleReturn.objects.none()
     serializer_class = SaleReturnSerializer
 
     def get_queryset(self):
@@ -199,6 +202,8 @@ class ExchangeView(APIView):
     Kassir bitta sonni ko'radi: `difference` musbat bo'lsa mijozdan
     olinadi, manfiy bo'lsa mijozga qaytariladi.
     """
+
+    serializer_class = ExchangeSerializer
 
     def post(self, request):
         form = ExchangeSerializer(data=request.data)

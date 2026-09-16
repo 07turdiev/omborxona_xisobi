@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -31,6 +33,10 @@ def parse_date(value, default):
     return parsed
 
 
+# Har hisobot o'z tuzilishidagi lug'at qaytaradi (jamlanma, qatorlar,
+# kesimlar), ya'ni umumiy serializer yo'q. Sxema generatoriga shuni
+# aytamiz, aks holda u har chaqiruvda ogohlantirish yozadi.
+@extend_schema(responses=OpenApiTypes.OBJECT)
 class ReportViewSet(ViewSet):
     """Hisobotlar — faqat administrator uchun."""
 

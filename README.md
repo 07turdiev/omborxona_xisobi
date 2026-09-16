@@ -1,101 +1,94 @@
-# Omborxona xisobi
+# Do'kon — sotuv va ombor tizimi
 
-Omborxona hisob-kitob tizimi. Backend — Django + DRF, frontend — Vue 3 + Vite.
+Bitta kiyim do'koni uchun kassa va ombor hisobi. Kassir skaner bilan
+sotadi, administrator kirim, qoldiq, foyda va xodimlarni boshqaradi.
 
-## Texnologiyalar
-
-| Qism     | Stack                                                                      |
-| -------- | -------------------------------------------------------------------------- |
-| Backend  | Django 5.2, Django REST Framework, SimpleJWT, drf-spectacular, PostgreSQL   |
-| Frontend | Vue 3, TypeScript, Vite, Vue Router, Pinia, Tailwind CSS v4, Axios          |
-
-## Repoda nima yo'q
-
-Ikkita papka ataylab git'ga kiritilmagan (ular `.gitignore` da):
-
-| Papka | Nima | Nega yo'q |
-|---|---|---|
-| `InvenTree-master/` | InvenTree manba kodi (MIT) | 2770 fayl, faqat o'qish uchun ma'lumotnoma. Undan olingan qismlar [NOTICE](NOTICE) da qayd etilgan; kodimiz undan hech qachon import qilmaydi. |
-| `store/` | StoreFlow dizayn prototipi | Undan olingan uslublar `front/src/assets/app.css` va `login.css` ga ko'chirilgan — ilova bu papkasiz to'liq ishlaydi. Prototipning o'zi 26 000 qatorlik statik HTML/JS. |
-
-Loyihani boshqa kompyuterda ochganda bu ikkisi kerak emas.
-
-## Struktura
-
-```
-omborxona_xisobi/
-├── back/                 # Django loyihasi
-│   ├── config/           # settings, urls, wsgi/asgi
-│   ├── apps/
-│   │   ├── users/        # maxsus User modeli + JWT auth API
-│   │   └── warehouse/    # omborxona domeni (bo'sh, router tayyor)
-│   ├── .env              # maxfiy sozlamalar (git'ga tushmaydi)
-│   └── requirements.txt
-└── front/                # Vue 3 SPA
-    └── src/
-        ├── api/          # axios client + token refresh
-        ├── stores/       # Pinia (auth)
-        ├── router/       # auth guard bilan
-        └── views/
-```
-
-## Hujjatlar
-
-| Fayl | Nima |
+| Qism | Texnologiya |
 |---|---|
-| [docs/roadmap.md](docs/roadmap.md) | Qolgan ish rejasi — nima tayyor, nima qoldi |
-| [docs/deployment.md](docs/deployment.md) | Ishlab chiqarishga chiqarish: Docker, HTTPS, zaxira nusxa |
-| [docs/development.md](docs/development.md) | Lokal ishga tushirish, testlar, tenant izolyatsiyasini sinash |
-| [docs/inventree-analysis.md](docs/inventree-analysis.md) | InvenTree tahlili — qaysi dizayn qarorlari olindi va nega |
-| [docs/extraction-plan.md](docs/extraction-plan.md) | Ko'chirish rejasi — nusxa olingan kod, qayta yozilgani, rad etilgani |
-| [NOTICE](NOTICE) | InvenTree'dan olingan kod uchun MIT atributi |
+| Backend | Django 5.2, DRF, SimpleJWT, PostgreSQL 15+ |
+| Frontend | Vue 3, TypeScript, Vite, Pinia, oddiy CSS |
+
+---
+
+## Nima kerak
+
+| Nima | Versiya | Nega |
+|---|---|---|
+| Python | 3.13 | |
+| Node.js | 22+ | |
+| PostgreSQL | **15+** | Variantlar cheklovi `NULLS NOT DISTINCT` dan foydalanadi — u 15-versiyada paydo bo'lgan |
+
+---
 
 ## Ishga tushirish
 
-### Backend
-
 ```bash
+# Backend
 cd back
-cp .env.example .env          # va DATABASE_URL'ni to'g'rilang
-.venv/Scripts/activate        # Windows (Linux/Mac: source .venv/bin/activate)
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-```
+cp .env.example .env                       # DATABASE_URL ni to'g'rilang
+.venv/Scripts/python.exe manage.py migrate
+.venv/Scripts/python.exe manage.py seed_demo   # namuna ma'lumot (ixtiyoriy)
+.venv/Scripts/python.exe manage.py runserver
 
-Backend: http://127.0.0.1:8000
-
-### Frontend
-
-```bash
+# Frontend (boshqa oynada)
 cd front
 npm install
 npm run dev
 ```
 
-Frontend: http://localhost:5173 (`/api` so'rovlari backendga proxy qilinadi)
+Interfeys: http://localhost:5173 — `/api` so'rovlari backendga uzatiladi.
 
-## API
+Windows'da repo ildizidagi `backend.bat` va `frontend.bat` ni ikki marta
+bosish ham yetarli.
 
-| Endpoint             | Tavsif                        |
-| -------------------- | ----------------------------- |
-| `POST /api/auth/register/` | Ro'yxatdan o'tish       |
-| `POST /api/auth/login/`    | JWT access + refresh    |
-| `POST /api/auth/refresh/`  | Access tokenni yangilash|
-| `GET  /api/auth/me/`       | Joriy foydalanuvchi     |
-| `GET  /api/docs/`          | Swagger UI              |
-| `GET  /api/redoc/`         | ReDoc                   |
-| `GET  /admin/`             | Django admin            |
+Batafsil: [docs/development.md](docs/development.md).
 
-## Foydali buyruqlar
+---
+
+## Struktura
+
+```
+back/
+  config/            sozlamalar, urls
+  apps/
+    core/            pul maydoni, hujjat raqami, sana, ruxsat,
+                     kassirdan yashirish, Excel, do'kon sozlamalari
+    accounts/        xodim va rol
+    catalog/         kategoriya, o'lcham, rang, mahsulot, variant
+    inventory/       ombor jurnali, inventarizatsiya, hisobdan chiqarish
+    purchases/       ta'minotchi, kirim, to'lov
+    sales/           chek, qaytarish, almashtirish, fiskal ulash nuqtasi
+    expenses/        do'kon xarajatlari
+    reports/         hisobotlar va Excel
+
+front/src/
+  api/               server bilan aloqa
+  stores/            auth va kassa savati
+  views/             ekranlar
+  components/        skaner maydoni, chek, yorliq, qobiq
+  utils/             pul, sana, chop etish
+```
+
+Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
+→ `api.py`. Biznes qoidalari **faqat `services.py` da**.
+
+---
+
+## Hujjatlar
+
+| Fayl | Nima |
+|---|---|
+| [docs/how-it-works.md](docs/how-it-works.md) | Tizim qanday ishlaydi — kodni o'qishdan oldin shuni o'qing |
+| [docs/development.md](docs/development.md) | Lokal ishga tushirish, testlar, skanersiz sinash |
+| [docs/deployment.md](docs/deployment.md) | Serverga chiqarish, HTTPS, zaxira nusxa |
+| [docs/roadmap.md](docs/roadmap.md) | Nima tayyor, nima ataylab qilinmagan, nima qoldi |
+
+---
+
+## Testlar
 
 ```bash
-# Backend
-python manage.py makemigrations
-python manage.py spectacular --file schema.yml
-
-# Frontend
-npm run type-check
-npm run lint
-npm run build
+cd back && .venv/Scripts/python.exe manage.py test    # 81 ta
+cd front && npm run test:unit                         # 22 ta
+cd front && npm run build                             # type-check + build
 ```

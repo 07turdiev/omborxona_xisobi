@@ -1,22 +1,17 @@
 /* =========================================================
-   STOREFLOW MULTI-WAREHOUSE WMS
+   DO'KON — SOTUV VA OMBOR TIZIMI
 ========================================================= */
 
 /* ---------------------------------------------------------
    Ranglar va shakl
 
-   Manba: InvenTree'ning veb-interfeysi. Uning o'z temasi
-   deyarli bo'sh (`createTheme({})`), ya'ni u sof Mantine
-   default ko'rinishidan foydalanadi:
-   InvenTree-master/src/frontend/src/theme.ts
-   InvenTree-master/src/frontend/src/states/LocalState.tsx:107-111
-   (primaryColor: 'indigo', radius: 'xs', white/black default).
+   Qiymatlar Mantine shkalasidan olingan: kulrang 0-9,
+   indigo 0-9 va holat ranglari.
 
-   Shuning uchun bu yerdagi qiymatlar Mantine shkalasidan
-   olingan: kulrang 0-9, indigo 0-9 va holat ranglari. Bir
-   nechta rangni aralashtirmaydi — rang faqat **ma'no**
-   tashiganda ishlatiladi: faol menyu, asosiy tugma, holat
-   belgisi. Qolgani kulrang.
+   Ranglar aralashtirilmaydi — rang faqat **ma'no** tashiganda
+   ishlatiladi: faol menyu, asosiy tugma, holat belgisi.
+   Qolgani kulrang. Shu sababli ekranda nima muhimligi
+   darhol ko'rinadi.
    --------------------------------------------------------- */
 
 :root {
@@ -37,8 +32,8 @@
     --surface-soft: var(--gray-0);
     --surface-hover: var(--gray-1);
 
-    /* Chap panel ham ochiq: InvenTree'da butun qobiq ochiq,
-       to'q rejim faqat foydalanuvchi tanlaganda yoqiladi. */
+    /* Chap panel ham ochiq rangda: kassa kun bo'yi ochiq turadi,
+       yorug' xonada och fon kam charchatadi. */
     --sidebar: #ffffff;
     --sidebar-2: var(--gray-0);
     --sidebar-text: var(--gray-7);
@@ -53,7 +48,7 @@
     --border: var(--gray-2);
     --border-strong: var(--gray-3);
 
-    /* Asosiy rang — indigo, InvenTree defaulti */
+    /* Asosiy rang — indigo */
     --accent: #4c6ef5;
     --accent-hover: #4263eb;
     --accent-strong: #3b5bdb;

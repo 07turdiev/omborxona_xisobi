@@ -1,35 +1,33 @@
 # Lokal ishga tushirish va sinash
 
-## 1. Nima allaqachon sozlangan
+Serverga chiqarish uchun [deployment.md](./deployment.md) ga qarang.
+Tizim qanday ishlashi — [how-it-works.md](./how-it-works.md).
 
-Bazangizda quyidagilar yaratildi:
+---
 
-| Nima | Qiymat |
-|---|---|
-| Baza | `omborxona_xisobi` |
-| Django roli | `omborxona_app` — parol [back/.env](../back/.env) da |
-| Extensionlar | `ltree`, `pg_trgm`, `btree_gin` |
+## 1. Baza
 
-**Nega yangi rol kerak bo'ldi.** Siz bergan `omborxona` roli **SUPERUSER** va
-**BYPASSRLS** huquqiga ega. PostgreSQL'da Row Level Security bunday rolga
-**umuman qo'llanmaydi** — ya'ni butun tenant izolyatsiyasi ishlamas edi va
-bir do'kon ikkinchisining ma'lumotini ko'rardi. Shuning uchun Django uchun
-alohida oddiy rol yaratildi.
-
-`omborxona` roli o'z holicha qoldi — undan admin ishlari (extension
-o'rnatish, baza yaratish) uchun foydalanish mumkin. Eski `mborxona_xisobi`
-bazasi ham tegilmadi; kerak bo'lmasa o'chirib yuboring:
+PostgreSQL **15 yoki undan yangi** bo'lishi shart: variantlar jadvalidagi
+unikal cheklov `NULLS NOT DISTINCT` dan foydalanadi, u 15-versiyada
+paydo bo'lgan. Eski versiyada migratsiya yiqiladi.
 
 ```bash
-psql -U omborxona -c "DROP DATABASE mborxona_xisobi"
+psql -U postgres -c "CREATE ROLE dokon_app LOGIN PASSWORD 'o'zingiz-tanlagan-parol' CREATEDB"
+psql -U postgres -c "CREATE DATABASE dokon OWNER dokon_app ENCODING 'UTF8'"
 ```
 
-Sozlamalar [back/.env](../back/.env) da. U git'ga tushmaydi.
+`CREATEDB` huquqi testlar uchun kerak: Django test bazasini o'zi
+yaratadi va o'chiradi.
 
-> **Parollar haqida.** Bu hujjatda hech qanday haqiqiy parol yozilmagan.
-> Quyidagi demo hisoblar parollari ataylab ochiq — ular faqat lokal
-> sinov uchun. **Ishlab chiqarishga chiqarishdan oldin barchasini
-> almashtiring**, jumladan `omborxona_app` baza rolining parolini ham.
+Ulanish manzili `back/.env` da:
+
+```
+DATABASE_URL=postgres://dokon_app:PAROL@127.0.0.1:5432/dokon
+```
+
+`back/.env.example` dan nusxa oling. Bu fayl git'ga tushmaydi.
+
+---
 
 ## 2. Ishga tushirish — eng oson yo'li
 
@@ -37,235 +35,130 @@ Repo ildizidagi ikkita faylni **ikki marta bosing**:
 
 | Fayl | Nima qiladi |
 |---|---|
-| `backend.bat` | Django serverini ishga tushiradi — http://127.0.0.1:8000 |
-| `frontend.bat` | Vue serverini ishga tushiradi — http://localhost:5173 |
+| `backend.bat` | Migratsiyani tekshiradi va Django serverini ochadi — http://127.0.0.1:8000 |
+| `frontend.bat` | Vue serverini ochadi — http://localhost:5173 |
 
-Ikkalasi ham ochiq turishi kerak. Yopish uchun oynada `Ctrl+C`.
+`backend.bat` qo'llanmagan migratsiya borligini ko'rsa, serverni
+ochmaydi va nima qilish kerakligini aytadi. Bu ataylab: eski sxema
+ustida ishga tushsangiz, xato faqat birinchi sotuvda ko'rinadi.
 
-## 3. Backend — qo'lda
+---
 
-PowerShell'da:
+## 3. Qo'lda
 
 ```powershell
-cd D:\Sites\omborxona_xisobi\back
+cd back
+.\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
-`venv` ni faollashtirib ishlatmoqchi bo'lsangiz:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-python manage.py runserver
-```
-
-> `Activate.ps1` "running scripts is disabled" xatosini bersa, yuqoridagi
-> to'g'ridan-to'g'ri `python.exe` chaqiruvidan foydalaning — u hech qanday
+> `Activate.ps1` "running scripts is disabled" xatosini bersa,
+> yuqoridagi to'g'ridan-to'g'ri `python.exe` chaqiruvi hech qanday
 > sozlama talab qilmaydi.
 
-Boshqa foydali buyruqlar:
-
-```powershell
-.\.venv\Scripts\python.exe manage.py migrate      # baza sxemasini yangilash
-.\.venv\Scripts\python.exe manage.py seed_demo    # demo ma'lumot
-.\.venv\Scripts\python.exe manage.py test         # testlar
-```
-
-Backend: http://127.0.0.1:8000
-
-Demo foydalanuvchilar (parol ikkalasida ham `demo12345`):
-
-| Login | Parol | Tashkilot |
-|---|---|---|
-| `qurilish` | `demo12345` | Baraka qurilish mollari — `mashina` (6 m³), `vagon` (60 m³) |
-| `kiyim` | `demo12345` | Zamon kiyim-kechak — `tup` (10 dona), `top` (50 m) |
-| `superadmin` | `admin12345` | Ikkala tashkilotning egasi + Django admin paneli |
-| `omborchi` | `omborchi12345` | Omborchi — **faqat Chilonzor savdo nuqtasini ko‘radi** |
-
-Ikkita tashkilot ataylab: tenant izolyatsiyasini brauzerda o'zingiz
-tekshirib ko'rishingiz uchun.
-
-`omborchi` hisobi esa **ombor darajasidagi cheklovni** ko'rsatadi.
-`WarehouseAccess` ixtiyoriy: cheklov yozilmagan foydalanuvchi barcha
-omborlarni ko'radi (`qurilish` va `superadmin` shunday). `omborchi` da
-bitta qator bor, shuning uchun u faqat bitta omborni va faqat o'sha
-ombordagi qoldiqni ko'radi.
-
-`superadmin` `seed_demo` tomonidan yaratiladi va ikkala tashkilotga ega
-qilib qo'shiladi. **Django superuser huquqi faqat `/admin/` ga taalluqli** —
-interfeysda ma'lumot ko'rish uchun a'zolik kerak, chunki RLS superuserga ham
-qo'llanadi (jadvallarda `FORCE ROW LEVEL SECURITY`).
-
-Boshqa superuser kerak bo'lsa:
-
-```bash
-.venv/Scripts/python.exe manage.py createsuperuser
-```
-
-## 4. Frontend
+Frontend:
 
 ```bash
 cd front
 npm run dev
 ```
 
-Frontend: http://localhost:5173 — `/api` so'rovlari backendga proxy qilinadi.
+> **Eslatma:** tarmog'ingizda sertifikat MITM bor, shuning uchun
+> `npm install` kabi tarmoqqa chiqadigan buyruqlarga
+> `NODE_OPTIONS=--use-system-ca` prefiksi kerak. `npm run dev` va
+> `npm run build` uchun kerak emas.
 
-> **Eslatma:** tarmog'ingizda sertifikat MITM bor, shuning uchun `npm install`
-> kabi tarmoqqa chiqadigan buyruqlarga `NODE_OPTIONS=--use-system-ca` prefiksi
-> kerak. `npm run dev` va `npm run build` uchun kerak emas.
+---
 
-## 5. Testlar
+## 4. Namuna ma'lumot
 
 ```bash
-cd back
-.venv/Scripts/python.exe manage.py test              # hammasi
-.venv/Scripts/python.exe manage.py test apps.units   # bitta ilova
+.venv/Scripts/python.exe manage.py seed_demo
 ```
 
-Django test uchun `test_omborxona_xisobi` bazasini o'zi yaratadi va
-o'chiradi — shuning uchun `omborxona_app` roliga `CREATEDB` huquqi berilgan.
+Buyruq do'kon, 4 ta mahsulot (22 variant), ta'minotchi, tasdiqlangan
+kirim va ikkita sotuv yaratadi. Tugagach **login, parol va sinov uchun
+shtrix-kodni o'zi chiqaradi**.
 
-**Testlarda tenant konteksti majburiy.** RLS bilan himoyalangan jadvalga
-kontekstsiz murojaat qilsangiz nol qator qaytadi (xato emas — shunchaki
-bo'sh). Shuning uchun:
+Bazada allaqachon ma'lumot bo'lsa, buyruq to'xtaydi. Hammasini
+o'chirib qayta yaratish:
 
-```python
-from apps.core.tenancy import tenant_context
-
-with tenant_context(tenant.id):
-    CustomUnit.objects.create(name='mashina', definition='6 * m3')
+```bash
+.venv/Scripts/python.exe manage.py seed_demo --force
 ```
 
-## 6. Shtrix-kod bilan sinash
+> `seed_demo` **`DEBUG=False` bo'lganda umuman ishlamaydi**. Namuna
+> xodimlarning paroli oddiy va hammaga ma'lum — ular ishlab chiqarish
+> bazasiga tushmasligi kerak.
 
-Skaner yo'q bo'lsa ham sinash mumkin: **Kirim** yoki **Sotuv** formasidagi
-shtrix-kod maydoniga kodni qo'lda yozib **Enter** bosing — skaner ham
-aynan shuni qiladi.
+---
 
-Demo kodlar:
+## 5. Skanersiz sinash
 
-| Kod | Mahsulot | Tashkilot |
-|---|---|---|
-| `4780123456789` | Portlandsement M400 | qurilish |
-| `4780123456796` | Gips qurilish uchun | qurilish |
-| `4780123456802` | Metall profil 60x27 | qurilish |
-| `4780200000010` | Klassik ko'ylak — L / Oq | kiyim |
-| `4780200000011` | Klassik ko'ylak — L / Qora | kiyim |
-| `4780200000014` | Klassik ko'ylak — XL / Oq | kiyim |
+Skaner — oddiy klaviatura: kodni yozadi va Enter bosadi. Shuning uchun
+**shtrix-kodni qo'lda yozib Enter bosish** aynan skaner kabi ishlaydi.
 
-Kiyimda **har variantning o'z kodi** bor — kassada aynan qaysi o'lcham
-sotilgani ma'lum bo'lishi kerak.
-
-Tekshirib ko'ring:
+Sinab ko'ring:
 
 - bir kodni **ikki marta** skanerlang — yangi qator qo'shilmaydi,
   miqdor oshadi;
-- kod atrofida **bo'shliq** qoldiring (`" 4780123456796 "`) — baribir
-  topiladi;
-- boshqa tashkilotning kodini kiriting — topilmaydi.
+- kod atrofida **bo'shliq** qoldiring — baribir topiladi;
+- yo'q kodni kiriting — aniq xato chiqadi;
+- qoldiqdan ko'p miqdor qo'ying — sotuvga qo'ymaydi.
 
-## 7. Tashkilot almashtirish
+Qaytarish sahifasida chek raqamini (`SOT-2026-000001`) yoki chekdagi
+raqamli kodni (`2026000001`) kiriting — ikkalasi ham ishlaydi.
 
-`superadmin` ikkala demo tashkilotga a'zo. Interfeysda o'ng yuqoridagi
-ismni bosing — «Tashkilotni almashtirish» ro'yxati chiqadi.
+---
 
-Tanlov brauzerda saqlanadi va har so'rovga `X-Tenant-Id` sarlavhasi
-bilan yuboriladi. Almashtirilganda sahifa butunlay qayta yuklanadi:
-o'nlab store da oldingi tashkilot ma'lumoti qolgan bo'ladi va ularni
-bittalab tozalash xatoga yo'l ochardi.
-
-**Bu sarlavha ruxsat bermaydi — u faqat tanlov.** A'zoligi yo'q
-tashkilot ID si yuborilsa server 403 qaytaradi.
-
-## 8. Tenant izolyatsiyasini o'z ko'zingiz bilan ko'rish
-
-Backend ishlab turganda:
+## 6. Testlar
 
 ```bash
-# qurilish do'koni nomidan token olish
-curl -s -X POST http://127.0.0.1:8000/api/auth/login/ \
-     -H "Content-Type: application/json" \
-     -d '{"username":"qurilish","password":"demo12345"}'
+# Backend — 81 ta
+cd back
+.venv/Scripts/python.exe manage.py test
+.venv/Scripts/python.exe manage.py test apps.sales      # bitta ilova
 
-# olingan access token bilan birliklar ro'yxati
-curl -s http://127.0.0.1:8000/api/units/ -H "Authorization: Bearer <TOKEN>"
+# Frontend — 22 ta (pul hisobi va inventarizatsiya yordamchilari)
+cd front
+npm run test:unit
+npm run build            # type-check + qurish
 ```
 
-`qurilish` tokeni bilan `mashina` va `vagon`, `kiyim` tokeni bilan `tup` va
-`top` ko'rinadi. Bir-birinikini hech qanday usul bilan ko'rib bo'lmaydi —
-bu Django kodida emas, **bazaning o'zida** cheklangan.
+Testlar orasida ikkitasi alohida e'tiborga loyiq:
 
-Konversiya ham ajratilgan:
+- `ConcurrentSaleTests` va `ConcurrentReturnTests` — ikkita so'rovni
+  haqiqiy oqimlarda bir vaqtda yuboradi va faqat bittasi o'tishini
+  tekshiradi;
+- `MigrationStateTests` — model bilan migratsiya ajralib qolmaganini
+  tekshiradi (`makemigrations --check`).
+
+---
+
+## 7. Foydali buyruqlar
 
 ```bash
-# qurilish uchun ishlaydi -> "12"
-curl -s "http://127.0.0.1:8000/api/units-convert/?value=2%20mashina&unit=m3" \
-     -H "Authorization: Bearer <QURILISH_TOKEN>"
+# Qoldiq keshi jurnaldan ajralib qolganini tekshirish
+.venv/Scripts/python.exe manage.py recompute_stock
+.venv/Scripts/python.exe manage.py recompute_stock --fix
 
-# kiyim uchun xato -> "mashina" degan birlik u yerda yo'q
-curl -s "http://127.0.0.1:8000/api/units-convert/?value=2%20mashina&unit=m3" \
-     -H "Authorization: Bearer <KIYIM_TOKEN>"
+# Model o'zgargandan keyin
+.venv/Scripts/python.exe manage.py makemigrations
+.venv/Scripts/python.exe manage.py migrate
+
+# Administrator qo'shish
+.venv/Scripts/python.exe manage.py createsuperuser
 ```
 
-Bir foydalanuvchi bir nechta tashkilotga a'zo bo'lsa, `X-Tenant-Id`
-sarlavhasi bilan qaysi biri ekanini ko'rsatadi. A'zoligi yo'q tashkilot
-ID si berilsa — hech narsa ko'rinmaydi.
+---
 
-## 9. API hujjatlari
+## 8. API hujjatlari
 
 | Manzil | Nima |
 |---|---|
 | http://127.0.0.1:8000/api/docs/ | Swagger UI |
-| http://127.0.0.1:8000/api/redoc/ | ReDoc |
+| http://127.0.0.1:8000/api/schema/ | OpenAPI sxemasi |
 | http://127.0.0.1:8000/admin/ | Django admin |
 
-## 10. Foydali buyruqlar
-
-```bash
-# RLS to'g'ri sozlanganini tekshirish (superuser rol, yetishmayotgan policy)
-.venv/Scripts/python.exe manage.py check --database default
-
-# demo ma'lumotni qaytadan yaratish
-.venv/Scripts/python.exe manage.py seed_demo --reset
-
-# InvenTree manbasi NOTICE dagi digestga mos ekanini tekshirish
-.venv/Scripts/python.exe ../scripts/verify_source_digest.py
-
-# Markaziy bank valyuta kursini olish (bugungi / bitta sana / davr)
-.venv/Scripts/python.exe manage.py sync_exchange_rates
-.venv/Scripts/python.exe manage.py sync_exchange_rates --date 2026-09-01
-.venv/Scripts/python.exe manage.py sync_exchange_rates --from 2026-08-01 --to 2026-08-31
-```
-
-**Fon vazifalari lokalda.** `.env` da `REDIS_URL` bo'lmasa Celery vazifalari
-chaqirilgan joyning o'zida sinxron bajariladi — worker ham, Redis ham
-kerak emas. Faqat jadval (har kuni avtomatik kurs olish) ishlamaydi:
-kursni yuqoridagi buyruq bilan yoki **Sozlamalar → Valyuta kurslari →
-"Markaziy bankdan hozir olish"** tugmasi bilan oling.
-
-Redis bilan to'liq sinab ko'rish kerak bo'lsa (`.env` ga
-`REDIS_URL=redis://localhost:6379/0` qo'shib), ikki qo'shimcha oynada:
-
-```bash
-.venv/Scripts/celery.exe -A config worker --pool solo -l info   # Windows'da --pool solo shart
-.venv/Scripts/celery.exe -A config beat -l info
-```
-
-## 11. Yangi model qo'shganda — RLS ni unutmang
-
-Tashkilotga tegishli har bir model `apps.core.models.TenantOwnedModel` dan
-meros olishi va migratsiyasida RLS policy'si bo'lishi shart:
-
-```python
-# apps/<ilova>/migrations/000X_enable_rls.py
-from django.db import migrations
-from apps.core.db import enable_rls
-
-
-class Migration(migrations.Migration):
-    dependencies = [('<ilova>', '000X-1_...')]
-    operations = [enable_rls('<jadval_nomi>')]
-```
-
-Unutsangiz `manage.py check` xato beradi va deploy to'xtaydi —
-[apps/core/checks.py](../back/apps/core/checks.py) buni tekshiradi.
+**Ikkala hujjat manzili `DEBUG=False` bo'lganda butunlay o'chadi** —
+serverda API tuzilishi ochiq turmasligi kerak.

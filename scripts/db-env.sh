@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
 #
 # backup.sh va restore.sh uchun umumiy qism: baza sozlamalari va
-# pg_dump / pg_restore ni to'g'ri joyda ishga tushirish.
+# pg_dump / pg_restore chaqiruvi.
 #
-# Baza ikki xil joyda bo'lishi mumkin:
-#   - konteynerda (standart) — `docker compose exec db ...`
-#   - serverning o'zida — `.env.production` da POSTGRES_HOST berilgan
+# Baza serverning o'zida turadi (docker-compose.yml da `db` xizmati yo'q),
+# shuning uchun skriptlar to'g'ridan-to'g'ri PostgreSQL ga ulanadi.
 #
 # `.env.production` `source` qilinmaydi: SECRET_KEY dagi `(`, `&`, `$`
 # belgilari bash uchun buyruq bo'lib, skript jimgina buzilardi. Faqat
 # kerakli qatorlar o'qiladi.
 
 ENV_FILE="${ENV_FILE:-.env.production}"
-COMPOSE_SERVICE="${COMPOSE_SERVICE:-db}"
 
 env_value() {
     [[ -f "$ENV_FILE" ]] || return 0
@@ -23,31 +21,21 @@ POSTGRES_DB="${POSTGRES_DB:-$(env_value POSTGRES_DB)}"
 POSTGRES_USER="${POSTGRES_USER:-$(env_value POSTGRES_USER)}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(env_value POSTGRES_PASSWORD)}"
 POSTGRES_HOST="${POSTGRES_HOST:-$(env_value POSTGRES_HOST)}"
+POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}"
 
 : "${POSTGRES_DB:?POSTGRES_DB berilmagan}"
 : "${POSTGRES_USER:?POSTGRES_USER berilmagan}"
 
 # Chiqish — stdout ga (siqilgan ikkilik format)
 db_dump() {
-    if [[ -n "$POSTGRES_HOST" ]]; then
-        PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
-            -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc
-    else
-        docker compose exec -T "$COMPOSE_SERVICE" \
-            pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc
-    fi
+    PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
+        -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc
 }
 
 # Kirish — stdin dan. `--clean --if-exists`: mavjud obyektlarni o'chirib,
 # qaytadan yaratadi. `--no-owner`: egalik ilova roliga moslashadi.
 db_restore() {
-    if [[ -n "$POSTGRES_HOST" ]]; then
-        PGPASSWORD="$POSTGRES_PASSWORD" pg_restore \
-            -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-            --clean --if-exists --no-owner
-    else
-        docker compose exec -T "$COMPOSE_SERVICE" \
-            pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-            --clean --if-exists --no-owner
-    fi
+    PGPASSWORD="$POSTGRES_PASSWORD" pg_restore \
+        -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+        --clean --if-exists --no-owner
 }

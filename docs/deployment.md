@@ -1,7 +1,7 @@
-# Ishlab chiqarishga chiqarish
+# Serverga chiqarish
 
-Bu hujjat tizimni haqiqiy serverga qo'yish tartibini beradi. Lokal
-ishga tushirish uchun [development.md](./development.md) ga qarang.
+Lokal ishga tushirish uchun [development.md](./development.md) ga
+qarang. Tizim qanday ishlashi — [how-it-works.md](./how-it-works.md).
 
 ---
 
@@ -9,171 +9,144 @@ ishga tushirish uchun [development.md](./development.md) ga qarang.
 
 | Nima | Izoh |
 |---|---|
-| Server | 2 CPU, 4 GB RAM yetarli. Do'kon soni o'nlab bo'lsa ham. Ubuntu 22.04/24.04 |
-| Docker + Docker Compose | Compose 2.24.4+ (`docker compose version`) |
-| PostgreSQL 15+ | Konteynerda (standart) yoki serverning o'zida — 2B bo'lim |
-| Domen | Masalan `ombor.example.uz`, A yozuvi tashqi IP ga |
-| Reverse proxy | Caddy — HTTPS sertifikati uchun (3-bo'lim) |
+| Server | 2 CPU, 2 GB RAM yetarli. Ubuntu 22.04 yoki 24.04 |
+| Docker + Docker Compose | Compose 2.x (`docker compose version`) |
+| **PostgreSQL 15+** | Serverning o'zida. 15-versiya majburiy: variantlar cheklovi `NULLS NOT DISTINCT` dan foydalanadi |
+| Domen | Masalan `dokon.example.uz`, `A` yozuvi serverning tashqi IP siga |
+| Caddy | HTTPS sertifikati uchun (5-bo'lim) |
 
-**Nima uchun HTTPS `docker-compose.yml` da yo'q.** Sertifikat
-yangilanishi ilova hayot siklidan mustaqil bo'lishi kerak: ilovani
-qayta qurganingizda sertifikat ishlashda davom etsin. Shuning uchun
-tashqi proxy tavsiya qilinadi.
+**Baza nima uchun konteynerda emas.** Do'kon bitta, baza kichik.
+Serverdagi PostgreSQL ni zaxiralash, yangilash va kuzatish oddiyroq,
+va baza konteyner qayta qurilishiga bog'liq bo'lmaydi.
 
-**PostgreSQL 15+ nima uchun.** Qoldiq jadvalidagi unikal cheklov
-`NULLS NOT DISTINCT` dan foydalanadi (15-versiyadan). Ubuntu 22.04 ning
-o'z paketi 14 — shuning uchun rasmiy PGDG repozitoriyasi ishlatiladi.
+**HTTPS nima uchun compose'da yo'q.** Sertifikat yangilanishi ilova
+hayot siklidan mustaqil bo'lishi kerak: ilovani qayta qurganingizda
+sertifikat ishlashda davom etsin.
 
 ---
 
-## 2. Birinchi ishga tushirish
+## 2. PostgreSQL
 
-```bash
-sudo mkdir -p /srv && sudo chown "$USER" /srv
-git clone https://github.com/07turdiev/omborxona_xisobi.git /srv/omborxona
-cd /srv/omborxona
-
-cp .env.production.example .env.production
-# compose ${...} qiymatlarini `.env` dan oladi — ikkalasi bitta fayl bo'lsin
-ln -s .env.production .env
-chmod 600 .env.production
-```
-
-Maxfiy qiymatlarni yarating (faqat harf va raqam — `$` compose'ni,
-`@ :` esa DATABASE_URL ni buzadi):
-
-```bash
-openssl rand -hex 50   # SECRET_KEY
-openssl rand -hex 24   # POSTGRES_PASSWORD
-```
-
-`.env.production` ni to'ldiring (`nano .env.production`). **Majburiy**:
-
-| O'zgaruvchi | Nima |
-|---|---|
-| `SECRET_KEY` | Birinchi buyruq natijasi |
-| `ALLOWED_HOSTS` | Domeningiz: `ombor.example.uz` |
-| `CSRF_TRUSTED_ORIGINS` | `https://` bilan: `https://ombor.example.uz` |
-| `POSTGRES_PASSWORD` | Ikkinchi buyruq natijasi |
-
-### 2A. Baza konteynerda (standart)
-
-Qo'shimcha hech narsa kerak emas — 2C ga o'ting.
-
-### 2B. Baza serverning o'zida (native PostgreSQL)
-
-**1. O'rnatish** (rasmiy PGDG repozitoriyasidan):
+Rasmiy PGDG repozitoriyasidan (Ubuntu paketi eski bo'lishi mumkin):
 
 ```bash
 sudo apt install -y postgresql-common
-sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh   # Enter bosing
-sudo apt install -y postgresql-18
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh   # Enter
+sudo apt install -y postgresql-17
 ```
 
-**2. Rol va baza.** `PAROL` o'rniga `.env.production` dagi
-`POSTGRES_PASSWORD` ni qo'ying:
+Rol va baza. `PAROL` o'rniga o'zingiz yaratgan qiymatni qo'ying
+(`openssl rand -hex 24`):
 
 ```bash
 sudo -u postgres psql <<'SQL'
-CREATE ROLE omborxona_app LOGIN PASSWORD 'PAROL'
-    NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
-CREATE DATABASE omborxona_xisobi OWNER omborxona_app
+CREATE ROLE dokon_app LOGIN PASSWORD 'PAROL' NOSUPERUSER NOCREATEROLE;
+CREATE DATABASE dokon OWNER dokon_app
     ENCODING 'UTF8' TEMPLATE template0
     LOCALE_PROVIDER icu ICU_LOCALE 'uz-UZ' LOCALE 'C.UTF-8';
-\c omborxona_xisobi
-CREATE EXTENSION IF NOT EXISTS ltree;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS btree_gin;
 SQL
 ```
 
-- `NOSUPERUSER NOBYPASSRLS` — **majburiy**: aks holda RLS bu rolga
-  qo'llanmaydi va tashkilotlar bir-birining ma'lumotini ko'radi.
-- Rol baza egasi — migratsiya jadval yarata oladi. Jadvallarda
-  `FORCE ROW LEVEL SECURITY` yoqilgani uchun egalik RLS ni chetlab
-  o'tmaydi.
-- Extensionlar `postgres` nomidan oldindan yaratiladi; migratsiya ularni
-  mavjud deb o'tkazib yuboradi.
-- `ICU_LOCALE 'uz-UZ'` — nomlar o'zbekcha tartibda saralanadi.
+`ICU_LOCALE 'uz-UZ'` — nomlar o'zbekcha tartibda saralanadi.
 
-**3. Docker konteynerlaridan ulanish.** Konteynerlar serverga
-`172.16.0.0/12` tarmog'idan keladi:
+### Konteynerdan ulanish
+
+Konteynerlar serverga Docker tarmog'idan (`172.16.0.0/12`) keladi:
 
 ```bash
-PGCONF=/etc/postgresql/18/main
+PGCONF=/etc/postgresql/17/main
 sudo sed -i "s/^#\?listen_addresses.*/listen_addresses = '*'/" $PGCONF/postgresql.conf
-echo "host omborxona_xisobi omborxona_app 172.16.0.0/12 scram-sha-256" \
-  | sudo tee -a $PGCONF/pg_hba.conf
+echo "host dokon dokon_app 172.16.0.0/12 scram-sha-256" | sudo tee -a $PGCONF/pg_hba.conf
 sudo systemctl restart postgresql
 ```
 
-**4. Firewall.** `listen_addresses = '*'` bo'lgani uchun 5432 port
-tashqaridan yopiq bo'lishi shart:
+`listen_addresses = '*'` bo'lgani uchun 5432 port tashqaridan **yopiq
+bo'lishi shart**:
 
 ```bash
 sudo ufw allow OpenSSH          # AVVAL shu — aks holda SSH uziladi
 sudo ufw allow 80,443/tcp
 sudo ufw allow from 172.16.0.0/12 to any port 5432 proto tcp
 sudo ufw enable
-sudo ufw status
 ```
 
-**5. `.env.production`** da B bo'limidagi uch qatorni oching (`#` ni
-olib tashlang) va `PAROL` ni almashtiring:
+---
+
+## 3. Sozlamalar
 
 ```bash
-COMPOSE_FILE=docker-compose.yml:docker-compose.hostdb.yml
-POSTGRES_HOST=127.0.0.1
-DATABASE_URL=postgres://omborxona_app:PAROL@host.docker.internal:5432/omborxona_xisobi
+sudo mkdir -p /srv && sudo chown "$USER" /srv
+git clone <repo-manzili> /srv/dokon
+cd /srv/dokon
+
+cp .env.production.example .env.production
+ln -s .env.production .env      # compose ${...} ni `.env` dan oladi
+chmod 600 .env.production
 ```
 
-`COMPOSE_FILE` tufayli keyingi barcha `docker compose` buyruqlari
-`docker-compose.hostdb.yml` ni o'zi qo'shadi: baza konteyneri ishga
-tushmaydi, backend serverdagi bazaga ulanadi.
+Maxfiy qiymatlarni yarating (faqat harf va raqam — `$` compose'ni,
+`@ :` esa `DATABASE_URL` ni buzadi):
 
-Zaxira skriptlari `POSTGRES_HOST` ni ko'rib, `pg_dump` ni serverning
-o'zida ishga tushiradi.
+```bash
+openssl rand -hex 50   # SECRET_KEY
+openssl rand -hex 24   # baza paroli
+```
 
-### 2C. Ishga tushirish
+`.env.production` da **majburiy**: `SECRET_KEY`, `ALLOWED_HOSTS`,
+`CSRF_TRUSTED_ORIGINS`, `DATABASE_URL`, hamda zaxira skriptlari uchun
+`POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`.
+
+`DEBUG=False` bo'lishi shart. Shunda `/api/docs/` va `/api/schema/`
+butunlay o'chadi.
+
+---
+
+## 4. Ishga tushirish
 
 ```bash
 docker compose config --quiet && echo "compose sozlamasi to'g'ri"
-
-docker compose build
-docker compose up -d
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py createsuperuser
+docker compose up -d --build
 ```
 
-`createsuperuser` — tizim superadmini. U interfeysdagi **Kompaniyalar**
-bo'limidan do'konlarni va ularning egalarini ochadi.
+**Migratsiya avtomatik qo'llanadi** — konteyner ishga tushganda
+`back/entrypoint.sh` avval `migrate` ni bajaradi, keyin gunicorn ni
+ochadi. Qo'lda bajarish shart emas.
+
+Administrator yarating:
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
 
 Tekshirish:
 
 ```bash
-docker compose ps
+docker compose ps                    # backend "healthy" bo'lishi kerak
 docker compose exec backend python manage.py check --deploy
-docker compose exec backend python manage.py check --database default
 curl -sI http://127.0.0.1:8080 | head -1     # HTTP/1.1 200 OK
 ```
 
-`check --database default` **eng muhimi**: u har bir jadvalda RLS policy
-borligini va baza roli `SUPERUSER`/`BYPASSRLS` emasligini tekshiradi.
+`docker compose ps` dagi holat muhim: backend konteynerining
+tekshiruvi `migrate --check` ni bajaradi, ya'ni "healthy" bo'lmasa
+baza sxemasi koddan orqada qolgan.
+
+> `check --deploy` ikkita HSTS ogohlantirishi beradi
+> (`SECURE_HSTS_INCLUDE_SUBDOMAINS`, `SECURE_HSTS_PRELOAD`). Bu
+> ataylab — 6-bo'limga qarang.
 
 ---
 
-## 3. HTTPS: domen, router va Caddy
+## 5. HTTPS
 
-**1. DNS.** Domen boshqaruv panelida `A` yozuvi: `ombor.example.uz` →
-ofisning **tashqi** IP manzili (`curl -s ifconfig.me` serverda ko'rsatadi).
-Provayder statik tashqi IP bermasa, sertifikat olinmaydi — avval shuni
-hal qiling.
+**1. DNS.** Domen panelida `A` yozuvi serverning tashqi IP siga
+(`curl -s ifconfig.me` serverda ko'rsatadi). Statik tashqi IP bo'lmasa
+sertifikat olinmaydi.
 
-**2. Router.** 80 va 443 portlarni server ichki IP siga
-(`192.168.100.61`) yo'naltiring (port forwarding / NAT). Let's Encrypt
-sertifikat berishdan oldin domen orqali 80-portga ulanib tekshiradi.
+**2. Router.** Server ofisda bo'lsa, 80 va 443 portlarni serverning
+ichki manziliga yo'naltiring (port forwarding). Let's Encrypt
+sertifikat berishdan oldin domen orqali 80-portga ulanadi.
 
-**3. Caddy** (serverning o'zida):
+**3. Caddy:**
 
 ```bash
 sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
@@ -184,11 +157,10 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
 sudo apt update && sudo apt install -y caddy
 ```
 
-`/etc/caddy/Caddyfile` (`sudo nano /etc/caddy/Caddyfile`, eski
-tarkibni to'liq almashtiring):
+`/etc/caddy/Caddyfile`:
 
 ```
-ombor.example.uz {
+dokon.example.uz {
     encode gzip
     reverse_proxy 127.0.0.1:8080
 }
@@ -196,23 +168,17 @@ ombor.example.uz {
 
 ```bash
 sudo systemctl reload caddy
-sudo journalctl -u caddy -f      # "certificate obtained successfully" ni kuting
+sudo journalctl -u caddy -f      # "certificate obtained successfully"
 ```
 
-Caddy sertifikatni o'zi oladi va yangilaydi. `WEB_PORT` ni
-`.env.production` da o'zgartirsangiz, bu yerda ham o'zgartiring.
-
-**Nima uchun frontend porti faqat `127.0.0.1` da.** Docker o'z portlarini
-UFW dan chetlab ochadi — `0.0.0.0:8080` bo'lsa firewall uni to'smaydi
-va saytga HTTPS'siz kirish mumkin bo'lardi. Qolaversa frontend nginx
-Caddy yuborgan `X-Forwarded-Proto` ga ishonadi; unga faqat Caddy
-ulanishi kerak.
+**Frontend porti nima uchun faqat `127.0.0.1` da.** Docker o'z
+portlarini UFW dan chetlab ochadi — `0.0.0.0:8080` bo'lsa firewall uni
+to'smaydi va saytga HTTPS'siz kirish mumkin bo'lardi.
 
 ---
 
-## 4. Xavfsizlik: nima tekshirilgan
+## 6. Xavfsizlik
 
-Django `check --deploy` quyidagilarni talab qiladi va ular
 `DEBUG=False` bo'lganda avtomatik yoqiladi
 ([back/config/settings.py](../back/config/settings.py)):
 
@@ -220,20 +186,30 @@ Django `check --deploy` quyidagilarni talab qiladi va ular
 |---|---|
 | `SECURE_SSL_REDIRECT` | HTTP so'rovni HTTPS ga yo'naltiradi |
 | `SECURE_PROXY_SSL_HEADER` | Proxy orqasida HTTPS ni to'g'ri aniqlaydi |
-| `SESSION_COOKIE_SECURE` | Cookie faqat HTTPS orqali ketadi |
-| `CSRF_COOKIE_SECURE` | CSRF tokeni ham |
+| `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` | Cookie faqat HTTPS orqali |
 | `SESSION_COOKIE_HTTPONLY` | JavaScript cookie'ni o'qiy olmaydi |
 | `X_FRAME_OPTIONS = DENY` | Sahifani begona iframe'ga solib bo'lmaydi |
 | `SECURE_CONTENT_TYPE_NOSNIFF` | Brauzer Content-Type ni taxmin qilmaydi |
 
-### HSTS haqida ogohlantirish
+### `/admin/` yopiq
 
-`SECURE_HSTS_SECONDS` — brauzerga «bu domenga faqat HTTPS orqali
-murojaat qil» deydi. **Qaytarib olish qiyin**: brauzer qiymatni eslab
-qoladi va muddat tugagunicha HTTP ga tushmaydi. Sertifikat buzilsa,
-sayt butunlay ochilmay qoladi.
+Django admin paneli **domen orqali ochilmaydi**: `front/nginx.conf` da
+u 404 qaytaradi. Sabab — admin paneli butun bazaga to'g'ridan-to'g'ri
+yo'l ochadi, kundalik ishda esa umuman kerak emas (hamma narsa
+ilovaning o'z interfeysida).
 
-Shuning uchun:
+Kerak bo'lganda serverning o'zida buyruq bilan:
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py recompute_stock --fix
+```
+
+### HSTS haqida
+
+`SECURE_HSTS_SECONDS` brauzerga «bu domenga faqat HTTPS orqali murojaat
+qil» deydi. **Qaytarib olish qiyin**: brauzer qiymatni eslab qoladi va
+muddat tugagunicha HTTP ga tushmaydi.
 
 1. Boshida `3600` (1 soat) bilan qoldiring — namunada shunday.
 2. Sertifikat bir necha hafta barqaror ishlaganiga ishonch hosil qiling.
@@ -243,7 +219,7 @@ Shuning uchun:
 
 ---
 
-## 5. Zaxira nusxa
+## 7. Zaxira nusxa
 
 **Bu ixtiyoriy emas.** Ombor hisobi — do'konning moliyaviy tarixi;
 uni yo'qotish tovarni yo'qotishdan og'irroq.
@@ -251,12 +227,10 @@ uni yo'qotish tovarni yo'qotishdan og'irroq.
 ```bash
 chmod +x scripts/backup.sh scripts/restore.sh
 
-# Qo'lda
-./scripts/backup.sh
+./scripts/backup.sh                  # qo'lda
 
-# Har kuni soat 3 da
-crontab -e
-0 3 * * * cd /srv/omborxona && ./scripts/backup.sh >> /var/log/ombor-backup.log 2>&1
+crontab -e                           # har kuni soat 3 da
+0 3 * * * cd /srv/dokon && ./scripts/backup.sh >> /var/log/dokon-backup.log 2>&1
 ```
 
 Skript bo'sh yoki juda kichik fayl chiqsa **xato bilan tugaydi**.
@@ -265,130 +239,77 @@ bo'sh fayl saqlanayotgan bo'lishi.
 
 Nusxalar 30 kun saqlanadi (`KEEP_DAYS` bilan o'zgartiriladi).
 
-### Zaxirani serverdan tashqariga chiqaring
+### Serverdan tashqariga chiqaring
 
-Server ishdan chiqsa, undagi zaxira ham yo'qoladi. Kamida:
+Server ishdan chiqsa, undagi zaxira ham yo'qoladi:
 
 ```bash
-# Boshqa serverga
-0 4 * * * rsync -a /srv/omborxona/backups/ backup@boshqa-server:/backups/ombor/
+0 4 * * * rsync -a /srv/dokon/backups/ zaxira@boshqa-server:/backups/dokon/
 ```
 
 ### Tiklashni sinab ko'ring
 
 ```bash
-./scripts/restore.sh backups/omborxona_xisobi-20260909-030000.dump
+./scripts/restore.sh backups/dokon-20260916-030000.dump
 ```
 
 **Yiliga kamida bir marta sinang.** Tiklanmaydigan zaxira — zaxira
-emas, faqat xotirjamlik illyuziyasi. Skript tiklashdan oldin joriy
-holatning nusxasini oladi, ya'ni sinov xavfsiz.
+emas. Skript tiklashdan oldin joriy holatning nusxasini oladi, ya'ni
+sinov xavfsiz.
 
 ---
 
-## 6. Yangilanish
+## 8. Yangilash
 
 ```bash
-cd /srv/omborxona
+cd /srv/dokon
 git pull
-
-docker compose build
-docker compose exec backend python manage.py migrate
-docker compose up -d
-
-docker compose exec backend python manage.py check --database default
+docker compose up -d --build
+docker compose ps        # backend yana "healthy" bo'lishini kuting
 ```
 
-Migratsiyani konteynerni qayta ishga tushirishdan **oldin** bajaring:
-yangi kod eski sxemada ishlamasligi mumkin.
+Migratsiya konteyner ishga tushganda o'zi qo'llanadi. Agar backend
+"unhealthy" bo'lib qolsa — migratsiya yiqilgan:
+
+```bash
+docker compose logs backend | tail -30
+```
 
 ---
 
-## 7. Kuzatish
+## 9. Kuzatish
 
 ```bash
-# Loglar
 docker compose logs -f backend
-docker compose logs -f db
-docker compose logs -f worker beat   # fon vazifalari
-
-# Holat
 docker compose ps
 
 # Baza hajmi
-docker compose exec db psql -U omborxona_app -d omborxona_xisobi \
-  -c "SELECT pg_size_pretty(pg_database_size('omborxona_xisobi'))"
+sudo -u postgres psql -d dokon -c "SELECT pg_size_pretty(pg_database_size('dokon'))"
 
 # Eng katta jadvallar
-docker compose exec db psql -U omborxona_app -d omborxona_xisobi -c "
+sudo -u postgres psql -d dokon -c "
   SELECT relname, pg_size_pretty(pg_total_relation_size(relid))
   FROM pg_catalog.pg_statio_user_tables
   ORDER BY pg_total_relation_size(relid) DESC LIMIT 10"
 ```
 
-### Fon vazifalari
-
-`worker` va `beat` konteynerlari Celery'ni ishga tushiradi. Hozircha bitta
-vazifa bor — **Markaziy bank valyuta kursi**, kuniga uch marta (08:05,
-12:05, 17:05 Toshkent vaqti). U nima uchun muhim: kurs yangilanmasa,
-tizim eng oxirgi eski kursni ishlatadi va dollar kirimining tannarxi
-jimgina noto'g'ri hisoblanadi.
-
-Ishlayotganini tekshirish:
-
-```bash
-# beat jadvalni yuboryaptimi
-docker compose logs beat | grep sync-cbu
-
-# worker bajaryaptimi — "Markaziy bank kursi yozildi" qatori
-docker compose logs worker | grep "kursi yozildi"
-
-# qo'lda, hoziroq
-docker compose exec backend python manage.py sync_exchange_rates
-```
-
-`beat` **faqat bitta nusxada** ishlashi kerak (`docker compose up --scale
-beat=2` qilmang) — aks holda har vazifa ikki marta yuboriladi.
-
-Celery'siz server bo'lsa (masalan oddiy VPS, Docker'siz), xuddi shu ishni
-cron bajaradi:
-
-```bash
-5 8,12,17 * * * cd /app && python manage.py sync_exchange_rates
-```
-
-`stock_stockmovement` eng tez o'sadigan jadval bo'ladi — u append-only
-jurnal va hech qachon tozalanmaydi. Bu ataylab: u haqiqat manbai.
+`inventory_stockmovement` eng tez o'sadigan jadval bo'ladi — u faqat
+qo'shiladigan jurnal va hech qachon tozalanmaydi. Bu ataylab: u
+haqiqat manbai.
 
 ---
 
-## 8. Chiqarishdan oldin ro'yxat
+## 10. Chiqarishdan oldin ro'yxat
 
 - [ ] `.env.production` to'ldirilgan, `SECRET_KEY` yangi
 - [ ] `DEBUG=False`
 - [ ] `ALLOWED_HOSTS` da faqat haqiqiy domen
-- [ ] Baza roli `SUPERUSER`/`BYPASSRLS` emas
-- [ ] `check --deploy` va `check --database default` toza
+- [ ] `docker compose ps` — backend **healthy**
+- [ ] `check --deploy` da faqat ikkita HSTS ogohlantirishi
 - [ ] HTTPS ishlaydi, sertifikat avtomatik yangilanadi
+- [ ] `https://domen/admin/` — **404** qaytaradi
+- [ ] `https://domen/api/docs/` — **404** qaytaradi (`DEBUG=False`)
 - [ ] Zaxira cron ga qo'yilgan va **bir marta tiklab sinalgan**
 - [ ] Zaxira boshqa serverga ko'chiriladi
-- [ ] `worker` va `beat` ishlayapti, sozlamalarda bugungi sanali
-      "Markaziy bank" kursi paydo bo'lgan
-- [ ] **Demo parollar almashtirilgan** — `demo12345`, `admin12345`,
-      `omborchi12345` hujjatlarda ochiq yozilgan
-- [ ] Demo ma'lumot o'chirilgan yoki haqiqiy ma'lumot bilan
-      almashtirilgan (`seed_demo` faqat sinov uchun)
-
-Oxirgi ikkitasi ayniqsa muhim: demo hisoblar `owner` rolida va ular
-bilan hamma narsani o'zgartirish mumkin.
-
----
-
-## 9. Hali qilinmagan
-
-| Nima | Nega kerak bo'lishi mumkin |
-|---|---|
-| Og'ir hisobotlarni fonga o'tkazish | Celery tayyor, lekin hisobotlar hozircha tez va sinxron. O'nlab ming yozuvda sekinlashsa, Excel eksportini vazifaga aylantirish kerak bo'ladi |
-| Termal chek formati | Hozir chop etish brauzer orqali, har qanday printerda ishlaydi. 58/80 mm uchun maxsus shablon printer turi aniqlangach |
-| Sentry yoki shunga o'xshash | Xatolarni loglardan qidirish o'rniga bildirishnoma olish |
-| Ko'p til | Interfeys faqat o'zbekcha; dizayn prototipida ru/en ham bor edi |
+- [ ] Namuna ma'lumot yo'q (`seed_demo` serverda umuman ishlamaydi)
+- [ ] Haqiqiy xodimlar yaratilgan, parollari kuchli

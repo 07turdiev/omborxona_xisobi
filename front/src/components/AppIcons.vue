@@ -117,23 +117,8 @@
           <path d="M14 4H20V20H14"/>
       </symbol>
   
-      <symbol id="i-image" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="16" rx="2"/>
-          <circle cx="9" cy="10" r="2"/>
-          <path d="M21 16L16 11L8 19"/>
-      </symbol>
   
-      <symbol id="i-calendar" viewBox="0 0 24 24">
-          <rect x="3" y="5" width="18" height="16" rx="2"/>
-          <path d="M7 3V7"/>
-          <path d="M17 3V7"/>
-          <path d="M3 10H21"/>
-      </symbol>
   
-      <symbol id="i-map" viewBox="0 0 24 24">
-          <path d="M12 21C12 21 19 14.5 19 8.5A7 7 0 1 0 5 8.5C5 14.5 12 21 12 21Z"/>
-          <circle cx="12" cy="8.5" r="2.5"/>
-      </symbol>
   
   </svg>
 </template>

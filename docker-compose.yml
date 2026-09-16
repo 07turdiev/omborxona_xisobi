@@ -1,53 +1,23 @@
-# Ishlab chiqarish uchun tarkib.
+# Ishlab chiqarish tarkibi: backend va frontend.
 #
-# Ishga tushirish (to'liq tartib: docs/deployment.md):
+# Baza konteynerda emas — serverning o'zida (native PostgreSQL 15+).
+# Sabab: do'kon bitta, baza kichik, va serverdagi PostgreSQL ni
+# zaxiralash, yangilash va kuzatish oddiyroq. To'liq tartib:
+# docs/deployment.md.
+#
+# Ishga tushirish:
 #   cp .env.production.example .env.production
-#   # .env.production ni to'ldiring (parollar, domen)
-#   ln -s .env.production .env     # compose ${...} qiymatlarini `.env` dan oladi
+#   # .env.production ni to'ldiring
+#   ln -s .env.production .env     # compose ${...} ni `.env` dan oladi
 #   docker compose up -d --build
-#   docker compose exec backend python manage.py migrate
-#   docker compose exec backend python manage.py createsuperuser
 #
-# Baza serverning o'zida (native PostgreSQL) bo'lsa — docker-compose.hostdb.yml.
+# Migratsiya konteyner ishga tushganda avtomatik qo'llanadi
+# (back/entrypoint.sh), qo'lda bajarish shart emas.
 #
-# HTTPS bu yerda yo'q: sertifikatni tashqi reverse proxy (Caddy,
-# Traefik yoki nginx + certbot) bergani ma'qul. Sabab — sertifikat
-# yangilanishi ilova hayot siklidan mustaqil bo'lishi kerak.
+# HTTPS bu yerda yo'q: sertifikatni tashqi reverse proxy (Caddy) beradi.
+# Sabab — sertifikat yangilanishi ilova hayot siklidan mustaqil bo'lsin.
 
 services:
-  db:
-    image: postgres:18-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # O'zbekcha saralash uchun
-      LANG: en_US.utf8
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # Extensionlar migratsiya orqali o'rnatiladi (core/0001_extensions),
-      # shuning uchun init skript kerak emas
-    healthcheck:
-      # Backend baza tayyor bo'lgunicha kutadi — aks holda birinchi
-      # ishga tushishda migratsiya yiqiladi
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  redis:
-    image: redis:8-alpine
-    restart: unless-stopped
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
   backend:
     build:
       context: ./back
@@ -55,9 +25,10 @@ services:
     env_file:
       - .env.production
     environment:
-      # Konteynerlar bir-birini nom orqali topadi
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL berilmagan}
+    extra_hosts:
+      # Konteyner ichidan serverning o'ziga yo'l
+      - 'host.docker.internal:host-gateway'
     volumes:
       # Yuklangan rasmlar konteyner qayta qurilganda yo'qolmasin
       - media_data:/app/media
@@ -69,50 +40,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  # Fon vazifalarini bajaradi (hozircha: Markaziy bank kursi).
-  # Backend bilan bir xil obraz, faqat buyruq boshqa.
-  worker:
-    build:
-      context: ./back
-    restart: unless-stopped
-    command: celery -A config worker --loglevel info --concurrency 2
-    env_file:
-      - .env.production
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379/0
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  # Jadval: vazifalarni belgilangan vaqtda navbatga qo'yadi.
-  # **Faqat bitta nusxa** ishlashi kerak — ikkita beat har vazifani
-  # ikki marta yuboradi. Kurs sinxronlash takrorga chidamli, lekin
-  # keyin qo'shiladigan vazifalar shunday bo'lmasligi mumkin.
-  beat:
-    build:
-      context: ./back
-    restart: unless-stopped
-    # Jadval holati /tmp da: konteyner qayta ishga tushsa, o'tkazib
-    # yuborilgan vazifa keyingi jadval vaqtida bajariladi — kurs uchun
-    # bu yetarli (kuniga uch marta ishlaydi).
-    command: celery -A config beat --loglevel info --schedule /tmp/celerybeat-schedule
-    env_file:
-      - .env.production
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379/0
-    depends_on:
-      redis:
-        condition: service_healthy
 
   frontend:
     build:
@@ -123,14 +50,12 @@ services:
       - media_data:/usr/share/nginx/media:ro
     ports:
       # Faqat serverning o'zida ochiq — tashqaridan faqat reverse proxy
-      # (Caddy) orqali. Docker o'z portlarini UFW dan chetlab ochadi,
-      # shuning uchun `0.0.0.0` bo'lsa firewall uni to'smasdi va HTTPS
-      # ni chetlab o'tib bo'lardi.
+      # orqali. Docker o'z portlarini UFW dan chetlab ochadi, shuning
+      # uchun `0.0.0.0` bo'lsa firewall uni to'smasdi va HTTPS ni
+      # chetlab o'tib bo'lardi.
       - '${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:80'
     depends_on:
       - backend
 
 volumes:
-  postgres_data:
-  redis_data:
   media_data:
