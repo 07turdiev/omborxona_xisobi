@@ -2253,3 +2253,97 @@ svg {
     color: var(--text-muted);
     font-size: 11px;
 }
+
+/* Ichida forma boladigan karta: jadval kartasi bilan bir xil ramka,
+   lekin ichki bosh joy bilan */
+.card-padded {
+    padding: 16px;
+}
+
+.card-padded > h3 {
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+
+.card-padded .field {
+    margin-bottom: 10px;
+}
+
+/* =========================================================
+   HOLAT BELGISI, XABARLAR va AMAL TUGMALARI
+
+   Bu qoidalar ilgari boshqa bolimlar bilan aralash edi.
+   Sodda tizimda faqat shu bir nechtasi kerak.
+   ========================================================= */
+
+.app-shell {
+    min-height: 100vh;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 2px 8px;
+    border-radius: 999px;
+
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pill-green {
+    background: var(--green-soft);
+    color: var(--green);
+}
+
+.pill-red {
+    background: var(--red-soft);
+    color: var(--red);
+}
+
+.pill-grey {
+    background: var(--gray-1);
+    color: var(--gray-7);
+}
+
+/* Yuklashdagi xato: qizil, sahifa tepasida */
+.load-error {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+
+    background: var(--red-soft);
+    color: var(--red);
+    font-size: 13px;
+}
+
+/* Muvaffaqiyatli amal haqida xabar */
+.notice {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    background: var(--accent-soft);
+    color: var(--text);
+    font-size: 13px;
+}
+
+.field-hint {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+/* Jadvaldagi tugmalar: katak ichida qatorga sigmasa pastga tushadi */
+.row-actions {
+    white-space: normal;
+}
+
+.row-actions .button {
+    margin: 2px 0 2px 6px;
+}
