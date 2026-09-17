@@ -94,6 +94,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Sozlamalar', admin: true },
   },
   {
+    path: '/settings/devices',
+    name: 'devices',
+    component: () => import('@/views/DeviceTestView.vue'),
+    meta: { title: 'Qurilmalarni sinash', admin: true },
+  },
+  {
     path: '/login',
     name: 'login',
     component: () => import('@/views/LoginView.vue'),

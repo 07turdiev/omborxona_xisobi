@@ -70,6 +70,27 @@ narx, qo'llab-quvvatlash).
 
 ---
 
+## Ochiq savol: jimgina chop etish
+
+Hozir har chek va yorliq uchun Chrome'ning chop etish oynasi ochiladi va
+kassir **Print** ni bosadi. Kun bo'yi bu ortiqcha harakat.
+
+Chrome'da `--kiosk-printing` bayrog'i oynani ochmasdan chop etadi, lekin
+u **faqat standart printerga** yuboradi. Bizda esa ikkita printer bor
+(yorliq va chek), ya'ni bitta standart printer yetmaydi.
+
+Keyinroq baholanadigan variantlar:
+
+| Variant | Ma'nosi |
+|---|---|
+| Alohida Chrome profili | Yorliq chop etish uchun ikkinchi profil/oyna, unda standart printer — yorliq printeri |
+| Kichik lokal yordamchi dastur | Kompyuterda turadigan kichik xizmat: dastur unga hujjatni yuboradi, u kerakli printerga uzatadi |
+
+**Hozircha amalga oshirilmaydi** — avval qurilmalar haqiqiy ishda
+sinalsin, keyin qaysi biri arzonroq tushishi ko'rinadi.
+
+---
+
 ## Keyin kerak bo'lishi mumkin
 
 - **Mijozlar bazasi va sodiqlik** — hozir chek anonim

@@ -46,7 +46,8 @@ defineExpose({ printLabels })
       <span class="label-variant">{{ item.label }}</span>
       <strong class="label-price">{{ formatMoney(item.price) }} so‘m</strong>
 
-      <BarcodeImage :value="item.barcode" format="EAN13" :height="22" :width="1.1" :font-size="9" />
+      <!-- Chiziq balandligi 12 mm — standart talab qiladigan eng kam o'lcham -->
+      <BarcodeImage :value="item.barcode" format="EAN13" :height-mm="12" :text-mm="2.2" />
     </div>
   </div>
 </template>
@@ -75,23 +76,31 @@ defineExpose({ printLabels })
   break-after: auto;
 }
 
+/* Yorliqdagi o'lchamlar millimetrda: 30 mm balandlikka shtrix-kod
+   uchun 12 mm qoldirish kerak, shuning uchun matnlar aniq o'lchangan. */
 .label-shop {
-  font-size: 6pt;
+  font-size: 2mm;
+  line-height: 1.1;
 }
 
 .label-name {
-  font-size: 7pt;
+  font-size: 2.6mm;
   font-weight: 600;
   line-height: 1.1;
-  max-height: 2.4em;
+  max-height: 2.9mm;
   overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .label-variant {
-  font-size: 6pt;
+  font-size: 2.2mm;
+  line-height: 1.1;
 }
 
 .label-price {
-  font-size: 9pt;
+  font-size: 3.2mm;
+  line-height: 1.1;
 }
 </style>

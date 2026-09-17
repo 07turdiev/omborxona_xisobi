@@ -98,7 +98,8 @@ defineExpose({ printReceipt })
     </div>
 
     <div class="receipt-barcode">
-      <BarcodeImage :value="barcodeValue" format="CODE128" :height="34" :width="1.3" />
+      <!-- 72 mm bosiladigan enda 27.5 mm kod bemalol joylashadi -->
+      <BarcodeImage :value="barcodeValue" format="CODE128" :height-mm="15" :text-mm="3" />
       <small>Qaytarish uchun shu chekni saqlang</small>
     </div>
   </div>
