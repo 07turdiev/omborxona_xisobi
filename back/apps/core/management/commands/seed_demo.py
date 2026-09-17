@@ -71,7 +71,7 @@ class Command(BaseCommand):
 
     def _create(self):
         shop = ShopSettings.load()
-        shop.shop_name = 'Gulnora Moda'
+        shop.shop_name = 'Madlen sen'
         shop.max_discount_percent = Decimal('15')
         shop.save()
 

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import logoUrl from '@/assets/logo.png'
 
 defineProps<{ show: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -31,19 +32,14 @@ const management = [
   { to: '/settings', icon: 'i-settings', label: 'Sozlamalar' },
 ]
 
-const shopName = computed(() => auth.shop?.shop_name ?? 'Do‘kon')
 const initials = computed(() => (auth.user?.full_name ?? 'X').slice(0, 1).toUpperCase())
 </script>
 
 <template>
   <aside class="sidebar" :class="{ show }">
     <div class="sidebar-brand">
-      <div class="brand-symbol">{{ shopName.slice(0, 1) }}</div>
-
-      <div class="brand-copy">
-        <strong>{{ shopName }}</strong>
-        <span>Savdo tizimi</span>
-      </div>
+      <!-- Do'kon nomi logotipning o'zida yozilgan — matn takrorlanmaydi -->
+      <img class="sidebar-logo" :src="logoUrl" alt="Madlen sen" />
 
       <button class="sidebar-close" type="button" @click="emit('close')">
         <svg><use href="#i-close" /></svg>
@@ -94,3 +90,19 @@ const initials = computed(() => (auth.user?.full_name ?? 'X').slice(0, 1).toUppe
     </div>
   </aside>
 </template>
+
+<style scoped>
+/* Logotip keng yozuv (nisbat ~2.25), shuning uchun brend qatori
+   app.css dagi 56px o'rniga balandroq — aks holda nom o'qilmaydi. */
+.sidebar .sidebar-brand {
+  height: auto;
+  padding: 14px 16px;
+}
+
+.sidebar-logo {
+  width: 100%;
+  max-width: 184px;
+  height: auto;
+  object-fit: contain;
+}
+</style>

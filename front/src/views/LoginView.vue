@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import logoUrl from '@/assets/logo.png'
 
 import '@/assets/login.css'
 
@@ -34,115 +35,23 @@ async function onSubmit() {
 
 <template>
   <main class="login-layout">
+    <!-- Chap taraf: faqat logotip. Nomi logotipning o'zida yozilgan,
+         shuning uchun yonida matn takrorlanmaydi. -->
     <section class="login-showcase">
       <div class="showcase-content">
-        <div class="brand">
-          <div class="brand-logo">
-            <svg viewBox="0 0 64 64" fill="none">
-              <path d="M10 18L32 7L54 18V46L32 57L10 46V18Z" stroke="currentColor" stroke-width="3" />
-              <path d="M10 18L32 30L54 18" stroke="currentColor" stroke-width="3" />
-              <path d="M32 30V57" stroke="currentColor" stroke-width="3" />
-              <path d="M21 13L43 25" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-            </svg>
-          </div>
-
-          <div class="brand-text">
-            <strong>OMBOR<span>XONA</span></strong>
-            <small>Hisob tizimi</small>
-          </div>
-        </div>
-
-        <div class="showcase-main">
-          <div class="showcase-label">
-            <span class="label-dot"></span>
-            Ombor boshqaruv tizimi
-          </div>
-
-          <h1>
-            Tovar harakati
-            <span>to‘liq nazoratingizda.</span>
-          </h1>
-
-          <p>
-            Kirim, sotuv, qoldiqlar, kontragentlar va moliyaviy hisobotlar —
-            barchasi yagona tizimda.
-          </p>
-
-          <div class="feature-list">
-            <div class="feature-item">
-              <div class="feature-icon">
-                <svg viewBox="0 0 24 24">
-                  <path d="M3 9L12 4L21 9L12 14L3 9Z" />
-                  <path d="M3 9V15L12 20L21 15V9" />
-                </svg>
-              </div>
-
-              <div>
-                <strong>Aniq ombor hisobi</strong>
-                <span>Kirim, sotuv va qoldiqlar real vaqtda</span>
-              </div>
-            </div>
-
-            <div class="feature-item">
-              <div class="feature-icon">
-                <svg viewBox="0 0 24 24">
-                  <path d="M4 19V10" />
-                  <path d="M10 19V5" />
-                  <path d="M16 19V13" />
-                  <path d="M22 19V8" />
-                  <path d="M2 19H23" />
-                </svg>
-              </div>
-
-              <div>
-                <strong>Moliyaviy tahlil</strong>
-                <span>Tannarx, tushum, foyda va hisobotlar</span>
-              </div>
-            </div>
-
-            <div class="feature-item">
-              <div class="feature-icon">
-                <svg viewBox="0 0 24 24">
-                  <circle cx="9" cy="8" r="4" />
-                  <path d="M2 20C2 16 5 13 9 13C13 13 16 16 16 20" />
-                  <path d="M17 8H23" />
-                  <path d="M20 5V11" />
-                </svg>
-              </div>
-
-              <div>
-                <strong>Rollar va huquqlar</strong>
-                <span>Har xodim faqat o‘ziga tegishlisini ko‘radi</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <img class="brand-mark" :src="logoUrl" alt="Madlen sen" />
       </div>
     </section>
 
     <section class="login-panel">
       <div class="login-box">
-        <!-- Telefonda chap panel yashirin — brend shu yerda ko'rinadi -->
+        <!-- Telefonda chap panel yashirin — logotip shu yerda ko'rinadi -->
         <div class="mobile-brand">
-          <div class="brand-logo">
-            <svg viewBox="0 0 64 64" fill="none">
-              <path d="M10 18L32 7L54 18V46L32 57L10 46V18Z" stroke="currentColor" stroke-width="3" />
-              <path d="M10 18L32 30L54 18" stroke="currentColor" stroke-width="3" />
-              <path d="M32 30V57" stroke="currentColor" stroke-width="3" />
-              <path d="M21 13L43 25" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-            </svg>
-          </div>
-
-          <div class="brand-text">
-            <strong>OMBOR<span>XONA</span></strong>
-            <small>Hisob tizimi</small>
-          </div>
+          <img class="brand-mark small" :src="logoUrl" alt="Madlen sen" />
         </div>
 
         <div class="login-heading">
-          <div class="welcome-badge">Xush kelibsiz</div>
           <h2>Tizimga kirish</h2>
-          <p>Hisobingiz login va parolini kiriting</p>
         </div>
 
         <div v-if="error" class="login-message show" role="alert">
@@ -177,7 +86,7 @@ async function onSubmit() {
                 type="text"
                 required
                 autocomplete="username"
-                placeholder="qurilish"
+                placeholder="admin"
               />
             </div>
           </div>
@@ -246,22 +155,26 @@ async function onSubmit() {
               Tekshirilmoqda...
             </span>
           </button>
-
-          <div class="login-security-info">
-            <svg viewBox="0 0 24 24">
-              <rect x="4" y="10" width="16" height="11" rx="2" />
-              <path d="M8 10V7A4 4 0 0 1 16 7V10" />
-            </svg>
-
-            <p>Tizimga faqat ro‘yxatdan o‘tgan xodimlar kira oladi.</p>
-          </div>
         </form>
-      </div>
-
-      <div class="login-panel-footer">
-        <span>Omborxona hisobi</span>
-        <span>Versiya 0.1.0</span>
       </div>
     </section>
   </main>
 </template>
+
+<style scoped>
+/* Logotip chap panelning o'rtasida turadi */
+.showcase-content {
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-mark {
+  width: min(460px, 78%);
+  height: auto;
+  /* Oltin rang to'q fonda o'zi yorqin — qo'shimcha soya kerak emas */
+}
+
+.brand-mark.small {
+  width: 220px;
+}
+</style>
