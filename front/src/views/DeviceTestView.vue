@@ -244,8 +244,11 @@ async function lookup(code: string): Promise<string> {
       </div>
     </div>
 
-    <!-- === Chop etiladigan varaqlar === -->
+    <!-- === Chop etiladigan varaqlar ===
+         <body> ga chiqariladi: ilova qatlami sahifani kichraytirmasin
+         (izoh: assets/main.css) -->
 
+    <Teleport to="body">
     <div v-if="sheet === 'label'" class="print-sheet">
       <div class="test-label" :style="{ width: `${labelWidth}mm`, height: `${labelHeight}mm` }">
         <span class="tiny">Sinov yorlig‘i {{ labelWidth }}×{{ labelHeight }} mm</span>
@@ -274,6 +277,7 @@ async function lookup(code: string): Promise<string> {
 
       <div class="size-30">Shtrix-kodni skanerlab ko‘ring</div>
     </div>
+    </Teleport>
   </section>
 </template>
 

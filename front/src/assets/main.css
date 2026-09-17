@@ -6,34 +6,56 @@
    Chop etish
    =====================================================================
 
-   Klassik "visibility" usuli: butun sahifa ko'rinmas qilinadi, keyin
-   faqat chop etiladigan varaq qaytariladi. `display: none` bilan
-   qilinganda ota elementlarni bittalab ochish kerak bo'lardi va har
-   yangi sahifada qoida buzilardi.
+   Chop etiladigan varaq `<Teleport to="body">` orqali to'g'ridan-to'g'ri
+   `<body>` ga chiqariladi va chop etishda ilova (`#app`) butunlay
+   o'chiriladi.
 
-   `body.printing` sinfi chop etishdan oldin qo'shiladi va keyin
-   olib tashlanadi — shunda oddiy holatda bu qoidalar umuman ta'sir
-   qilmaydi. */
+   Ilgari bu yerda `visibility: hidden` ishlatilardi. U xato edi:
+   ko'rinmas element ham joyni egallaydi. Natijada ilovaning keng
+   qatlami 40 mm yorliqqa sig'may, Chromium butun sahifani ~66 % ga
+   kichraytirardi (30 mm chizg'ich 20 mm bo'lib chiqardi va shtrix-kod
+   moduli printer nuqtasiga tushmasdi), balandligi esa har chop etishda
+   4 ta bo'sh yorliq chiqarardi.
+
+   `display: none` bunday qilmaydi: element joylashuvdan butunlay
+   chiqadi. */
+
+/* Ekranda varaq ko'rinmaydi, lekin joylashuvda qoladi: chek balandligi
+   `scrollHeight` bilan o'lchanadi (`ReceiptPrint.vue`), `display: none`
+   bo'lsa u nol qaytarardi. */
+.print-sheet {
+  position: absolute;
+  top: 0;
+  left: -10000px;
+}
 
 @media print {
-  body.printing * {
-    visibility: hidden;
+  /* Ilova chop etishda umuman qatnashmaydi */
+  body.printing #app {
+    display: none !important;
   }
 
-  body.printing .print-sheet,
-  body.printing .print-sheet * {
-    visibility: visible;
+  /* Sahifa hoshiyasi va eng kam o'lchamlari qog'ozni kengaytirib
+     yubormasin — aks holda Chromium yana kichraytiradi */
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    width: auto !important;
+    height: auto !important;
+
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    background: #fff !important;
   }
 
+  /* Varaq o'z oqimida turadi: kengligi va balandligi o'zinikidan
+     olinadi, `@page` esa qog'oz o'lchamini beradi (`utils/print.ts`) */
   body.printing .print-sheet {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
-    padding: 0;
+    position: static;
+    top: auto;
+    left: auto;
   }
-
-  /* Qog'oz o'lchami bu yerda emas: chek 80 mm lenta, yorliq 40×30 mm.
-     Har biri chop etishdan oldin o'z o'lchamini beradi —
-     `utils/print.ts`. Bu yerda umumiy hoshiya qo'yilsa, u chekni
-     80 mm lentada 56 mm ga siqib qo'yardi. */
 }

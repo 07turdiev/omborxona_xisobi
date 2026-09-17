@@ -36,10 +36,13 @@ defineExpose({ printLabels })
 </script>
 
 <template>
-  <div
-    class="print-sheet labels"
-    :style="{ '--label-w': `${width}mm`, '--label-h': `${height}mm` }"
-  >
+  <!-- Varaq to'g'ridan-to'g'ri <body> ga chiqariladi: ilova qatlami
+       chop etishda sahifani kichraytirib yubormasin (assets/main.css) -->
+  <Teleport to="body">
+    <div
+      class="print-sheet labels"
+      :style="{ '--label-w': `${width}mm`, '--label-h': `${height}mm` }"
+    >
     <div v-for="(item, index) in labels" :key="index" class="label">
       <span class="label-shop">{{ shopName }}</span>
       <span class="label-name">{{ item.name }}</span>
@@ -47,9 +50,10 @@ defineExpose({ printLabels })
       <strong class="label-price">{{ formatMoney(item.price) }} so‘m</strong>
 
       <!-- Chiziq balandligi 12 mm — standart talab qiladigan eng kam o'lcham -->
-      <BarcodeImage :value="item.barcode" format="EAN13" :height-mm="12" :text-mm="2.2" />
+        <BarcodeImage :value="item.barcode" format="EAN13" :height-mm="12" :text-mm="2.2" />
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>

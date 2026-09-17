@@ -88,7 +88,22 @@ Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
 ## Testlar
 
 ```bash
-cd back && .venv/Scripts/python.exe manage.py test    # 81 ta
-cd front && npm run test:unit                         # 22 ta
+cd back && .venv/Scripts/python.exe manage.py test    # 92 ta
+cd front && npm run test:unit                         # 32 ta
 cd front && npm run build                             # type-check + build
 ```
+
+### Chop etish testi
+
+Chek va yorliq **qog'ozga to'g'ri tushishini** tekshiradi: sahifalar
+soni, qog'oz o'lchami va chizg'ich uzunligi chiqqan PDF dan o'lchanadi
+(203 dpi da rasterlanadi). Brauzerdagi o'lcham yolg'on xotirjamlik
+beradi — sahifa sig'masa, Chromium chizmani jimgina kichraytiradi.
+
+```bash
+cd front && npm run test:print
+```
+
+Talablar: backend `127.0.0.1:8004` da namuna ma'lumot bilan ishlab
+tursin (`manage.py seed_demo`), kompyuterda **Edge** o'rnatilgan
+bo'lsin. Test ilovani o'zi quradi va `vite preview` bilan ko'taradi.

@@ -48,6 +48,10 @@ htmlcov/
 # =====================================================================
 node_modules/
 dist/
+
+# Playwright chop etish testining natijalari
+front/test-results/
+front/playwright-report/
 dist-ssr/
 .vite/
 *.local

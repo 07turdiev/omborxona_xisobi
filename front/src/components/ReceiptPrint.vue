@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 import BarcodeImage from '@/components/BarcodeImage.vue'
 import { formatMoney } from '@/utils/money'
@@ -41,9 +41,15 @@ const sheet = ref<HTMLElement | null>(null)
  * yuboradi (natijada A4/Letter qog'oz chiqadi). Shuning uchun balandlik
  * chekning o'zidan o'lchanadi: ekranda 96px = 25.4 mm.
  */
-function printReceipt() {
+async function printReceipt() {
+  // Chek hozirgina yaratilgan bo'lsa (kassada «Yakunlash»), Vue DOM ni
+  // hali yangilamagan bo'ladi va varaq mavjud emas. O'lchashdan oldin
+  // shuni kutamiz — aks holda balandlik topilmay, chek oxirida uzun
+  // bo'sh lenta chiqib ketadi.
+  await nextTick()
+
   const element = sheet.value
-  const heightMm = element ? Math.ceil((element.scrollHeight / 96) * 25.4) + 6 : 200
+  const heightMm = element ? Math.ceil((element.scrollHeight / 96) * 25.4) + 6 : 120
 
   printWithPageSize(`@page { size: 80mm ${heightMm}mm; margin: 0; }`)
 }
@@ -52,7 +58,9 @@ defineExpose({ printReceipt })
 </script>
 
 <template>
-  <div v-if="sale" ref="sheet" class="print-sheet receipt">
+  <!-- Varaq <body> ga chiqariladi — izoh: assets/main.css -->
+  <Teleport to="body">
+    <div v-if="sale" ref="sheet" class="print-sheet receipt">
     <div class="receipt-head">
       <strong>{{ shopName }}</strong>
       <span>{{ printedAt }}</span>
@@ -100,9 +108,10 @@ defineExpose({ printReceipt })
     <div class="receipt-barcode">
       <!-- 72 mm bosiladigan enda 27.5 mm kod bemalol joylashadi -->
       <BarcodeImage :value="barcodeValue" format="CODE128" :height-mm="15" :text-mm="3" />
-      <small>Qaytarish uchun shu chekni saqlang</small>
+        <small>Qaytarish uchun shu chekni saqlang</small>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>

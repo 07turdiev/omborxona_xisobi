@@ -30,6 +30,24 @@ export default defineConfig({
       },
     },
   },
+  // Qurilgan ilovani sinash uchun (chop etish testi shu yerda ishlaydi)
+  preview: {
+    // `localhost` Windows'da IPv6 (::1) ga hal bo'ladi, test esa IPv4
+    // manzilni so'raydi — shuning uchun manzil aniq yozilgan
+    host: '127.0.0.1',
+    port: 4173,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      '/media': {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+    },
+  },
   test: {
     // Pul hisobi sof funksiyalar — brauzer muhiti kerak emas
     environment: 'node',

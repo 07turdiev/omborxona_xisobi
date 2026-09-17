@@ -10,6 +10,7 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "test:unit": "vitest run",
+    "test:print": "vite build && playwright test",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
@@ -23,6 +24,8 @@
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.9",
+    "@playwright/test": "^1.63.0",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
@@ -35,6 +38,7 @@
     "jiti": "^2.7.0",
     "npm-run-all2": "^9.0.2",
     "oxlint": "~1.73.0",
+    "pdfjs-dist": "^6.3.289",
     "prettier": "3.9.5",
     "typescript": "~6.0.0",
     "vite": "^8.1.5",
