@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import ScanField from '@/components/ScanField.vue'
 import { catalogApi } from '@/api/catalog'
@@ -9,12 +9,15 @@ import { formatDate, todayIso } from '@/utils/date'
 import { differingLines, findScanned, uncountedLines, type CountLine } from '@/utils/stockCount'
 import type { Category, StockCount } from '@/types'
 
+/** Oxirgi o'zgarishdan keyin shuncha kutib saqlanadi */
+const AUTOSAVE_DELAY = 3000
+
 const counts = ref<StockCount[]>([])
 const categories = ref<Category[]>([])
 const opened = ref<StockCount | null>(null)
 
 const loading = ref(false)
-const saving = ref(false)
+const confirming = ref(false)
 const error = ref('')
 const notice = ref('')
 
@@ -23,8 +26,28 @@ const scanner = ref<InstanceType<typeof ScanField> | null>(null)
 const draft = ref({ date: todayIso(), category: null as number | null, note: '' })
 const lines = ref<CountLine[]>([])
 
+/** Serverdagi qoralama. Birinchi o'zgarishda yaratiladi. */
+const draftId = ref<number | null>(null)
+const draftNumber = ref('')
+const savedAt = ref<Date | null>(null)
+const saving = ref(false)
+
+let timer: ReturnType<typeof setTimeout> | null = null
+
 const uncounted = computed(() => uncountedLines(lines.value))
 const differing = computed(() => differingLines(lines.value))
+
+const savedLabel = computed(() => {
+  if (saving.value) return 'Saqlanmoqda…'
+  if (!savedAt.value) return ''
+
+  const time = savedAt.value.toLocaleTimeString('uz-UZ', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  return `Saqlandi ${time}`
+})
 
 async function load() {
   loading.value = true
@@ -53,7 +76,6 @@ async function load() {
  * ko'rinmasdi.
  */
 async function fillLines() {
-  error.value = ''
   lines.value = []
 
   let page = 1
@@ -82,13 +104,70 @@ async function fillLines() {
   }
 }
 
+function resetEditor() {
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
+  }
+
+  draftId.value = null
+  draftNumber.value = ''
+  savedAt.value = null
+  lines.value = []
+}
+
 async function openEditor() {
+  resetEditor()
+
   editorOpen.value = true
   opened.value = null
   notice.value = ''
+  error.value = ''
   draft.value = { date: todayIso(), category: null, note: '' }
 
-  await fillLines()
+  try {
+    await fillLines()
+  } catch (err) {
+    error.value = errorMessage(err, 'Tovarlar ro‘yxatini yuklab bo‘lmadi.')
+  }
+
+  scanner.value?.focus()
+}
+
+/** Boshlangan qoralamani davom ettiradi: sanalgan sonlar tiklanadi. */
+async function continueDraft(count: StockCount) {
+  resetEditor()
+
+  editorOpen.value = true
+  opened.value = null
+  notice.value = ''
+  error.value = ''
+
+  draft.value = {
+    date: count.date,
+    category: count.category,
+    note: count.note,
+  }
+
+  try {
+    const full = await inventoryApi.count(count.id)
+
+    // Joriy qoldiq va shtrix-kodlar katalogdan olinadi (qoralamada ular yo'q)
+    await fillLines()
+
+    const counted = new Map(full.lines.map((line) => [line.variant, line.counted_quantity]))
+
+    for (const line of lines.value) {
+      line.counted_quantity = counted.get(line.variant) ?? 0
+    }
+
+    draftId.value = full.id
+    draftNumber.value = full.number
+    savedAt.value = new Date()
+  } catch (err) {
+    error.value = errorMessage(err, 'Qoralamani ochib bo‘lmadi.')
+  }
+
   scanner.value?.focus()
 }
 
@@ -104,17 +183,80 @@ function onScan(code: string) {
   } else if (line) {
     line.counted_quantity += 1
     notice.value = `${line.product_name} ${line.variant_label} — ${line.counted_quantity} dona`
+    scheduleSave()
   }
 
   scanner.value?.focus()
 }
 
-async function onSave(confirmAfter: boolean) {
-  if (!lines.value.length || saving.value) return
+function scheduleSave() {
+  if (timer) clearTimeout(timer)
 
-  // Sanalmagan qatorlar nol bo'lib yoziladi — bu kamomad demakdir.
-  // Shuning uchun tasdiqlashdan oldin ogohlantiramiz.
-  if (confirmAfter && uncounted.value > 0) {
+  timer = setTimeout(flushSave, AUTOSAVE_DELAY)
+}
+
+/** Qoralamani serverga yozadi. Birinchi chaqiruvda hujjat yaratiladi. */
+async function flushSave() {
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
+  }
+
+  if (!lines.value.length) return
+
+  // Avvalgi saqlash tugamagan bo'lsa, biroz kutib qayta urinamiz
+  if (saving.value) {
+    timer = setTimeout(flushSave, 1000)
+    return
+  }
+
+  saving.value = true
+
+  const payload = lines.value.map((line) => ({
+    variant: line.variant,
+    counted_quantity: line.counted_quantity,
+  }))
+
+  try {
+    if (draftId.value === null) {
+      const created = await inventoryApi.createCount({
+        date: draft.value.date,
+        category: draft.value.category,
+        note: draft.value.note,
+        lines: payload,
+      })
+
+      draftId.value = created.id
+      draftNumber.value = created.number
+      await load()
+    } else {
+      await inventoryApi.updateCount(draftId.value, {
+        note: draft.value.note,
+        lines: payload,
+      })
+    }
+
+    savedAt.value = new Date()
+  } catch (err) {
+    error.value = errorMessage(err, 'Avtomatik saqlanmadi. Internetni tekshiring.')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function closeEditor() {
+  await flushSave()
+
+  editorOpen.value = false
+  resetEditor()
+  await load()
+}
+
+async function onConfirm() {
+  if (!lines.value.length || confirming.value) return
+
+  // Sanalmagan qatorlar nol bo'lib yoziladi — bu kamomad demakdir
+  if (uncounted.value > 0) {
     const ok = window.confirm(
       `${uncounted.value} ta qator hali sanalmagan (0 turibdi).\n\n` +
         'Tasdiqlansa, ular yo‘q hisoblanadi va qoldiqdan chiqariladi.\n' +
@@ -124,34 +266,27 @@ async function onSave(confirmAfter: boolean) {
     if (!ok) return
   }
 
-  saving.value = true
+  confirming.value = true
   error.value = ''
-  notice.value = ''
 
   try {
-    let count = await inventoryApi.createCount({
-      date: draft.value.date,
-      category: draft.value.category,
-      note: draft.value.note,
-      lines: lines.value.map((line) => ({
-        variant: line.variant,
-        counted_quantity: line.counted_quantity,
-      })),
-    })
+    await flushSave()
 
-    if (confirmAfter) {
-      count = await inventoryApi.confirmCount(count.id)
-      notice.value = `${count.number} tasdiqlandi — qoldiq to‘g‘rilandi.`
-    } else {
-      notice.value = `${count.number} qoralama sifatida saqlandi.`
+    if (draftId.value === null) {
+      error.value = 'Avval hech bo‘lmasa bitta tovarni sanang.'
+      return
     }
 
+    const confirmed = await inventoryApi.confirmCount(draftId.value)
+
+    notice.value = `${confirmed.number} tasdiqlandi — qoldiq to‘g‘rilandi.`
     editorOpen.value = false
+    resetEditor()
     await load()
   } catch (err) {
-    error.value = errorMessage(err, 'Saqlab bo‘lmadi.')
+    error.value = errorMessage(err, 'Tasdiqlab bo‘lmadi.')
   } finally {
-    saving.value = false
+    confirming.value = false
   }
 }
 
@@ -160,7 +295,7 @@ async function onOpen(count: StockCount) {
   editorOpen.value = false
 }
 
-async function onConfirm(count: StockCount) {
+async function onConfirmFromList(count: StockCount) {
   if (!window.confirm(`${count.number} tasdiqlansinmi? Qoldiq sanalgan songa tenglashtiriladi.`)) {
     return
   }
@@ -176,6 +311,11 @@ async function onConfirm(count: StockCount) {
 }
 
 onMounted(load)
+
+// Sahifadan chiqishda saqlanmagan o'zgarish qolmasin
+onBeforeUnmount(() => {
+  if (timer) clearTimeout(timer)
+})
 </script>
 
 <template>
@@ -193,25 +333,34 @@ onMounted(load)
     <p v-if="notice" class="notice">{{ notice }}</p>
 
     <div v-if="editorOpen" class="table-card card-padded editor">
+      <p class="closed-shop">
+        <strong>Do‘kon yopiq bo‘lganda sanang.</strong>
+        Sanoq davomida sotuv bo‘lsa, qoldiq o‘zgaradi va soxta farqlar chiqadi:
+        sanab bo‘lingan tovar sotilsa, tizimda kamomad bo‘lib ko‘rinadi.
+      </p>
+
       <div class="editor-head">
         <div class="field">
           <label>Sana</label>
-          <input v-model="draft.date" type="date" />
+          <input v-model="draft.date" type="date" :disabled="draftId !== null" />
         </div>
 
         <div class="field">
           <label>Kategoriya</label>
-          <select v-model="draft.category" @change="fillLines">
+          <select v-model="draft.category" :disabled="draftId !== null" @change="fillLines">
             <option :value="null">Hammasi</option>
             <option v-for="item in categories" :key="item.id" :value="item.id">
               {{ item.name }}
             </option>
           </select>
+          <small v-if="draftId !== null" class="field-hint">
+            Sanoq boshlangach kategoriyani o‘zgartirib bo‘lmaydi.
+          </small>
         </div>
 
         <div class="field">
           <label>Izoh</label>
-          <input v-model="draft.note" type="text" />
+          <input v-model="draft.note" type="text" @change="scheduleSave" />
         </div>
       </div>
 
@@ -222,11 +371,13 @@ onMounted(load)
       />
 
       <div class="counters">
+        <span v-if="draftNumber" class="doc-number">{{ draftNumber }}</span>
         <span>Jami qator: <strong>{{ lines.length }}</strong></span>
         <span :class="{ warn: uncounted > 0 }">
           Sanalmagan: <strong>{{ uncounted }}</strong>
         </span>
         <span>Farqli: <strong>{{ differing }}</strong></span>
+        <span class="saved">{{ savedLabel }}</span>
       </div>
 
       <div class="table-scroll tall">
@@ -264,6 +415,7 @@ onMounted(load)
                   class="cart-number"
                   type="number"
                   min="0"
+                  @change="scheduleSave"
                 />
               </td>
 
@@ -274,16 +426,17 @@ onMounted(load)
       </div>
 
       <div class="editor-footer">
-        <button class="button button-outline" type="button" @click="editorOpen = false">
-          Bekor qilish
-        </button>
+        <span class="footer-hint">O‘zgarishlar o‘zi saqlanadi — keyin davom ettirsa bo‘ladi.</span>
 
-        <button class="button button-outline" type="button" :disabled="saving" @click="onSave(false)">
-          Qoralama
-        </button>
+        <button class="button button-outline" type="button" @click="closeEditor">Yopish</button>
 
-        <button class="button button-gradient" type="button" :disabled="saving" @click="onSave(true)">
-          {{ saving ? 'Saqlanmoqda…' : 'Saqlash va tasdiqlash' }}
+        <button
+          class="button button-gradient"
+          type="button"
+          :disabled="confirming"
+          @click="onConfirm"
+        >
+          {{ confirming ? 'Tasdiqlanmoqda…' : 'Tasdiqlash' }}
         </button>
       </div>
     </div>
@@ -321,6 +474,15 @@ onMounted(load)
               </td>
 
               <td class="num row-actions">
+                <button
+                  v-if="count.status === 'draft'"
+                  class="button button-outline"
+                  type="button"
+                  @click="continueDraft(count)"
+                >
+                  Davom ettirish
+                </button>
+
                 <button class="button button-outline" type="button" @click="onOpen(count)">
                   Ko‘rish
                 </button>
@@ -329,7 +491,7 @@ onMounted(load)
                   v-if="count.status === 'draft'"
                   class="button button-gradient"
                   type="button"
-                  @click="onConfirm(count)"
+                  @click="onConfirmFromList(count)"
                 >
                   Tasdiqlash
                 </button>
@@ -374,6 +536,15 @@ onMounted(load)
   margin-bottom: 12px;
 }
 
+.closed-shop {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius);
+  background: var(--orange-soft);
+  font-size: 13px;
+}
+
 .editor-head {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -384,6 +555,7 @@ onMounted(load)
 .counters {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 16px;
   margin: 10px 0;
   font-size: 13px;
@@ -393,8 +565,18 @@ onMounted(load)
   color: var(--red);
 }
 
+.doc-number {
+  font-weight: 700;
+}
+
+.saved {
+  margin-left: auto;
+  color: var(--green);
+  font-weight: 600;
+}
+
 .table-scroll.tall {
-  max-height: 380px;
+  max-height: 360px;
   overflow-y: auto;
 }
 
@@ -409,11 +591,18 @@ onMounted(load)
 
 .editor-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+.footer-hint {
+  margin-right: auto;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .row-actions .button {

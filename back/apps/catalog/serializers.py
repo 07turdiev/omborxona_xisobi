@@ -10,7 +10,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'product_count')
+        fields = ('id', 'name', 'product_count', 'mxik_code', 'package_code')
 
 
 class SizeSerializer(serializers.ModelSerializer):
@@ -58,6 +58,9 @@ class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     variants = VariantSerializer(many=True, read_only=True)
 
+    #: Interfeys kodsiz mahsulotlarni shu maydonga qarab ogohlantiradi
+    effective_mxik_code = serializers.CharField(read_only=True)
+
     size_ids = serializers.ListField(
         child=serializers.IntegerField(), write_only=True, required=False
     )
@@ -69,9 +72,10 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             'id', 'category', 'category_name', 'name', 'brand', 'description',
-            'photo', 'sale_price', 'is_active', 'variants', 'size_ids', 'color_ids',
+            'photo', 'sale_price', 'mxik_code', 'package_code', 'effective_mxik_code',
+            'is_active', 'variants', 'size_ids', 'color_ids',
         )
-        read_only_fields = ('id', 'category_name', 'variants')
+        read_only_fields = ('id', 'category_name', 'variants', 'effective_mxik_code')
 
     def create(self, validated_data):
         sizes = validated_data.pop('size_ids', [])

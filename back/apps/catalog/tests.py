@@ -135,3 +135,71 @@ class VariantApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(Variant.objects.get(pk=self.variant.pk).sale_price, 300000)
+
+
+class MxikCodeTests(TestCase):
+    """Soliq tasnifi kodi: kategoriyada standart, mahsulotda o'zgartirish."""
+
+    CODE = '01234567890123456'
+
+    def setUp(self):
+        self.product = create_product()
+        self.category = self.product.category
+        self.client_admin = api_client(create_admin())
+
+    def test_product_inherits_category_code(self):
+        self.category.mxik_code = self.CODE
+        self.category.save()
+
+        self.product.refresh_from_db()
+
+        self.assertEqual(self.product.effective_mxik_code, self.CODE)
+
+    def test_product_code_wins_over_category(self):
+        own = '76543210987654321'
+
+        self.category.mxik_code = self.CODE
+        self.category.save()
+
+        self.product.mxik_code = own
+        self.product.save()
+
+        self.assertEqual(self.product.effective_mxik_code, own)
+
+    def test_no_code_anywhere_is_empty(self):
+        """Kodsiz ishlash mumkin — interfeys ogohlantiradi, taqiqlamaydi."""
+        self.assertEqual(self.product.effective_mxik_code, '')
+
+    def test_seventeen_digits_are_accepted(self):
+        response = self.client_admin.patch(
+            f'/api/categories/{self.category.pk}/', {'mxik_code': self.CODE}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()['mxik_code'], self.CODE)
+
+    def test_wrong_length_is_rejected(self):
+        for value in ('1234567890123456', '012345678901234567'):
+            response = self.client_admin.patch(
+                f'/api/categories/{self.category.pk}/', {'mxik_code': value}, format='json'
+            )
+
+            self.assertEqual(response.status_code, 400, value)
+
+    def test_letters_are_rejected(self):
+        response = self.client_admin.patch(
+            f'/api/categories/{self.category.pk}/',
+            {'mxik_code': '0123456789012345A'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)
+
+    def test_product_response_carries_effective_code(self):
+        self.category.mxik_code = self.CODE
+        self.category.save()
+
+        response = self.client_admin.get(f'/api/products/{self.product.pk}/')
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()['effective_mxik_code'], self.CODE)

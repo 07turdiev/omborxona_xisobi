@@ -105,12 +105,18 @@ defineExpose({ printReceipt })
 </template>
 
 <style scoped>
+/* Shrift o'lchamlari MILLIMETRDA berilgan — ataylab.
+   Qonun talabi: chekdagi belgilar balandligi kamida 2 mm.
+   3 mm shriftda bosh harf balandligi ~2.1 mm, ya'ni talab bajariladi.
+   `px` da yozilsa, chek printerining zichligiga (203 dpi) qarab
+   o'lcham suzib ketardi; `mm` esa qog'ozdagi haqiqiy o'lchamni beradi. */
 .receipt {
   width: 72mm;
   margin: 0 auto;
   padding: 3mm 0;
   font-family: 'Segoe UI', sans-serif;
-  font-size: 11px;
+  font-size: 3mm;
+  line-height: 1.3;
   color: #000;
 }
 
@@ -118,24 +124,24 @@ defineExpose({ printReceipt })
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding-bottom: 6px;
+  gap: 0.5mm;
+  padding-bottom: 2mm;
   border-bottom: 1px dashed #000;
   text-align: center;
 }
 
 .receipt-head strong {
-  font-size: 14px;
+  font-size: 4.5mm;
 }
 
 .receipt-lines {
   width: 100%;
-  margin: 6px 0;
+  margin: 2mm 0;
   border-collapse: collapse;
 }
 
 .receipt-lines td {
-  padding: 1px 0;
+  padding: 0.3mm 0;
   vertical-align: top;
 }
 
@@ -149,27 +155,32 @@ defineExpose({ printReceipt })
 }
 
 .receipt-totals {
-  padding-top: 6px;
+  padding-top: 2mm;
   border-top: 1px dashed #000;
 }
 
 .receipt-totals > div {
   display: flex;
   justify-content: space-between;
-  padding: 1px 0;
+  padding: 0.3mm 0;
 }
 
 .receipt-total {
-  font-size: 13px;
+  font-size: 4mm;
   font-weight: 700;
 }
 
 .receipt-barcode {
-  margin-top: 8px;
+  margin-top: 3mm;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 1mm;
   text-align: center;
+}
+
+/* `small` odatda 0.8em bo'lib 2 mm dan kichik chiqardi */
+.receipt-barcode small {
+  font-size: 3mm;
 }
 </style>

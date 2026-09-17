@@ -7,6 +7,9 @@ export interface ProductInput {
   brand?: string
   description?: string
   sale_price: string
+  /** Bo'sh qoldirilsa kategoriyaning MXIK kodi ishlatiladi */
+  mxik_code?: string
+  package_code?: string
   is_active?: boolean
   size_ids?: number[]
   color_ids?: number[]
@@ -34,6 +37,11 @@ export const catalogApi = {
 
   async createCategory(name: string) {
     const { data } = await api.post<Category>('/categories/', { name })
+    return data
+  },
+
+  async updateCategory(id: number, payload: Partial<Category>) {
+    const { data } = await api.patch<Category>(`/categories/${id}/`, payload)
     return data
   },
 

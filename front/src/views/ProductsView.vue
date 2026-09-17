@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import LabelPrint from '@/components/LabelPrint.vue'
 import { catalogApi, type ProductInput } from '@/api/catalog'
@@ -21,6 +21,7 @@ const search = ref('')
 const category = ref('')
 const loading = ref(false)
 const error = ref('')
+const notice = ref('')
 const saving = ref(false)
 
 const expanded = ref<number | null>(null)
@@ -32,9 +33,14 @@ const form = ref({
   name: '',
   brand: '',
   sale_price: '',
+  mxik_code: '',
+  package_code: '',
   size_ids: [] as number[],
   color_ids: [] as number[],
 })
+
+/** MXIK kodi yo'q mahsulotlar — fiskal chekda rad etiladi */
+const withoutMxik = computed(() => products.value.filter((item) => !item.effective_mxik_code))
 
 /** Yorliqqa chiqariladigan variantlar */
 const labelItems = ref<{ barcode: string; name: string; label: string; price: string; quantity: number }[]>([])
@@ -77,6 +83,8 @@ function openCreate() {
     name: '',
     brand: '',
     sale_price: '',
+    mxik_code: '',
+    package_code: '',
     size_ids: [],
     color_ids: [],
   }
@@ -93,6 +101,8 @@ function openEdit(product: Product) {
     name: product.name,
     brand: product.brand,
     sale_price: product.sale_price,
+    mxik_code: product.mxik_code,
+    package_code: product.package_code,
     size_ids: [...new Set(product.variants.map((item) => item.size).filter((id): id is number => id !== null))],
     color_ids: [...new Set(product.variants.map((item) => item.color).filter((id): id is number => id !== null))],
   }
@@ -111,6 +121,8 @@ async function onSave() {
     name: form.value.name,
     brand: form.value.brand,
     sale_price: normalizeMoneyInput(form.value.sale_price || '0'),
+    mxik_code: form.value.mxik_code.trim(),
+    package_code: form.value.package_code.trim(),
     size_ids: form.value.size_ids,
     color_ids: form.value.color_ids,
   }
@@ -162,6 +174,23 @@ async function addCategory() {
   await catalogApi.createCategory(newCategory.value.trim())
   newCategory.value = ''
   await loadAttributes()
+}
+
+/** Kategoriyaning MXIK kodi — shu kategoriyadagi hamma mahsulotga tarqaladi. */
+async function saveCategoryCode(item: Category, value: string) {
+  error.value = ''
+  notice.value = ''
+
+  try {
+    await catalogApi.updateCategory(item.id, { mxik_code: value.trim() })
+
+    notice.value = `${item.name}: MXIK kodi saqlandi.`
+    await loadAttributes()
+    await load()
+  } catch (err) {
+    error.value = errorMessage(err, 'MXIK kodini saqlab bo‘lmadi.')
+    await loadAttributes()
+  }
 }
 
 async function addSize() {
@@ -224,8 +253,19 @@ onMounted(async () => {
     </div>
 
     <p v-if="error" class="load-error">{{ error }}</p>
+    <p v-if="notice" class="notice">{{ notice }}</p>
 
     <template v-if="tab === 'products'">
+      <!-- Fiskal chek MXIK kodisiz rad etiladi -->
+      <p v-if="auth.isAdmin && withoutMxik.length" class="mxik-warning">
+        <strong>{{ withoutMxik.length }} ta mahsulotda MXIK kodi yo‘q.</strong>
+        Fiskal chek bunday tovarni qabul qilmaydi. Kodni kategoriyaga bir marta
+        yozsangiz, ichidagi hamma mahsulotga tarqaladi —
+        <button class="link-button" type="button" @click="tab = 'attributes'">
+          Kategoriya bo‘limi
+        </button>
+      </p>
+
       <div class="section-toolbar">
         <div class="filters">
           <div class="search-field">
@@ -262,6 +302,7 @@ onMounted(async () => {
                 <th>Nomi</th>
                 <th>Kategoriya</th>
                 <th>Brend</th>
+                <th v-if="auth.isAdmin">MXIK</th>
                 <th class="num">Narxi</th>
                 <th class="num">Variantlar</th>
                 <th></th>
@@ -270,11 +311,11 @@ onMounted(async () => {
 
             <tbody>
               <tr v-if="loading">
-                <td colspan="6" class="empty-state">Yuklanmoqda…</td>
+                <td :colspan="auth.isAdmin ? 7 : 6" class="empty-state">Yuklanmoqda…</td>
               </tr>
 
               <tr v-else-if="!products.length">
-                <td colspan="6" class="empty-state">Mahsulot topilmadi.</td>
+                <td :colspan="auth.isAdmin ? 7 : 6" class="empty-state">Mahsulot topilmadi.</td>
               </tr>
 
               <template v-for="product in products" v-else :key="product.id">
@@ -282,6 +323,14 @@ onMounted(async () => {
                   <td><strong>{{ product.name }}</strong></td>
                   <td>{{ product.category_name }}</td>
                   <td>{{ product.brand || '—' }}</td>
+
+                  <td v-if="auth.isAdmin">
+                    <span v-if="product.effective_mxik_code" class="mxik-code">
+                      {{ product.effective_mxik_code }}
+                    </span>
+                    <span v-else class="pill pill-red">yo‘q</span>
+                  </td>
+
                   <td class="num">{{ formatMoney(product.sale_price) }}</td>
                   <td class="num">{{ product.variants.length }}</td>
                   <td class="num row-actions">
@@ -305,7 +354,7 @@ onMounted(async () => {
                 </tr>
 
                 <tr v-if="expanded === product.id" :key="`v-${product.id}`">
-                  <td colspan="6" class="variants-cell">
+                  <td :colspan="auth.isAdmin ? 7 : 6" class="variants-cell">
                     <table class="data-table">
                       <thead>
                         <tr>
@@ -348,7 +397,7 @@ onMounted(async () => {
     </template>
 
     <div v-else class="attributes">
-      <div class="table-card card-padded">
+      <div class="table-card card-padded wide">
         <h3>Kategoriyalar</h3>
 
         <div class="add-row">
@@ -356,14 +405,42 @@ onMounted(async () => {
           <button class="button button-outline" type="button" @click="addCategory">Qo‘shish</button>
         </div>
 
-        <ul class="attribute-list">
-          <li v-for="item in categories" :key="item.id">
-            <span>{{ item.name }}</span>
-            <button class="icon-button delete" type="button" @click="removeAttribute('category', item.id)">
-              <svg><use href="#i-trash" /></svg>
-            </button>
-          </li>
-        </ul>
+        <p class="field-hint">
+          MXIK — soliq tasnifi kodi, 17 xonali raqam. Kodni tasnif.soliq.uz dan
+          oling; u shu kategoriyadagi hamma mahsulotga tarqaladi.
+        </p>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nomi</th>
+              <th>MXIK kodi</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="item in categories" :key="item.id">
+              <td>{{ item.name }}</td>
+              <td>
+                <input
+                  class="mxik-input"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="17"
+                  placeholder="17 xonali raqam"
+                  :value="item.mxik_code"
+                  @change="saveCategoryCode(item, ($event.target as HTMLInputElement).value)"
+                />
+              </td>
+              <td class="num">
+                <button class="icon-button delete" type="button" @click="removeAttribute('category', item.id)">
+                  <svg><use href="#i-trash" /></svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div class="table-card card-padded">
@@ -428,6 +505,20 @@ onMounted(async () => {
         <div class="field">
           <label>Sotuv narxi</label>
           <input v-model="form.sale_price" type="text" inputmode="decimal" />
+        </div>
+
+        <div class="field">
+          <label>MXIK kodi</label>
+          <input
+            v-model="form.mxik_code"
+            type="text"
+            inputmode="numeric"
+            maxlength="17"
+            placeholder="Bo‘sh qoldirilsa kategoriyaniki"
+          />
+          <small class="field-hint">
+            Faqat shu mahsulotning kodi kategoriyanikidan farq qilsa to‘ldiring.
+          </small>
         </div>
 
         <div class="field">
@@ -508,6 +599,37 @@ onMounted(async () => {
   color: var(--text);
 }
 
+.mxik-warning {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius);
+  background: var(--orange-soft);
+  font-size: 13px;
+}
+
+.link-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mxik-code {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.mxik-input {
+  width: 190px;
+  font-variant-numeric: tabular-nums;
+}
+
 .clickable {
   cursor: pointer;
 }
@@ -525,6 +647,10 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px;
+}
+
+.attributes .wide {
+  grid-column: 1 / -1;
 }
 
 .add-row {

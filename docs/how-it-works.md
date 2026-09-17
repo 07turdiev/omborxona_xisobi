@@ -55,6 +55,23 @@ python manage.py recompute_stock --fix
 
 ---
 
+### Inventarizatsiya — faqat do'kon yopiq bo'lganda
+
+Sanoq davomida sotuv bo'lsa, qoldiq o'zgaradi va **soxta farqlar**
+paydo bo'ladi: sanab bo'lingan tovar sotilsa, tizimda kam ko'rinadi va
+kamomad deb yoziladi. Shuning uchun inventarizatsiya do'kon yopilgandan
+keyin yoki sotuv to'xtatilgan holatda o'tkaziladi.
+
+Sanoq qatorlari **noldan** boshlanadi va har skan +1 qo'shadi. Tizimdagi
+qoldiq bilan to'ldirilganda sanalmagan tovar "bor" bo'lib qolar va
+o'g'irlik umuman ko'rinmasdi.
+
+Qoralama **avtomatik saqlanadi** (oxirgi o'zgarishdan 3 soniya keyin),
+shuning uchun sanoq yarmida brauzer yopilib qolsa ham sanalgan sonlar
+joyida qoladi.
+
+---
+
 ## 3. Tannarx — o'rtacha qiymat
 
 Har kirimda variantning o'rtacha tannarxi qayta hisoblanadi:
@@ -190,6 +207,12 @@ Chek va yorliq brauzer orqali chiqadi — maxsus drayver kerak emas.
 Qog'oz o'lchami chop etishdan oldin `@page` qoidasi bilan beriladi
 (`front/src/utils/print.ts`). CSS o'zgaruvchilari bu yerda ishlamaydi —
 `@page` ularni ko'rmaydi.
+
+**Chekdagi shrift millimetrda o'lchanadi.** Qonun bo'yicha chekdagi
+belgilar balandligi kamida **2 mm** bo'lishi kerak. Shuning uchun
+`ReceiptPrint.vue` da o'lchamlar `px` emas, `mm` da yozilgan: eng
+kichik matn 3 mm shriftda, ya'ni harf balandligi ~2.1 mm. `px` da
+yozilganda o'lcham printer zichligiga (203 dpi) qarab suzib ketardi.
 
 ---
 

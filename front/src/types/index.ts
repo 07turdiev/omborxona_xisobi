@@ -33,6 +33,9 @@ export interface Category {
   id: number
   name: string
   product_count?: number
+  /** Soliq tasnifi kodi — kategoriyadagi mahsulotlar uchun standart */
+  mxik_code: string
+  package_code: string
 }
 
 export interface Size {
@@ -75,6 +78,11 @@ export interface Product {
   description: string
   photo: string | null
   sale_price: string
+  /** Bo'sh bo'lsa kategoriyaniki ishlatiladi */
+  mxik_code: string
+  package_code: string
+  /** Amaldagi kod: mahsulotniki yoki kategoriyaniki */
+  effective_mxik_code: string
   is_active: boolean
   variants: Variant[]
 }

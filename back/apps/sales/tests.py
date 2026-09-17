@@ -21,6 +21,7 @@ from apps.core.factories import (
 from apps.core.models import ShopSettings
 from apps.inventory.models import MovementReason, StockMovement
 from apps.reports.services import sales_report
+from apps.sales import fiscal
 from apps.sales.models import Sale, SaleReturn
 from apps.sales.services import create_return, create_sale, void_sale
 
@@ -816,3 +817,71 @@ class ConcurrentReturnTests(TransactionTestCase):
         self.assertEqual(SaleReturn.objects.count(), 1)
         # 5 kelgan − 1 sotilgan + 1 qaytgan
         self.assertEqual(Variant.objects.get(pk=variant.pk).stock_quantity, 5)
+
+
+class FiscalPayloadTests(TestCase):
+    """Fiskal provayderga ketadigan ma'lumot: har qator MXIK kodi bilan."""
+
+    CODE = '01234567890123456'
+
+    def setUp(self):
+        self.cashier = create_cashier()
+        self.product = create_product(price='250000')
+        self.variant = self.product.variants.get()
+        receive_stock(self.variant, 10, '150000')
+
+    def _sell(self, quantity=1):
+        return create_sale(
+            user=self.cashier,
+            lines=[{'variant': self.variant, 'quantity': quantity}],
+            cash_amount=Decimal('250000') * quantity,
+        )
+
+    def test_line_carries_category_code(self):
+        self.product.category.mxik_code = self.CODE
+        self.product.category.save()
+
+        payload = fiscal.sale_payload(self._sell())
+        line = payload['lines'][0]
+
+        self.assertEqual(line['mxik_code'], self.CODE)
+        self.assertEqual(line['barcode'], self.variant.barcode)
+        self.assertEqual(line['quantity'], 1)
+        self.assertEqual(payload['number'], Sale.objects.get().number)
+
+    def test_product_code_overrides_category(self):
+        own = '76543210987654321'
+
+        self.product.category.mxik_code = self.CODE
+        self.product.category.save()
+        self.product.mxik_code = own
+        self.product.save()
+
+        payload = fiscal.sale_payload(self._sell())
+
+        self.assertEqual(payload['lines'][0]['mxik_code'], own)
+
+    def test_missing_code_is_reported(self):
+        """Kodsiz qator haqiqiy provayderda rad etilardi — oldindan ko'rinsin."""
+        payload = fiscal.sale_payload(self._sell())
+
+        self.assertEqual(payload['lines'][0]['mxik_code'], '')
+        self.assertEqual(fiscal.missing_mxik(payload), [self.product.name])
+
+    def test_return_payload_carries_code(self):
+        self.product.category.mxik_code = self.CODE
+        self.product.category.save()
+
+        sale = self._sell(2)
+        sale_return = create_return(
+            sale=sale,
+            items=[{'sale_line': sale.lines.get(), 'quantity': 1}],
+            refund_method=SaleReturn.RefundMethod.CASH,
+            user=self.cashier,
+        )
+
+        payload = fiscal.return_payload(sale_return)
+
+        self.assertEqual(payload['document'], 'return')
+        self.assertEqual(payload['sale_number'], sale.number)
+        self.assertEqual(payload['lines'][0]['mxik_code'], self.CODE)
