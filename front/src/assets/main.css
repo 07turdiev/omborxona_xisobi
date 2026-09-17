@@ -30,8 +30,16 @@
 }
 
 @media print {
-  /* Ilova chop etishda umuman qatnashmaydi */
-  body.printing #app {
+  /* Chop etishda <body> dagi hamma narsa yashiriladi — faqat varaq
+     qoladi.
+
+     Bu yerda `#app` ni nomlab yozish yetarli emas edi: ishlab chiqish
+     serverida Vue DevTools <body> ga o'z konteynerlarini qo'shadi
+     (#__vue-devtools-container__, #vue-inspector-container) va ular
+     balandligi bilan bo'sh sahifalar hosil qilardi. Boshqa kutubxona
+     ham shunday qilishi mumkin, shuning uchun qoida nomga emas,
+     "varaqdan boshqa hamma narsa" tamoyiliga asoslangan. */
+  body.printing > :not(.print-sheet) {
     display: none !important;
   }
 

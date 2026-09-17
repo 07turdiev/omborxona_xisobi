@@ -101,9 +101,23 @@ soni, qog'oz o'lchami va chizg'ich uzunligi chiqqan PDF dan o'lchanadi
 beradi — sahifa sig'masa, Chromium chizmani jimgina kichraytiradi.
 
 ```bash
+# Bir marta: test brauzerini o'rnatish
+cd front && npx playwright install chromium
+
+# Backend ishlab tursin (boshqa oynada)
+cd back && .venv/Scripts/python.exe manage.py runserver
+cd back && .venv/Scripts/python.exe manage.py seed_demo   # namuna ma'lumot
+
+# Testni yurgizish
 cd front && npm run test:print
 ```
 
-Talablar: backend `127.0.0.1:8004` da namuna ma'lumot bilan ishlab
-tursin (`manage.py seed_demo`), kompyuterda **Edge** o'rnatilgan
-bo'lsin. Test ilovani o'zi quradi va `vite preview` bilan ko'taradi.
+Test ilovani o'zi quradi va `vite preview` bilan ko'taradi. Backend
+standart holatda `http://127.0.0.1:8000` da kutiladi; boshqa portda
+bo'lsa manzilni bering:
+
+```bash
+VITE_API_TARGET=http://127.0.0.1:8004 npm run test:print
+```
+
+Boshqa brauzerda sinash uchun: `PLAYWRIGHT_CHANNEL=msedge npm run test:print`.

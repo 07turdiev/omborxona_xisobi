@@ -18,8 +18,16 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 import { longestRulerMm, readPdf } from './pdf'
 
-const API = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8004'
+/** Backend manzili — `playwright.config.ts` dagi bilan bir xil manba */
+const API = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8000'
 const LOGIN = { username: 'admin', password: 'demo12345' }
+
+const HOW_TO_START =
+  `Backend ${API} da javob bermayapti.\n\n` +
+  '  1) Ishga tushiring:   cd back && .venv/Scripts/python.exe manage.py runserver\n' +
+  '  2) Namuna ma’lumot:   .venv/Scripts/python.exe manage.py seed_demo\n' +
+  '  3) Boshqa portda bo‘lsa:\n' +
+  '     VITE_API_TARGET=http://127.0.0.1:8004 npm run test:print\n'
 
 /** O'lchov bag'rikengligi: qog'oz va chizg'ich uchun ±0.5 mm */
 const TOLERANCE = 0.5
@@ -39,9 +47,20 @@ let access = ''
 let refresh = ''
 
 test.beforeAll(async ({ request }) => {
-  const response = await request.post(`${API}/api/auth/login/`, { data: LOGIN })
+  let response
 
-  expect(response.ok(), 'backend 8004 portda ishlab turishi kerak').toBeTruthy()
+  try {
+    response = await request.post(`${API}/api/auth/login/`, { data: LOGIN })
+  } catch {
+    throw new Error(HOW_TO_START)
+  }
+
+  if (!response.ok()) {
+    throw new Error(
+      `${HOW_TO_START}\n(server javob berdi, lekin kirish bo‘lmadi: ` +
+        `${response.status()} — admin/demo12345 hisobi bormi?)`,
+    )
+  }
 
   const body = await response.json()
 
@@ -107,6 +126,40 @@ test('sinov yorlig‘i: 1 sahifa, 40×30 mm, chizg‘ich 30 mm', async ({ page }
   )
 
   expect(Math.abs(ruler - 30), `chizg‘ich ${ruler} mm`).toBeLessThanOrEqual(TOLERANCE)
+})
+
+test('begona element qo‘shilsa ham 1 sahifa', async ({ page }) => {
+  await openApp(page, '/settings/devices')
+
+  // Ishlab chiqish serverida Vue DevTools <body> ga o'z konteynerlarini
+  // qo'shadi va ular bo'sh sahifalar hosil qilardi. Shunga o'xshash
+  // baland elementni ataylab qo'shamiz.
+  await page.evaluate(() => {
+    const intruder = document.createElement('div')
+
+    intruder.id = 'sinov-begona-element'
+    // `pointer-events: none` — element tugmani to'smasin. Joylashuvga
+    // ta'sir qilmaydi, ya'ni sahifalash uchun xavf o'zgarmaydi.
+    intruder.style.cssText =
+      'position: fixed; top: 0; left: 0; width: 3000px; height: 5000px;' +
+      'background: #000; pointer-events: none'
+
+    document.body.append(intruder)
+  })
+
+  await page.getByRole('button', { name: /Sinov yorlig/ }).click()
+
+  const pdf = await printToPdf(page)
+  const info = await readPdf(pdf)
+
+  console.log(
+    `    begona element bilan: ${info.pages} sahifa, ` +
+      `${info.size.widthMm}×${info.size.heightMm} mm`,
+  )
+
+  expect(info.pages, 'begona element qo‘shimcha sahifa bermasligi kerak').toBe(1)
+  expectMm(info.size.widthMm, 40, 'yorliq eni')
+  expectMm(info.size.heightMm, 30, 'yorliq bo‘yi')
 })
 
 test('kirim yorliqlari: 3 dona — 3 sahifa', async ({ page, request }) => {

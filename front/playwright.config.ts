@@ -3,15 +3,20 @@ import { defineConfig } from '@playwright/test'
 /**
  * Chop etish regressiya testi uchun sozlama.
  *
- * Brauzer sifatida kompyuterdagi **Edge** ishlatiladi (`channel:
- * 'msedge'`): Playwright'ning o'z Chromium'ini yuklab olish shart
- * emas, chek va yorliq baribir Chromium dvigatelida chop etiladi.
+ * Brauzer — Playwright bilan keladigan Chromium. Boshqa brauzerda
+ * sinash kerak bo'lsa:
+ *
+ *   PLAYWRIGHT_CHANNEL=msedge npm run test:print
  *
  * Sinov qurilgan ilovaga qarshi o'tkaziladi (`vite preview`), chunki
  * chop etish uslublari faqat yakuniy CSS da to'liq ko'rinadi.
+ *
+ * Backend manzili `VITE_API_TARGET` dan olinadi — test ham, preview
+ * proxysi ham bir xil manzilga qaraydi.
  */
 
-const apiTarget = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8004'
+const apiTarget = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8000'
+const channel = process.env.PLAYWRIGHT_CHANNEL
 
 export default defineConfig({
   testDir: './tests',
@@ -22,8 +27,8 @@ export default defineConfig({
 
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    channel: 'msedge',
     headless: true,
+    ...(channel ? { channel } : {}),
   },
 
   webServer: {
