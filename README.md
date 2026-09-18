@@ -63,10 +63,13 @@ back/
 
 front/src/
   api/               server bilan aloqa
-  stores/            auth va kassa savati
+  stores/            auth, kassa savati, chop etish agenti
   views/             ekranlar
   components/        skaner maydoni, chek, yorliq, qobiq
   utils/             pul, sana, chop etish
+
+agent/               chop etish agenti (Node, bog'liqliksiz)
+  src/               ESC/POS (chek), TSPL (yorliq), HTTP, sozlama
 ```
 
 Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
@@ -82,15 +85,18 @@ Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
 | [docs/development.md](docs/development.md) | Lokal ishga tushirish, testlar, skanersiz sinash |
 | [docs/deployment.md](docs/deployment.md) | Serverga chiqarish, HTTPS, zaxira nusxa |
 | [docs/roadmap.md](docs/roadmap.md) | Nima tayyor, nima ataylab qilinmagan, nima qoldi |
+| [docs/hardware.md](docs/hardware.md) | Printer va skanerni ulash, sinash, tez-tez uchraydigan muammolar |
+| [agent/README.md](agent/README.md) | Chop etish agenti: o'rnatish, sozlash, avtomatik ishga tushirish |
 
 ---
 
 ## Testlar
 
 ```bash
-cd back && .venv/Scripts/python.exe manage.py test    # 92 ta
-cd front && npm run test:unit                         # 32 ta
+cd back && .venv/Scripts/python.exe manage.py test    # 95 ta
+cd front && npm run test:unit                         # 44 ta
 cd front && npm run build                             # type-check + build
+cd agent && npm test                                  # 85 ta
 ```
 
 ### Chop etish testi

@@ -8,9 +8,15 @@ Do'konda ishlatiladigan qurilmalar:
 | Chek printeri | **Xprinter XP-Q80AS** | USB + LAN | 80 mm, ESC/POS, pul qutisi uchun 24 V chiqish |
 | Skaner | **2D skaner "7710"** | USB | HID klaviatura rejimi |
 
-Dastur qurilmalarga brauzer orqali chop etadi — maxsus dastur yoki
-drayver kutubxonasi kerak emas. Shuning uchun **drayverdagi qog'oz
-o'lchami to'g'ri bo'lishi** hal qiluvchi ahamiyatga ega.
+Dastur ikki yo'l bilan chop etadi:
+
+| Yo'l | Qachon | Nima muhim |
+|---|---|---|
+| **Chop etish agenti** | Kompyuterda agent ishlab tursa | Oyna ochilmaydi, chek kerakli uzunlikda chiqadi. Sozlash: [agent/README.md](../agent/README.md) |
+| **Brauzer** | Agent bo'lmasa — o'zi shunga qaytadi | **Drayverdagi qog'oz o'lchami to'g'ri bo'lishi** hal qiluvchi ahamiyatga ega |
+
+Quyidagi sozlamalar ikkala yo'l uchun ham kerak: agent ham o'sha
+qurilmalarga, o'sha qog'ozga chop etadi.
 
 > Hamma tekshiruvlarni dasturning o'zidan qilish mumkin:
 > **Sozlamalar → Qurilmalarni sinash**.
@@ -68,6 +74,34 @@ bosadi. Shu varaq drayver bilan mos kelishini tekshiring.
   qog'oz o'lchami boshqa.
 - Yorliq **ramkasi to'liq** ko'rinsin, chetlari kesilmasin.
 - Chiqqan shtrix-kodni skanerlang — o'qilishi shart.
+
+### 2.5. Agent uchun ulashish
+
+XP-365B da faqat USB bor. Chop etish agenti unga raw baytlarni yuborishi
+uchun printer **ulashilgan** bo'lishi kerak — agent `\\127.0.0.1\NOM`
+yo'liga yozadi.
+
+Administrator huquqidagi PowerShell'da (oyna sarlavhasida
+*Administrator* yozuvi bo'lsin):
+
+```powershell
+Set-Printer -Name "Xprinter XP-365B" -Shared $true -ShareName "XP365B"
+Get-Printer -Name "Xprinter XP-365B" | Select-Object Name, Shared, ShareName
+```
+
+Ikkinchi qator `Shared: True` va `ShareName: XP365B` ko'rsatishi kerak.
+`Access was denied` chiqsa — oyna ko'tarilmagan.
+
+Bu usul haqiqiy qurilmada tekshirilgan: baytlar spooler orqali printerga
+o'tadi, yorliqlar ketma-ket va orasida bo'sh yorliqsiz chiqadi.
+
+> Ulashuvni oldindan tekshirib bo'lmaydi: printer ulashuvi fayl tizimi
+> obyekti emas va mavjud, ishlaydigan ulashuv ham "topilmadi" deb
+> javob beradi. Shuning uchun Sozlamalarda yorliq printeri "tekshirib
+> bo'lmaydi" deb turadi — bu xato emas.
+
+Ulashishga ruxsat bo'lmasa, yorliq brauzer orqali chiqaveradi: dastur
+agentsiz ham ishlaydi.
 
 ---
 

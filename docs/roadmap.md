@@ -1,6 +1,6 @@
 # Holat va qolgan ish
 
-Holat: **2026-09-16**.
+Holat: **2026-09-18**.
 
 ---
 
@@ -20,8 +20,10 @@ Holat: **2026-09-16**.
 | **Xodimlar** | Qo'shish, rol, parolni almashtirish, bloklash |
 | **Sozlamalar** | Do'kon nomi, yorliq o'lchami, kassir chegirma chegarasi |
 | **MXIK kodlari** | Kategoriya bo'yicha standart kod, mahsulotda o'zgartirish mumkin; fiskal chekka har qator bilan ketadi |
+| **Chop etish agenti** | Chek va yorliq to'g'ridan-to'g'ri printerga: oyna ochilmaydi, qog'oz bo'shga ketmaydi |
 
-Testlar: **backend 81 ta, frontend 22 ta** — hammasi o'tadi.
+Testlar: **backend 95, frontend 44, agent 85, chop etish 10** — hammasi
+o'tadi.
 
 ---
 
@@ -63,52 +65,34 @@ narx, qo'llab-quvvatlash).
 
 | Nima | Izoh |
 |---|---|
-| **Chek printerida sinash** | Chop etish 80 mm qog'ozga sozlangan va PDF bilan tekshirilgan, lekin haqiqiy termal printerda sinalmagan |
-| **Skaner bilan sinash** | Kod klaviatura skaneriga mo'ljallangan; qurilma kelgach tekshirish kerak |
 | **Mahsulot rasmi** | Model tayyor (`Product.photo`), interfeysda yuklash yo'q |
 | **Excel'dan mahsulot import qilish** | Do'konda yuzlab pozitsiya bo'lsa qo'l bilan kiritish uzoq |
 
 ---
 
-## Ochiq savol: ESC/POS bilan to'g'ridan-to'g'ri chop etish
+## Chop etish agenti — hal qilindi
 
-Hozir chek brauzer orqali chiqadi. Bundan ikkita kamchilik kelib
-chiqadi va ikkalasini ham faqat printerga **to'g'ridan-to'g'ri** ESC/POS
-buyruqlarini yuborish hal qiladi:
+Ilgari bu yerda ikkita ochiq savol turardi: chek oxirida bo'shga
+ketadigan lenta va har chop etishda ochiladigan oyna. Ikkalasini ham
+`agent/` papkasidagi kichik lokal xizmat hal qildi.
 
-| Kamchilik | Sabab |
+| Nima | Qanday |
 |---|---|
-| Chek oxirida bo'sh lenta | Sahifa balandligi qat'iy (drayverdagi qog'oz), chek esa har xil uzunlikda |
-| Har chop etishda oyna ochiladi | Brauzer chop etish dialogini o'zi ko'rsatadi |
+| Chek | ESC/POS, TCP 9100 orqali XP-Q80AS ga. Chek aynan kerakli uzunlikda chiqadi va o'sha yerda kesiladi |
+| Yorliq | TSPL, Windows printer ulashuvi orqali XP-365B ga. EAN-13 ni printerning o'zi chizadi |
+| Oyna | Ochilmaydi — kassir faqat qisqa xabar ko'radi |
+| Pul qutisi | Naqd to'lovda ESC/POS impulsi bilan ochiladi |
 
-ESC/POS da chek aynan kerakli uzunlikda chiqadi va qog'oz o'sha yerda
-kesiladi — bo'sh joy ham, dialog ham qolmaydi. Buning uchun kichik
-lokal xizmat kerak: dastur unga chekni yuboradi, u esa printerga
-ESC/POS buyruqlarini uzatadi. Pul qutisini ochish buyrug'i ham o'sha
-yerdan boriladi.
+Agent **majburiy emas**. U o'chirilgan bo'lsa ilova jimgina brauzer
+orqali chop etishga qaytadi va sotuv to'xtamaydi — shuning uchun agent
+yiqilsa ham do'kon ishlayveradi.
 
-**Hozircha qilinmaydi** — avval qurilmalar haqiqiy ishda sinalsin.
+Qurilmada tekshirilgan (2026-09-18): chek matni, apostroflar, shtrix-kod
+va kesish; yorliqlar ketma-ket chiqadi, orada bo'sh yorliq yo'q va
+mazmun yorliq o'rtasida turadi.
 
----
-
-## Ochiq savol: jimgina chop etish
-
-Hozir har chek va yorliq uchun Chrome'ning chop etish oynasi ochiladi va
-kassir **Print** ni bosadi. Kun bo'yi bu ortiqcha harakat.
-
-Chrome'da `--kiosk-printing` bayrog'i oynani ochmasdan chop etadi, lekin
-u **faqat standart printerga** yuboradi. Bizda esa ikkita printer bor
-(yorliq va chek), ya'ni bitta standart printer yetmaydi.
-
-Keyinroq baholanadigan variantlar:
-
-| Variant | Ma'nosi |
-|---|---|
-| Alohida Chrome profili | Yorliq chop etish uchun ikkinchi profil/oyna, unda standart printer — yorliq printeri |
-| Kichik lokal yordamchi dastur | Kompyuterda turadigan kichik xizmat: dastur unga hujjatni yuboradi, u kerakli printerga uzatadi |
-
-**Hozircha amalga oshirilmaydi** — avval qurilmalar haqiqiy ishda
-sinalsin, keyin qaysi biri arzonroq tushishi ko'rinadi.
+Batafsil: [agent/README.md](../agent/README.md) va
+[hardware.md](hardware.md).
 
 ---
 
