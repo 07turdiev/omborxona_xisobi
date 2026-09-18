@@ -73,16 +73,65 @@ bosadi. Shu varaq drayver bilan mos kelishini tekshiring.
 
 ## 3. Chek printeri — XP-Q80AS (80 mm)
 
-### 3.1. Qog'oz o'lchami
+### 3.1. Qog'oz o'lchami — eng muhim qadam
+
+Brauzer orqali chop etishda **sahifa balandligini dastur belgilay
+olmaydi**. Chrome `@page` dagi balandlikni e'tiborsiz qoldiradi va
+printer drayveridagi qog'oz o'lchamini oladi. XP-80 drayverida standart
+qog'oz `USER 72 × 296.9 mm` — shuning uchun har chekdan keyin **~30 sm
+lenta** bo'shga ketadi.
+
+Yechim: drayverda **maxsus qog'oz** yaratiladi va o'sha o'lcham
+dasturga ham yoziladi.
+
+**1. Drayverda qog'oz yaratish** (Windows):
+
+```
+Sozlamalar → Bluetooth va qurilmalar → Printerlar va skanerlar
+  → Xprinter XP-80 → Printing preferences → Paper → Custom / New
+```
+
+| Maydon | Qiymat |
+|---|---|
+| Nomi | `Chek 80x110` |
+| Eni | **80 mm** |
+| Bo'yi | **110 mm** |
+| Hoshiyalar | **0** (to'rt tomondan) |
+
+Saqlang va shu qog'ozni **standart** qilib tanlang.
+
+**2. Dasturda o'sha o'lchamni yozing:**
+
+```
+Sozlamalar → Chek qog'ozi eni: 80,  Chek sahifasi bo'yi: 110
+```
+
+Ikkalasi **aynan bir xil** bo'lishi shart.
+
+**3. Balandlikni qanday tanlash.** Bitta chek chop eting va
+**Sozlamalar → Qurilmalarni sinash** sahifasiga qarang: u yerda oxirgi
+chek mazmuni necha millimetr bo'lgani yoziladi. Qog'oz bo'yini shundan
+biroz katta qilib oling (masalan mazmun 86 mm bo'lsa — 110 mm).
 
 | Sozlama | Qiymat |
 |---|---|
-| Paper size | **80 × 297 mm** yoki "Roll 80mm" |
+| Paper size | **Chek 80×110** (o'zingiz yaratgan) |
 | Margins | **0** |
 | Auto-cut | **yoqilgan** — chek oxirida qog'oz kesiladi |
 
 Bosiladigan en 80 mm rulonda odatda **72 mm** — dastur aynan shunga
-moslangan.
+moslangan va mazmunni qog'oz o'rtasiga qo'yadi.
+
+### Nega baribir biroz bo'sh joy qoladi
+
+Sahifa balandligi qat'iy, chek esa har xil uzunlikda bo'ladi. Qisqa
+chekda qolgan joy bo'sh chiqadi — bu brauzer orqali chop etishning
+narxi. Uni butunlay yo'qotish uchun ESC/POS bilan to'g'ridan-to'g'ri
+chop etish kerak (docs/roadmap.md).
+
+Shuning uchun qog'oz bo'yini **odatdagi chekka qarab** tanlang, eng
+uzuniga qarab emas: uzun chek ikkinchi sahifaga o'tadi va qatorlar
+o'rtasidan uzilmaydi.
 
 ### 3.2. Pul qutisi
 

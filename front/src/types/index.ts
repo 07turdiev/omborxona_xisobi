@@ -26,6 +26,9 @@ export interface ShopSettings {
   shop_name: string
   label_width_mm: number
   label_height_mm: number
+  /** Chek qog'ozi — printer drayveridagi maxsus qog'oz bilan bir xil bo'lishi kerak */
+  receipt_width_mm: number
+  receipt_page_height_mm: number
   max_discount_percent: string
 }
 

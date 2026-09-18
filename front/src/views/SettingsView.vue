@@ -13,6 +13,8 @@ const form = ref<ShopSettings>({
   shop_name: '',
   label_width_mm: 40,
   label_height_mm: 30,
+  receipt_width_mm: 80,
+  receipt_page_height_mm: 110,
   max_discount_percent: '0',
 })
 
@@ -70,6 +72,22 @@ async function onSave() {
       <div class="field">
         <label>Yorliq bo‘yi (mm)</label>
         <input v-model.number="form.label_height_mm" type="number" min="10" max="100" />
+      </div>
+
+      <div class="field">
+        <label>Chek qog‘ozi eni (mm)</label>
+        <input v-model.number="form.receipt_width_mm" type="number" min="50" max="120" />
+      </div>
+
+      <div class="field">
+        <label>Chek sahifasi bo‘yi (mm)</label>
+        <input v-model.number="form.receipt_page_height_mm" type="number" min="40" max="300" />
+        <small class="field-hint">
+          Bu ikki o‘lcham printer drayverida yaratilgan maxsus qog‘oz bilan
+          <strong>aynan bir xil</strong> bo‘lishi kerak. Brauzer orqali chop
+          etishda sahifa balandligini har chekka moslab bo‘lmaydi — uni
+          drayver hal qiladi. Qanday qilish: docs/hardware.md.
+        </small>
       </div>
 
       <div class="field">

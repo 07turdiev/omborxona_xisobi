@@ -70,6 +70,27 @@ narx, qo'llab-quvvatlash).
 
 ---
 
+## Ochiq savol: ESC/POS bilan to'g'ridan-to'g'ri chop etish
+
+Hozir chek brauzer orqali chiqadi. Bundan ikkita kamchilik kelib
+chiqadi va ikkalasini ham faqat printerga **to'g'ridan-to'g'ri** ESC/POS
+buyruqlarini yuborish hal qiladi:
+
+| Kamchilik | Sabab |
+|---|---|
+| Chek oxirida bo'sh lenta | Sahifa balandligi qat'iy (drayverdagi qog'oz), chek esa har xil uzunlikda |
+| Har chop etishda oyna ochiladi | Brauzer chop etish dialogini o'zi ko'rsatadi |
+
+ESC/POS da chek aynan kerakli uzunlikda chiqadi va qog'oz o'sha yerda
+kesiladi — bo'sh joy ham, dialog ham qolmaydi. Buning uchun kichik
+lokal xizmat kerak: dastur unga chekni yuboradi, u esa printerga
+ESC/POS buyruqlarini uzatadi. Pul qutisini ochish buyrug'i ham o'sha
+yerdan boriladi.
+
+**Hozircha qilinmaydi** — avval qurilmalar haqiqiy ishda sinalsin.
+
+---
+
 ## Ochiq savol: jimgina chop etish
 
 Hozir har chek va yorliq uchun Chrome'ning chop etish oynasi ochiladi va

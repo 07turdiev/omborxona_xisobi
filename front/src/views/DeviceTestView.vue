@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import BarcodeImage from '@/components/BarcodeImage.vue'
 import { catalogApi } from '@/api/catalog'
 import { salesApi } from '@/api/sales'
-import { printWithPageSize } from '@/utils/print'
+import { lastReceiptHeight, printWithPageSize } from '@/utils/print'
 import { useAuthStore } from '@/stores/auth'
 
 /** Nazorat raqami to'g'ri bo'lgan sinov kodi */
@@ -15,6 +15,13 @@ const auth = useAuthStore()
 
 const labelWidth = computed(() => auth.shop?.label_width_mm ?? 40)
 const labelHeight = computed(() => auth.shop?.label_height_mm ?? 30)
+
+/** Chek qog'ozi — sozlamalardagi, ya'ni drayverdagi bilan bir xil */
+const receiptWidth = computed(() => auth.shop?.receipt_width_mm ?? 80)
+const receiptHeight = computed(() => auth.shop?.receipt_page_height_mm ?? 110)
+
+/** Oxirgi chop etilgan chek mazmunining balandligi */
+const lastHeight = ref<number | null>(lastReceiptHeight())
 
 const sheet = ref<'label' | 'receipt' | null>(null)
 
@@ -32,7 +39,11 @@ function printReceipt() {
   sheet.value = 'receipt'
 
   setTimeout(() => {
-    printWithPageSize('@page { size: 80mm 140mm; margin: 0; }')
+    // Haqiqiy chek bilan bir xil qog'oz — drayver sozlamasi shu yerdan
+    // tekshiriladi
+    printWithPageSize(
+      `@page { size: ${receiptWidth.value}mm ${receiptHeight.value}mm; margin: 0; }`,
+    )
     sheet.value = null
   }, 60)
 }
@@ -161,9 +172,23 @@ async function lookup(code: string): Promise<string> {
 
           <button class="button button-outline" type="button" @click="printReceipt">
             <svg><use href="#i-print" /></svg>
-            <span>Sinov cheki (80 mm)</span>
+            <span>Sinov cheki ({{ receiptWidth }}×{{ receiptHeight }} mm)</span>
           </button>
         </div>
+
+        <p class="paper-note">
+          Chek qog‘ozi: <strong>{{ receiptWidth }} × {{ receiptHeight }} mm</strong>.
+          Shu o‘lchamdagi maxsus qog‘oz printer drayverida ham yaratilgan
+          bo‘lishi kerak, aks holda Chrome o‘z qog‘ozini oladi va har chekdan
+          keyin uzun bo‘sh lenta chiqadi.
+          <template v-if="lastHeight">
+            Oxirgi chop etilgan chek mazmuni <strong>{{ lastHeight }} mm</strong> edi —
+            qog‘oz bo‘yini shundan katta qilib tanlang.
+          </template>
+          <template v-else>
+            Bitta chek chop etilgach, bu yerda uning haqiqiy balandligi ko‘rinadi.
+          </template>
+        </p>
 
         <ul class="checklist">
           <li>Yorliqdagi chiziq chizg‘ich bilan o‘lchaganda <strong>30 mm</strong> chiqsin.</li>
@@ -291,6 +316,16 @@ async function lookup(code: string): Promise<string> {
 
 .hint {
   margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.paper-note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius);
+  background: var(--orange-soft);
   font-size: 13px;
   line-height: 1.6;
 }

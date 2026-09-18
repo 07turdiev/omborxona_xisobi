@@ -28,6 +28,15 @@ class ShopSettings(TimeStampedModel):
     label_width_mm = models.PositiveSmallIntegerField(_('Yorliq eni, mm'), default=40)
     label_height_mm = models.PositiveSmallIntegerField(_('Yorliq bo‘yi, mm'), default=30)
 
+    #: Chek qog'ozi. Brauzer orqali chop etishda sahifa balandligini har
+    #: chekka moslab bo'lmaydi: Chrome printer drayveridagi qog'oz
+    #: o'lchamini oladi. Shuning uchun bu yerdagi qiymatlar drayverda
+    #: yaratilgan maxsus qog'oz bilan bir xil bo'lishi kerak.
+    receipt_width_mm = models.PositiveSmallIntegerField(_('Chek qog‘ozi eni, mm'), default=80)
+    receipt_page_height_mm = models.PositiveSmallIntegerField(
+        _('Chek sahifasi bo‘yi, mm'), default=110
+    )
+
     max_discount_percent = models.DecimalField(
         _('Kassir bera oladigan eng katta chegirma, %'),
         max_digits=5,

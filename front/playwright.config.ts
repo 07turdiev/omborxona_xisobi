@@ -20,7 +20,10 @@ const channel = process.env.PLAYWRIGHT_CHANNEL
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 60_000,
+  // Yangi kompyuterda Chromium birinchi marta sekin ko'tariladi (profil,
+  // shriftlar): birinchi test 60 soniyaga tiqilib qolgan edi. Keyingi
+  // yurgizishlarda butun to'plam ~10 soniyada tugaydi.
+  timeout: 90_000,
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],

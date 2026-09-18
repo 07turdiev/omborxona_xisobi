@@ -16,7 +16,7 @@
 
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
-import { longestRulerMm, readPdf } from './pdf'
+import { firstInkRowMm, longestRulerMm, pageHasInk, readPdf } from './pdf'
 
 /** Backend manzili — `playwright.config.ts` dagi bilan bir xil manba */
 const API = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8000'
@@ -45,6 +45,7 @@ function expectMm(actual: number, expected: number, what: string) {
 
 let access = ''
 let refresh = ''
+let settings: { receipt_width_mm: number; receipt_page_height_mm: number }
 
 test.beforeAll(async ({ request }) => {
   let response
@@ -66,6 +67,14 @@ test.beforeAll(async ({ request }) => {
 
   access = body.access
   refresh = body.refresh
+
+  // Chek qog'ozi o'lchami sozlamalardan olinadi: test ham, ilova ham
+  // bitta manbaga qaraydi
+  settings = await (
+    await request.get(`${API}/api/settings/`, {
+      headers: { Authorization: `Bearer ${access}` },
+    })
+  ).json()
 })
 
 /** Tokenlarni brauzerga qo'yadi va chop etishni "to'xtatib" turadi. */
@@ -193,17 +202,21 @@ test('sinov cheki: 1 sahifa, 80 mm en, chizg‘ich 50 mm', async ({ page }) => {
   const pdf = await printToPdf(page)
   const info = await readPdf(pdf)
 
-  expect(info.pages).toBe(1)
-  expectMm(info.size.widthMm, 80, 'chek eni')
-
   const ruler = await longestRulerMm(pdf)
+  const topMm = await firstInkRowMm(pdf)
 
   console.log(
     `    sinov cheki: ${info.pages} sahifa, ` +
-      `${info.size.widthMm}×${info.size.heightMm} mm, chizg‘ich ${ruler} mm`,
+      `${info.size.widthMm}×${info.size.heightMm} mm, chizg‘ich ${ruler} mm, ` +
+      `mazmun tepadan ${topMm} mm`,
   )
 
+  expect(info.pages).toBe(1)
+  expectMm(info.size.widthMm, settings.receipt_width_mm, 'chek eni')
+  expectMm(info.size.heightMm, settings.receipt_page_height_mm, 'chek sahifasi bo‘yi')
+
   expect(Math.abs(ruler - 50), `chizg‘ich ${ruler} mm`).toBeLessThanOrEqual(TOLERANCE)
+  expect(topMm, 'mazmun sahifa tepasidan boshlanishi kerak').toBeLessThanOrEqual(5)
 })
 
 test('haqiqiy chek: 1 sahifa, balandligi mazmunga teng', async ({ page, request }) => {
@@ -223,28 +236,55 @@ test('haqiqiy chek: 1 sahifa, balandligi mazmunga teng', async ({ page, request 
   const info = await readPdf(pdf)
   const declared = await declaredPageSize(page)
 
-  expect(info.pages, 'chek bitta sahifada').toBe(1)
-  expectMm(info.size.widthMm, 80, 'chek eni')
-
-  // Qog'oz balandligi ilova hisoblagan balandlikka teng
-  expect(Math.abs(info.size.heightMm - declared.height)).toBeLessThanOrEqual(TOLERANCE)
-
-  // Va u chek mazmunidan sezilarli uzun emas — oxirida bo'sh lenta qolmasin
-  const contentMm = await page.evaluate(() => {
-    const sheet = document.querySelector('.print-sheet.receipt') as HTMLElement | null
-
-    return sheet ? (sheet.scrollHeight / 96) * 25.4 : 0
-  })
+  const topMm = await firstInkRowMm(pdf)
 
   console.log(
     `    haqiqiy chek: ${info.pages} sahifa, ` +
       `${info.size.widthMm}×${info.size.heightMm} mm ` +
-      `(ilova hisobladi ${declared.width}×${declared.height} mm, ` +
-      `mazmun ${Math.round(contentMm * 10) / 10} mm)`,
+      `(ilova @page: ${declared.width}×${declared.height} mm), ` +
+      `mazmun tepadan ${topMm} mm`,
   )
 
-  expect(contentMm).toBeGreaterThan(0)
-  expect(info.size.heightMm - contentMm, 'chek oxirida uzun bo‘sh joy').toBeLessThan(8)
+  expect(info.pages, 'chek bitta sahifada').toBe(1)
+
+  // Qog'oz o'lchami sozlamadagidek — mazmunga qarab hisoblanmaydi
+  expectMm(info.size.widthMm, settings.receipt_width_mm, 'chek eni')
+  expectMm(info.size.heightMm, settings.receipt_page_height_mm, 'chek sahifasi bo‘yi')
+  expect(declared.width).toBe(settings.receipt_width_mm)
+  expect(declared.height).toBe(settings.receipt_page_height_mm)
+
+  expect(topMm, 'mazmun sahifa tepasidan boshlanishi kerak').toBeLessThanOrEqual(5)
+})
+
+test('uzun chek: 2 sahifa, mazmun kesilmaydi', async ({ page, request }) => {
+  const sale = await createSaleWithManyLines(request)
+
+  await openApp(page, '/receipts')
+
+  const row = page.locator('tr', { hasText: sale.number })
+
+  await expect(row).toBeVisible()
+  await row.click()
+
+  await page.getByRole('button', { name: 'Chop etish' }).click()
+
+  const pdf = await printToPdf(page)
+  const info = await readPdf(pdf)
+  const topMm = await firstInkRowMm(pdf)
+  const secondPageHasContent = await pageHasInk(pdf, 2)
+
+  console.log(
+    `    uzun chek (${sale.lines.length} qator): ${info.pages} sahifa, ` +
+      `${info.size.widthMm}×${info.size.heightMm} mm, ` +
+      `2-sahifada mazmun: ${secondPageHasContent ? 'bor' : 'yo‘q'}`,
+  )
+
+  expect(info.pages, 'uzun chek ikkinchi sahifaga o‘tadi').toBe(2)
+  expectMm(info.size.widthMm, settings.receipt_width_mm, 'chek eni')
+  expectMm(info.size.heightMm, settings.receipt_page_height_mm, 'chek sahifasi bo‘yi')
+
+  expect(topMm, 'mazmun sahifa tepasidan boshlanishi kerak').toBeLessThanOrEqual(5)
+  expect(secondPageHasContent, 'ikkinchi sahifa bo‘sh bo‘lmasligi kerak').toBe(true)
 })
 
 // --- Ma'lumot tayyorlash ---------------------------------------------
@@ -290,6 +330,37 @@ async function createPurchaseWithThreeUnits(request: APIRequestContext) {
   expect(confirmed.ok(), 'kirim tasdiqlanishi kerak').toBeTruthy()
 
   return purchase
+}
+
+/** O'n qatorli sotuv — bitta sahifaga sig'maydi. */
+async function createSaleWithManyLines(request: APIRequestContext) {
+  const headers = await authHeaders()
+  const page = await (await request.get(`${API}/api/variants/`, { headers })).json()
+
+  const variants = page.results
+    .filter((item: { stock_quantity: number }) => item.stock_quantity > 0)
+    .slice(0, 10)
+
+  expect(variants.length, 'kamida 10 ta tovar kerak — seed_demo ishga tushiring').toBe(10)
+
+  const total = variants.reduce(
+    (sum: number, item: { price: string }) => sum + Number(item.price),
+    0,
+  )
+
+  const response = await request.post(`${API}/api/sales/`, {
+    headers,
+    data: {
+      lines: variants.map((item: { id: number }) => ({ variant: item.id, quantity: 1 })),
+      cash_amount: total.toFixed(2),
+      card_amount: '0.00',
+      request_key: crypto.randomUUID(),
+    },
+  })
+
+  expect(response.ok(), `sotuv yaratilmadi: ${await response.text()}`).toBeTruthy()
+
+  return response.json()
 }
 
 /** Qoldig'i bor birinchi tovarning shtrix-kodi. */
