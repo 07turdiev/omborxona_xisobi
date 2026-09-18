@@ -1,0 +1,14 @@
+{
+  "name": "dokon-print-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Chek va yorliqni printerga to'g'ridan-to'g'ri yuboradigan lokal xizmat",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -52,6 +52,10 @@ dist/
 # Playwright chop etish testining natijalari
 front/test-results/
 front/playwright-report/
+
+# Chop etish agentining sozlamasi — printerning tarmoqdagi manzili
+# bo'ladi, har kompyuterda boshqacha (namuna: agent/config.example.json)
+agent/config.json
 dist-ssr/
 .vite/
 *.local
