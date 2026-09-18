@@ -4,16 +4,22 @@
  * Tarmoqqa chiqmaydi va faqat ilovaning o'z manzilidan kelgan
  * so'rovlarni qabul qiladi (CORS). Boshqa sayt brauzer orqali bu
  * xizmatga murojaat qila olmaydi.
+ *
+ * Brauzerdan tashqari mijoz (masalan `curl`) uchun `Origin` sarlavhasi
+ * bo'lmaydi — u holda sozlamadagi `token` talab qilinadi. Bitta
+ * kompyuterdagi oddiy o'rnatmada token shart emas.
  */
 
 import { createServer as createHttpServer } from 'node:http'
 
 import { buildReceipt } from './escpos.js'
+import { buildLabels } from './tspl.js'
 import { probe, send } from './printer.js'
 
-export const VERSION = '1.0.0'
+export const VERSION = '1.1.0'
 
 const MAX_BODY = 512 * 1024
+const TOKEN_HEADER = 'x-agent-token'
 
 function readBody(request) {
   return new Promise((resolve, reject) => {
@@ -84,6 +90,23 @@ export function validateReceipt(data) {
   return null
 }
 
+/** Yorliqlar ro'yxatini tekshiradi. */
+export function validateLabels(data) {
+  if (!data || typeof data !== 'object') return 'yorliq ma’lumoti yo‘q'
+  if (!Array.isArray(data.labels) || data.labels.length === 0) return 'yorliq ro‘yxati bo‘sh'
+
+  for (const label of data.labels) {
+    if (!label || !label.name) return 'yorliqda tovar nomi yo‘q'
+    if (!label.barcode) return 'yorliqda shtrix-kod yo‘q'
+
+    const quantity = Number(label.quantity ?? 1)
+
+    if (!Number.isFinite(quantity) || quantity < 1) return 'yorliq soni noto‘g‘ri'
+  }
+
+  return null
+}
+
 /**
  * Xizmatni yaratadi.
  *
@@ -93,15 +116,35 @@ export function validateReceipt(data) {
 export function createServer(config, deps = {}) {
   const printBytes = deps.send ?? send
   const probePrinter = deps.probe ?? probe
+  const now = deps.now ?? (() => new Date().toISOString())
 
   const allowed = new Set(config.origins ?? [])
+  const token = config.token ?? null
+
+  /** Har printer bo'yicha oxirgi xato — Sozlamalarda ko'rsatiladi */
+  const lastErrors = new Map()
+
+  async function printTo(name, bytes) {
+    const printer = config.printers?.[name]
+
+    try {
+      await printBytes(printer, bytes)
+      lastErrors.delete(name)
+    } catch (error) {
+      lastErrors.set(name, { at: now(), message: error.message })
+      throw error
+    }
+  }
 
   const server = createHttpServer(async (request, response) => {
     const origin = request.headers.origin
+    const hasToken = Boolean(token) && request.headers[TOKEN_HEADER] === token
+
     const allowedOrigin = origin && allowed.has(origin) ? origin : null
 
-    // Boshqa saytdan kelgan so'rov — rad etiladi
-    if (origin && !allowedOrigin) {
+    // Brauzerdan kelgan so'rov faqat ruxsat etilgan manzildan bo'lsin;
+    // Origin umuman bo'lmasa (curl, skript) — token talab qilinadi
+    if (origin ? !allowedOrigin && !hasToken : !hasToken) {
       sendJson(response, 403, { error: 'bu manzilga ruxsat yo‘q' }, null)
       return
     }
@@ -110,7 +153,7 @@ export function createServer(config, deps = {}) {
       response.writeHead(204, {
         'Access-Control-Allow-Origin': allowedOrigin ?? '',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': `Content-Type, ${TOKEN_HEADER}`,
         'Access-Control-Max-Age': '600',
         Vary: 'Origin',
       })
@@ -119,6 +162,16 @@ export function createServer(config, deps = {}) {
     }
 
     const url = new URL(request.url, 'http://127.0.0.1')
+
+    // POST so'rovlar faqat JSON qabul qiladi
+    if (request.method === 'POST') {
+      const type = String(request.headers['content-type'] ?? '')
+
+      if (!type.toLowerCase().startsWith('application/json')) {
+        sendJson(response, 415, { error: 'Content-Type: application/json bo‘lishi kerak' }, allowedOrigin)
+        return
+      }
+    }
 
     try {
       if (request.method === 'GET' && url.pathname === '/health') {
@@ -133,11 +186,17 @@ export function createServer(config, deps = {}) {
               transport: printer.transport,
               target: printer.host ?? printer.share ?? printer.path ?? null,
               responds: await probePrinter(printer),
+              lastError: lastErrors.get(name) ?? null,
             }
           }),
         )
 
-        sendJson(response, 200, { version: VERSION, codePage: config.codePage, printers }, allowedOrigin)
+        sendJson(
+          response,
+          200,
+          { version: VERSION, codePage: config.codePage, printers },
+          allowedOrigin,
+        )
         return
       }
 
@@ -158,14 +217,51 @@ export function createServer(config, deps = {}) {
         }
 
         const bytes = buildReceipt(data, {
-          columns: printer.columns ?? 48,
+          columns: printer.columns,
           codePage: config.codePage,
           cashDrawer: data.openDrawer ?? printer.cashDrawer ?? false,
+          feedBeforeCut: printer.feedBeforeCut,
+          cut: printer.cut,
+          barcodeHeight: printer.barcodeHeight,
+          barcodeWidth: printer.barcodeWidth,
         })
 
-        await printBytes(printer, bytes)
+        await printTo('receipt', bytes)
 
         sendJson(response, 200, { ok: true, bytes: bytes.length }, allowedOrigin)
+        return
+      }
+
+      if (request.method === 'POST' && url.pathname === '/labels') {
+        const data = await readBody(request)
+        const problem = validateLabels(data)
+
+        if (problem) {
+          sendJson(response, 400, { error: problem }, allowedOrigin)
+          return
+        }
+
+        const printer = config.printers?.label
+
+        if (!printer) {
+          sendJson(response, 503, { error: 'yorliq printeri sozlanmagan' }, allowedOrigin)
+          return
+        }
+
+        const bytes = buildLabels(data, {
+          density: printer.density,
+          speed: printer.speed,
+          barcodeHeight: printer.barcodeHeight,
+        })
+
+        await printTo('label', bytes)
+
+        const count = data.labels.reduce(
+          (sum, label) => sum + Math.max(1, Number(label.quantity) || 1),
+          0,
+        )
+
+        sendJson(response, 200, { ok: true, labels: count, bytes: bytes.length }, allowedOrigin)
         return
       }
 

@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it } from 'node:test'
 
-import { buildReceipt } from '../src/escpos.js'
+import { buildReceipt, RECEIPT_DEFAULTS } from '../src/escpos.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const FIXTURE = join(HERE, 'fixtures', 'receipt.hex')
@@ -32,8 +32,8 @@ const SAMPLE = {
   barcode: '2026000123',
 }
 
-function build() {
-  return buildReceipt(SAMPLE, { columns: 48, codePage: 'cp1252', cashDrawer: false })
+function build(options = {}) {
+  return buildReceipt(SAMPLE, { columns: 48, codePage: 'cp1252', ...options })
 }
 
 describe('buildReceipt — tuzilishi', () => {
@@ -90,10 +90,51 @@ describe('buildReceipt — tuzilishi', () => {
     const pulse = Buffer.from([0x1b, 0x70, 0x00])
 
     assert.equal(bytes.indexOf(pulse), -1)
+    assert.ok(build({ cashDrawer: true }).indexOf(pulse) > 0)
+  })
+})
 
-    const withDrawer = buildReceipt(SAMPLE, { cashDrawer: true })
+describe('buildReceipt — kesish va qog‘oz tortish', () => {
+  it('standart holatda 5 qator tortiladi', () => {
+    // Bosh bilan pichoq orasidagi masofa: kam tortilsa oxirgi
+    // qatorlar pichoqdan pastda qolib ketadi
+    assert.equal(RECEIPT_DEFAULTS.feedBeforeCut, 5)
 
-    assert.ok(withDrawer.indexOf(pulse) > 0)
+    const feed = Buffer.from([0x1b, 0x64, 5])
+
+    assert.ok(build().indexOf(feed) > 0)
+  })
+
+  it('tortish qatorlari sozlanadi', () => {
+    const bytes = build({ feedBeforeCut: 9 })
+
+    assert.ok(bytes.indexOf(Buffer.from([0x1b, 0x64, 9])) > 0)
+  })
+
+  it('yarim kesish GS V 1 yuboradi', () => {
+    assert.deepEqual(build({ cut: 'partial' }).subarray(-3), Buffer.from([0x1d, 0x56, 0x01]))
+  })
+
+  it('kesish o‘chirilsa buyruq umuman yuborilmaydi', () => {
+    const bytes = build({ cut: 'none' })
+
+    assert.equal(bytes.indexOf(Buffer.from([0x1d, 0x56])), -1)
+  })
+})
+
+describe('buildReceipt — shtrix-kod o‘lchami', () => {
+  it('standart balandlik 80 nuqta, kenglik 2', () => {
+    const bytes = build()
+
+    assert.ok(bytes.indexOf(Buffer.from([0x1d, 0x68, 80])) > 0)
+    assert.ok(bytes.indexOf(Buffer.from([0x1d, 0x77, 2])) > 0)
+  })
+
+  it('o‘lcham sozlanadi', () => {
+    const bytes = build({ barcodeHeight: 120, barcodeWidth: 3 })
+
+    assert.ok(bytes.indexOf(Buffer.from([0x1d, 0x68, 120])) > 0)
+    assert.ok(bytes.indexOf(Buffer.from([0x1d, 0x77, 3])) > 0)
   })
 })
 

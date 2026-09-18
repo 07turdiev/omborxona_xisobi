@@ -4,11 +4,14 @@ import { RouterView, useRoute } from 'vue-router'
 
 import AppIcons from '@/components/AppIcons.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
+import AppToast from '@/components/AppToast.vue'
 import AppTopbar from '@/components/AppTopbar.vue'
+import { useAgentStore } from '@/stores/agent'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const auth = useAuthStore()
+const agent = useAgentStore()
 
 const sidebarOpen = ref(false)
 
@@ -24,6 +27,10 @@ onMounted(async () => {
       // Token eskirgan — API mijozi kirish sahifasiga yuboradi
     }
   }
+
+  // Chop etish agenti bormi. Javob bo'lmasa 300 ms dan keyin to'xtaydi
+  // va ilova brauzer orqali chop etishda qoladi.
+  void agent.probe()
 })
 
 watch(() => route.fullPath, () => (sidebarOpen.value = false))
@@ -44,6 +51,8 @@ watch(() => route.fullPath, () => (sidebarOpen.value = false))
         <RouterView />
       </div>
     </main>
+
+    <AppToast />
   </div>
 
   <RouterView v-else />

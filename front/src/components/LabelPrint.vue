@@ -4,18 +4,13 @@ import { computed } from 'vue'
 import BarcodeImage from '@/components/BarcodeImage.vue'
 import { formatMoney } from '@/utils/money'
 import { printWithPageSize } from '@/utils/print'
+import { useAgentStore } from '@/stores/agent'
 import { useAuthStore } from '@/stores/auth'
-
-interface LabelItem {
-  barcode: string
-  name: string
-  label: string
-  price: string
-  quantity: number
-}
+import type { LabelItem } from '@/api/agent'
 
 const props = defineProps<{ items: LabelItem[] }>()
 
+const agent = useAgentStore()
 const auth = useAuthStore()
 
 const shopName = computed(() => auth.shop?.shop_name ?? '')
@@ -27,8 +22,16 @@ const labels = computed(() =>
   props.items.flatMap((item) => Array.from({ length: Math.max(1, item.quantity) }, () => item)),
 )
 
-/** Har yorliq — alohida sahifa, o'lchami sozlamalardan. */
-function printLabels() {
+/**
+ * Yorliqlarni chop etadi.
+ *
+ * Agent bo'lsa — shtrix-kodni printerning o'zi chizadi va yorliqlar
+ * orasida bo'sh yorliq chiqmaydi. Bo'lmasa har yorliq alohida sahifa
+ * bo'lib brauzer orqali chiqadi.
+ */
+async function printLabels() {
+  if (await agent.printLabels(props.items)) return
+
   printWithPageSize(`@page { size: ${width.value}mm ${height.value}mm; margin: 0; }`)
 }
 

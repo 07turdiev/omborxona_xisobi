@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import BarcodeImage from '@/components/BarcodeImage.vue'
+import * as agentApi from '@/api/agent'
 import { catalogApi } from '@/api/catalog'
 import { salesApi } from '@/api/sales'
 import { lastReceiptHeight, printWithPageSize } from '@/utils/print'
+import { useAgentStore } from '@/stores/agent'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 
 /** Nazorat raqami to'g'ri bo'lgan sinov kodi */
 const TEST_EAN13 = '2000000000015'
@@ -46,6 +49,83 @@ function printReceipt() {
     )
     sheet.value = null
   }, 60)
+}
+
+// --- Chop etish agenti -----------------------------------------------
+
+const agent = useAgentStore()
+const toast = useToastStore()
+
+const agentBusy = ref(false)
+
+onMounted(() => {
+  void agent.probe()
+})
+
+/** Vaqtni qisqartiradi: `2026-09-18T10:00:00.000Z` → `2026-09-18 10:00` */
+function shortTime(iso: string): string {
+  return iso.replace('T', ' ').slice(0, 16)
+}
+
+async function send(what: string, action: () => Promise<void>) {
+  agentBusy.value = true
+
+  try {
+    await action()
+    toast.show(`${what} agentga yuborildi`)
+  } catch (error) {
+    toast.show(`${what} yuborilmadi: ${(error as Error).message}`, 'error')
+  } finally {
+    agentBusy.value = false
+
+    // Agent oxirgi xatoni eslab qoladi — jadval yangilansin
+    await agent.probe()
+  }
+}
+
+/** Sinov cheki: haqiqiy sotuv yaratilmaydi, faqat printer tekshiriladi. */
+function sendTestReceipt() {
+  return send('Sinov cheki', () =>
+    agentApi.sendReceipt({
+      shopName: auth.shop?.shop_name ?? '',
+      number: 'SINOV',
+      dateTime: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      cashier: 'sinov',
+      lines: [
+        {
+          name: 'Sinov tovari',
+          variant: 'M / Oq',
+          quantity: 1,
+          unitPrice: '100000.00',
+          lineTotal: '100000.00',
+        },
+      ],
+      discount: '0.00',
+      total: '100000.00',
+      payments: { cash: '100000.00', card: '0.00' },
+      barcode: TEST_RECEIPT_CODE,
+      footer: 'Sinov cheki — hisobga olinmaydi',
+    }),
+  )
+}
+
+function sendTestLabel() {
+  return send('Sinov yorlig‘i', () =>
+    agentApi.sendLabels({
+      widthMm: labelWidth.value,
+      heightMm: labelHeight.value,
+      labels: [
+        {
+          shopName: auth.shop?.shop_name ?? '',
+          name: 'Sinov yorlig‘i',
+          variant: `${labelWidth.value}×${labelHeight.value} mm`,
+          price: '0 so‘m',
+          barcode: TEST_EAN13,
+          quantity: 1,
+        },
+      ],
+    }),
+  )
 }
 
 // --- Skaner sinovi ---------------------------------------------------
@@ -152,7 +232,91 @@ async function lookup(code: string): Promise<string> {
 <template>
   <section class="app-section active">
     <div class="cards">
-      <!-- Chop etish sinovi -->
+      <!-- Chop etish agenti -->
+      <div class="table-card card-padded agent-card">
+        <h3>Chop etish agenti</h3>
+
+        <p class="agent-status">
+          <span v-if="agent.available" class="pill pill-green">Agent ishlayapti</span>
+          <span v-else class="pill pill-grey">Agent topilmadi</span>
+
+          <span v-if="agent.available" class="muted">v{{ agent.version }}</span>
+
+          <button class="button button-outline" type="button" @click="agent.probe()">
+            Qayta tekshirish
+          </button>
+        </p>
+
+        <p class="hint">
+          Agent ishlab tursa chek va yorliq to‘g‘ridan-to‘g‘ri printerga ketadi:
+          chop etish oynasi ochilmaydi, qog‘oz bo‘shga ketmaydi va shtrix-kodni
+          printerning o‘zi chizadi. Agent o‘chirilgan bo‘lsa hamma narsa
+          avvalgidek brauzer orqali chiqadi — sotuv to‘xtamaydi.
+          Ishga tushirish: <code>agent</code> papkasida <code>npm start</code>.
+        </p>
+
+        <table v-if="agent.printers.length" class="data-table">
+          <thead>
+            <tr>
+              <th>Printer</th>
+              <th>Ulanish</th>
+              <th>Holat</th>
+              <th>Oxirgi xato</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="printer in agent.printers" :key="printer.name">
+              <td>
+                <strong>{{ printer.name === 'receipt' ? 'Chek' : 'Yorliq' }}</strong>
+              </td>
+
+              <td>
+                {{ printer.transport }}
+                <small class="cell-sub">{{ printer.target }}</small>
+              </td>
+
+              <td>
+                <span class="pill" :class="printer.responds ? 'pill-green' : 'pill-red'">
+                  {{ printer.responds ? 'javob bermoqda' : 'javob yo‘q' }}
+                </span>
+              </td>
+
+              <td>
+                <template v-if="printer.lastError">
+                  <span class="bad">{{ printer.lastError.message }}</span>
+                  <small class="cell-sub">{{ shortTime(printer.lastError.at) }}</small>
+                </template>
+                <span v-else class="muted">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="actions agent-actions">
+          <button
+            class="button button-gradient"
+            type="button"
+            :disabled="!agent.available || agentBusy"
+            @click="sendTestReceipt"
+          >
+            <svg><use href="#i-print" /></svg>
+            <span>Agent orqali sinov cheki</span>
+          </button>
+
+          <button
+            class="button button-outline"
+            type="button"
+            :disabled="!agent.available || agentBusy"
+            @click="sendTestLabel"
+          >
+            <svg><use href="#i-print" /></svg>
+            <span>Agent orqali sinov yorlig‘i</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Chop etish sinovi (brauzer orqali) -->
       <div class="table-card card-padded">
         <h3>Printerlarni sinash</h3>
 
@@ -318,6 +482,30 @@ async function lookup(code: string): Promise<string> {
   margin: 0 0 12px;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.agent-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.agent-status .button {
+  margin-left: auto;
+}
+
+.agent-actions {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.agent-card code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--gray-1);
+  font-size: 12px;
 }
 
 .paper-note {

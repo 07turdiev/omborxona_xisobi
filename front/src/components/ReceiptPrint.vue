@@ -4,11 +4,13 @@ import { computed, nextTick, ref } from 'vue'
 import BarcodeImage from '@/components/BarcodeImage.vue'
 import { formatMoney } from '@/utils/money'
 import { printWithPageSize, rememberReceiptHeight } from '@/utils/print'
+import { useAgentStore } from '@/stores/agent'
 import { useAuthStore } from '@/stores/auth'
 import type { Sale } from '@/types'
 
 const props = defineProps<{ sale: Sale | null }>()
 
+const agent = useAgentStore()
 const auth = useAuthStore()
 
 const shopName = computed(() => auth.shop?.shop_name ?? 'Do‘kon')
@@ -40,6 +42,10 @@ const sheet = ref<HTMLElement | null>(null)
 /**
  * Chekni chop etadi.
  *
+ * Avval chop etish agentiga urinib ko'riladi: u bo'lsa chek jimgina
+ * printerdan chiqadi, hech qanday oyna ochilmaydi. Agent yo'q bo'lsa
+ * quyidagi brauzer yo'li ishlaydi.
+ *
  * Sahifa balandligi **qat'iy** va sozlamalardan olinadi. Ilgari u chek
  * mazmuniga qarab hisoblanardi, lekin haqiqiy printerda bu ishlamaydi:
  * Chrome `@page` dagi balandlikni emas, drayverdagi qog'oz o'lchamini
@@ -52,8 +58,11 @@ const sheet = ref<HTMLElement | null>(null)
  * Qurilmalarni sinash sahifasida ko'rib, qog'oz balandligini tanlaydi.
  */
 async function printReceipt() {
-  // Chek hozirgina yaratilgan bo'lsa, Vue DOM ni hali yangilamagan
+  // Chek hozirgina yaratilgan bo'lsa, Vue hali `sale` ni ham, DOM ni ham
+  // yangilamagan — shuning uchun kutish eng boshida turadi
   await nextTick()
+
+  if (props.sale && (await agent.printReceipt(props.sale))) return
 
   const element = sheet.value
 

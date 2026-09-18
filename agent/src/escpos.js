@@ -13,6 +13,27 @@ const GS = 0x1d
 
 const ALIGN = { left: 0, center: 1, right: 2 }
 
+export const RECEIPT_DEFAULTS = {
+  columns: 48,
+  codePage: 'cp1252',
+  cashDrawer: false,
+  /**
+   * Kesishdan oldin necha qator tortiladi.
+   *
+   * Bosh bilan pichoq orasida 80 mm printerlarda odatda 15-20 mm
+   * masofa bor. Qog'oz yetarlicha tortilmasa, oxirgi qatorlar
+   * pichoqdan pastda qolib, kesilgandan keyin keyingi chekka
+   * yopishib chiqadi. 5 qator ~18 mm beradi.
+   */
+  feedBeforeCut: 5,
+  /** 'full' (GS V 0), 'partial' (GS V 1) yoki 'none' */
+  cut: 'full',
+  /** Shtrix-kod balandligi, nuqta (80 ~ 10 mm) */
+  barcodeHeight: 80,
+  /** Shtrix-kod modul kengligi (2 ~ 0.25 mm) */
+  barcodeWidth: 2,
+}
+
 /** Buyruqlar va matnni ketma-ket yig'adigan kichik yordamchi. */
 class Builder {
   constructor(codePage) {
@@ -64,7 +85,7 @@ class Builder {
  * Ma'lumot oldiga `{B` qo'yiladi: CODE128 ning B to'plami raqam va
  * harfni ham qabul qiladi.
  */
-function barcode(builder, value, { height = 60, width = 2 } = {}) {
+function barcode(builder, value, height, width) {
   const data = `{B${String(value)}`
 
   builder
@@ -77,15 +98,23 @@ function barcode(builder, value, { height = 60, width = 2 } = {}) {
   return builder
 }
 
+/** Kesish buyrug'i. */
+function cutCommand(builder, mode) {
+  if (mode === 'none') return builder
+  if (mode === 'partial') return builder.raw(GS, 0x56, 0x01)
+
+  return builder.raw(GS, 0x56, 0x00)
+}
+
 /**
  * Chek baytlari.
  *
  * @param {object} receipt - chek ma'lumoti (shopName, number, lines...)
- * @param {object} options - columns, codePage, cashDrawer
+ * @param {object} options - RECEIPT_DEFAULTS ga qarang
  */
 export function buildReceipt(receipt, options = {}) {
-  const columns = options.columns ?? 48
-  const codePage = options.codePage ?? 'cp1252'
+  const settings = { ...RECEIPT_DEFAULTS, ...options }
+  const { columns, codePage } = settings
   const page = CODE_PAGES[codePage] ?? CODE_PAGES.cp1252
 
   const builder = new Builder(codePage)
@@ -153,7 +182,7 @@ export function buildReceipt(receipt, options = {}) {
   // --- Shtrix-kod
   if (receipt.barcode) {
     builder.line().align('center')
-    barcode(builder, receipt.barcode)
+    barcode(builder, receipt.barcode, settings.barcodeHeight, settings.barcodeWidth)
     builder.line()
   }
 
@@ -163,14 +192,14 @@ export function buildReceipt(receipt, options = {}) {
   }
 
   // --- Yakun
-  builder.feed(3)
+  builder.feed(settings.feedBeforeCut)
 
-  if (options.cashDrawer) {
+  if (settings.cashDrawer) {
     // ESC p 0 t1 t2 — pul qutisini ochadigan impuls
     builder.raw(ESC, 0x70, 0x00, 0x19, 0xfa)
   }
 
-  builder.raw(GS, 0x56, 0x00) // to'liq kesish
+  cutCommand(builder, settings.cut)
 
   return builder.build()
 }

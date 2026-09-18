@@ -2,17 +2,25 @@
   "port": 7777,
   "origins": ["http://127.0.0.1:5173", "http://localhost:5173"],
   "codePage": "cp1252",
+  "token": "",
   "printers": {
     "receipt": {
       "transport": "tcp",
       "host": "PRINTER-IP",
       "port": 9100,
       "columns": 48,
-      "cashDrawer": false
+      "cashDrawer": false,
+      "feedBeforeCut": 5,
+      "cut": "full",
+      "barcodeHeight": 80,
+      "barcodeWidth": 2
     },
     "label": {
       "transport": "windows",
-      "share": "\\\\127.0.0.1\\XP365B"
+      "share": "\\\\127.0.0.1\\XP365B",
+      "density": 8,
+      "speed": 4,
+      "barcodeHeight": 90
     }
   }
 }
