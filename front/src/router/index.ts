@@ -28,6 +28,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Cheklar' },
   },
   {
+    path: '/catalog',
+    name: 'catalog',
+    component: () => import('@/views/CatalogView.vue'),
+    meta: { title: 'Katalog' },
+  },
+  {
+    path: '/catalog/:id',
+    name: 'catalog-product',
+    component: () => import('@/views/CatalogProductView.vue'),
+    meta: { title: 'Katalog' },
+  },
+  {
     path: '/products',
     name: 'products',
     component: () => import('@/views/ProductsView.vue'),
@@ -116,6 +128,9 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+  // Orqaga qaytganda sahifa avvalgi joyiga qaytadi: katalogda mahsulotni
+  // ochib qaytgan sotuvchi ro'yxatni boshidan varaqlamasin
+  scrollBehavior: (_to, _from, saved) => saved ?? { top: 0 },
 })
 
 router.beforeEach(async (to) => {

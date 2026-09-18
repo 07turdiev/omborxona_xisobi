@@ -76,6 +76,24 @@
           <circle cx="11" cy="11" r="7"/>
           <path d="M20 20L16 16"/>
       </symbol>
+
+      <symbol id="i-catalog" viewBox="0 0 24 24">
+          <rect x="4" y="4" width="7" height="7" rx="1"/>
+          <rect x="13" y="4" width="7" height="7" rx="1"/>
+          <rect x="4" y="13" width="7" height="7" rx="1"/>
+          <rect x="13" y="13" width="7" height="7" rx="1"/>
+      </symbol>
+
+      <symbol id="i-camera" viewBox="0 0 24 24">
+          <path d="M4 8h3l2-3h6l2 3h3v11H4z"/>
+          <circle cx="12" cy="13" r="3.5"/>
+      </symbol>
+
+      <symbol id="i-image" viewBox="0 0 24 24">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <circle cx="9" cy="10" r="1.5"/>
+          <path d="M21 16l-5-5-8 8"/>
+      </symbol>
   
       <symbol id="i-plus" viewBox="0 0 24 24">
           <path d="M12 5V19"/>

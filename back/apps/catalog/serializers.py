@@ -197,14 +197,38 @@ class CatalogProductListSerializer(serializers.ModelSerializer):
 
     category_name = serializers.CharField(source='category.name', read_only=True)
     total_stock = serializers.IntegerField(read_only=True)
+    size_stock = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = (
             'id', 'name', 'slug', 'category', 'category_name', 'brand',
-            'sale_price', 'total_stock', 'primary_image',
+            'sale_price', 'total_stock', 'size_stock', 'primary_image',
         )
+
+    def get_size_stock(self, product):
+        """Har o'lcham bo'yicha qoldiq, hamma ranglar yig'indisi.
+
+        Do'kondagi eng ko'p savol — "qaysi o'lcham qoldi", shuning uchun
+        kartada mahsulotni ochmasdan "S 2 · M 0 · L 5" ko'rinishi kerak.
+        Qoldig'i nol o'lcham ham ro'yxatda qoladi: "M tugagan" ham javob.
+        """
+        totals = {}
+
+        for variant in product.variants.all():
+            if variant.size is None:
+                continue
+
+            entry = totals.setdefault(variant.size_id, {
+                'size_id': variant.size_id,
+                'size_name': variant.size.name,
+                'position': variant.size.position,
+                'quantity': 0,
+            })
+            entry['quantity'] += variant.stock_quantity
+
+        return sorted(totals.values(), key=lambda entry: (entry['position'], entry['size_name']))
 
     def get_primary_image(self, product):
         images = list(product.images.all())

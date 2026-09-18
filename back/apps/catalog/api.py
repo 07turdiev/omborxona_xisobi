@@ -1,11 +1,19 @@
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
-from apps.catalog.models import Category, Color, Product, ProductImage, Size, Variant
+from apps.catalog.models import (
+    LOW_STOCK,
+    Category,
+    Color,
+    Product,
+    ProductImage,
+    Size,
+    Variant,
+)
 from apps.catalog.serializers import (
     CatalogProductListSerializer,
     CatalogProductSerializer,
@@ -16,7 +24,7 @@ from apps.catalog.serializers import (
     SizeSerializer,
     VariantSerializer,
 )
-from apps.catalog.services import reorder_images
+from apps.catalog.services import remove_product_image, reorder_images
 from apps.core.permissions import IsAdmin, IsAdminOrReadOnly
 
 
@@ -82,6 +90,16 @@ class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
 
     permission_classes = [IsAdminOrReadOnly]
 
+    #: `?ordering=` qiymatlari. `-` — teskari tartib (DRF odati).
+    #: Ikkinchi maydon sahifalash barqaror bo'lishi uchun.
+    ORDERING = {
+        'newest': ('-created_at', '-id'),
+        'name': ('name', 'id'),
+        '-name': ('-name', '-id'),
+        'stock': ('total_stock', 'name'),
+        '-stock': ('-total_stock', 'name'),
+    }
+
     def get_serializer_class(self):
         if self.action == 'list':
             return CatalogProductListSerializer
@@ -89,18 +107,26 @@ class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
         return CatalogProductSerializer
 
     def get_queryset(self):
+        # Qoldiq alohida so'rovda hisoblanadi. `Sum('variants__...')` bo'lsa,
+        # qidiruv yoki filtr variantlarga yana JOIN qo'shganda qatorlar
+        # ko'payadi va yig'indi variantlar soniga ko'paytirilib chiqadi.
+        # Filtrlar ham shu sababli JOIN emas, `Exists` bilan yozilgan.
+        variants = Variant.objects.filter(product=OuterRef('pk'))
+
+        stock = variants.values('product').annotate(total=Sum('stock_quantity')).values('total')
+
         queryset = (
             Product.objects.select_related('category')
             .prefetch_related('images__color', 'variants__size', 'variants__color')
-            .annotate(total_stock=Coalesce(Sum('variants__stock_quantity'), 0))
+            .annotate(total_stock=Coalesce(Subquery(stock), 0))
         )
 
         params = self.request.query_params
 
-        if search := params.get('search'):
+        if search := params.get('search', '').strip():
             queryset = queryset.filter(
-                Q(name__icontains=search) | Q(variants__barcode=search)
-            ).distinct()
+                Exists(variants.filter(barcode=search)) | Q(name__icontains=search)
+            )
 
         if category := params.get('category'):
             queryset = queryset.filter(category_id=category)
@@ -108,10 +134,15 @@ class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
         if params.get('in_stock') == 'true':
             queryset = queryset.filter(total_stock__gt=0)
 
+        if params.get('low_stock') == 'true':
+            queryset = queryset.filter(Exists(variants.filter(LOW_STOCK)))
+
         if params.get('active') != 'false':
             queryset = queryset.filter(is_active=True)
 
-        return queryset
+        ordering = self.ORDERING.get(params.get('ordering', ''), self.ORDERING['newest'])
+
+        return queryset.order_by(*ordering)
 
 
 class ProductImageViewSet(viewsets.ModelViewSet):
@@ -131,6 +162,9 @@ class ProductImageViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(product_id=product)
 
         return queryset
+
+    def perform_destroy(self, instance):
+        remove_product_image(instance)
 
     @action(detail=False, methods=['post'])
     def reorder(self, request):
@@ -185,8 +219,7 @@ class VariantViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(product__category_id=category)
 
         if params.get('low_stock') == 'true':
-            # Faqat minimal qoldiq belgilangan variantlar
-            queryset = queryset.filter(min_stock__gt=0, stock_quantity__lte=F('min_stock'))
+            queryset = queryset.filter(LOW_STOCK)
 
         if params.get('active') == 'true':
             queryset = queryset.filter(is_active=True)

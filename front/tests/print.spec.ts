@@ -16,6 +16,7 @@
 
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
+import { stockedVariants } from './data'
 import { firstInkRowMm, longestRulerMm, pageHasInk, readPdf } from './pdf'
 
 /** Backend manzili — `playwright.config.ts` dagi bilan bir xil manba */
@@ -341,13 +342,7 @@ async function createPurchaseWithThreeUnits(request: APIRequestContext) {
 /** O'n qatorli sotuv — bitta sahifaga sig'maydi. */
 async function createSaleWithManyLines(request: APIRequestContext) {
   const headers = await authHeaders()
-  const page = await (await request.get(`${API}/api/variants/`, { headers })).json()
-
-  const variants = page.results
-    .filter((item: { stock_quantity: number }) => item.stock_quantity > 0)
-    .slice(0, 10)
-
-  expect(variants.length, 'kamida 10 ta tovar kerak — seed_demo ishga tushiring').toBe(10)
+  const variants = await stockedVariants(request, API, access, 10)
 
   const total = variants.reduce(
     (sum: number, item: { price: string }) => sum + Number(item.price),
@@ -371,12 +366,7 @@ async function createSaleWithManyLines(request: APIRequestContext) {
 
 /** Qoldig'i bor birinchi tovarning shtrix-kodi. */
 async function firstBarcodeInStock(request: APIRequestContext) {
-  const headers = await authHeaders()
-  const page = await (await request.get(`${API}/api/variants/`, { headers })).json()
+  const [variant] = await stockedVariants(request, API, access, 1)
 
-  const variant = page.results.find((item: { stock_quantity: number }) => item.stock_quantity > 0)
-
-  expect(variant, 'qoldig‘i bor tovar kerak — seed_demo ishga tushiring').toBeTruthy()
-
-  return variant.barcode as string
+  return variant!.barcode
 }

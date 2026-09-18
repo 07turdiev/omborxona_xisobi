@@ -50,6 +50,62 @@ export interface Size {
 export interface Color {
   id: number
   name: string
+  /** #RRGGBB — katalogdagi rang doirachasi */
+  hex_code: string
+}
+
+/** O'lcham bo'yicha qoldiq, hamma ranglar yig'indisi */
+export interface SizeStock {
+  size_id: number
+  size_name: string
+  position: number
+  quantity: number
+}
+
+/** Katalogdagi karta — ro'yxat uchun yengil javob */
+export interface CatalogCard {
+  id: number
+  name: string
+  slug: string
+  category: number
+  category_name: string
+  brand: string
+  sale_price: string
+  total_stock: number
+  size_stock: SizeStock[]
+  primary_image: ProductImage | null
+}
+
+export interface ImageGroup {
+  /** `null` — umumiy rasmlar (o'lcham jadvali, brend yorlig'i) */
+  color: number | null
+  color_name: string | null
+  hex_code: string | null
+  images: ProductImage[]
+}
+
+export interface CatalogVariant {
+  id: number
+  size: number | null
+  size_name: string | null
+  color: number | null
+  color_name: string | null
+  barcode: string
+  price: string
+  /** Faqat administrator javobida */
+  average_cost?: string
+  stock_quantity: number
+  is_active: boolean
+}
+
+export interface CatalogProduct extends CatalogCard {
+  description: string
+  material: string
+  care: string
+  image_groups: ImageGroup[]
+  colors: Color[]
+  sizes: Size[]
+  variants: CatalogVariant[]
 }
 
 export interface Variant {

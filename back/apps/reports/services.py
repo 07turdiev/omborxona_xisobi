@@ -21,7 +21,7 @@ from django.db.models import Count, DecimalField, F, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from apps.catalog.models import Variant
+from apps.catalog.models import LOW_STOCK, Variant
 from apps.core.dates import local_bounds
 from apps.expenses.models import Expense
 from apps.inventory.models import MovementReason, StockMovement
@@ -247,7 +247,7 @@ def stock_report(category=None, low_stock=False) -> dict:
         queryset = queryset.filter(product__category_id=category)
 
     if low_stock:
-        queryset = queryset.filter(min_stock__gt=0, stock_quantity__lte=F('min_stock'))
+        queryset = queryset.filter(LOW_STOCK)
 
     rows = []
     cost_value = ZERO
@@ -339,9 +339,7 @@ def dashboard() -> dict:
             'gross_profit': net_revenue - (cost - returns_cost),
         }
 
-    low_stock = Variant.objects.filter(
-        is_active=True, min_stock__gt=0, stock_quantity__lte=F('min_stock')
-    ).count()
+    low_stock = Variant.objects.filter(LOW_STOCK, is_active=True).count()
 
     return {
         'today': period(today, today),

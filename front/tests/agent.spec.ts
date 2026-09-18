@@ -18,6 +18,8 @@
 
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
+import { stockedVariants } from './data'
+
 const API = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8000'
 const AGENT = 'http://127.0.0.1:7777'
 const LOGIN = { username: 'admin', password: 'demo12345' }
@@ -211,14 +213,7 @@ test('agent orqali sinov yorlig‘i yuboriladi', async ({ page }) => {
 
 /** Qoldig'i bor birinchi tovarning shtrix-kodi. */
 async function firstBarcodeInStock(request: APIRequestContext) {
-  const response = await request.get(`${API}/api/variants/`, {
-    headers: { Authorization: `Bearer ${access}` },
-  })
+  const [variant] = await stockedVariants(request, API, access, 1)
 
-  const page = await response.json()
-  const variant = page.results.find((item: { stock_quantity: number }) => item.stock_quantity > 0)
-
-  expect(variant, 'qoldig‘i bor tovar kerak — seed_demo ishga tushiring').toBeTruthy()
-
-  return variant.barcode as string
+  return variant!.barcode
 }

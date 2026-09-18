@@ -48,7 +48,13 @@ watch(() => route.fullPath, () => (sidebarOpen.value = false))
       <AppTopbar :title="title" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
       <div class="content">
-        <RouterView />
+        <!-- Katalog saqlanib turadi: mahsulotni ochib orqaga qaytganda
+             yuklangan ro'yxat va filtrlar yo'qolmasin -->
+        <RouterView v-slot="{ Component }">
+          <KeepAlive include="CatalogView">
+            <component :is="Component" />
+          </KeepAlive>
+        </RouterView>
       </div>
     </main>
 

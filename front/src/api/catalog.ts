@@ -1,11 +1,25 @@
 import api from '@/api/client'
-import type { Category, Color, Paginated, Product, Size, Variant } from '@/types'
+import type {
+  CatalogCard,
+  CatalogProduct,
+  Category,
+  Color,
+  Paginated,
+  Product,
+  ProductImage,
+  Size,
+  Variant,
+} from '@/types'
 
 export interface ProductInput {
   category: number
   name: string
+  /** Bo'sh yuborilsa nomdan yasaladi */
+  slug?: string
   brand?: string
   description?: string
+  material?: string
+  care?: string
   sale_price: string
   /** Bo'sh qoldirilsa kategoriyaning MXIK kodi ishlatiladi */
   mxik_code?: string
@@ -20,6 +34,18 @@ export interface VariantFilters {
   category?: number | string
   low_stock?: 'true'
   active?: 'true'
+  page?: number
+}
+
+/** `-` — teskari tartib: `-stock` — qoldig'i ko'pi birinchi */
+export type CatalogOrdering = 'newest' | 'name' | 'stock' | '-stock'
+
+export interface CatalogFilters {
+  search?: string
+  category?: number | string
+  in_stock?: 'true'
+  low_stock?: 'true'
+  ordering?: CatalogOrdering
   page?: number
 }
 
@@ -68,8 +94,13 @@ export const catalogApi = {
     return data
   },
 
-  async createColor(name: string) {
-    const { data } = await api.post<Color>('/colors/', { name })
+  async createColor(payload: { name: string; hex_code: string }) {
+    const { data } = await api.post<Color>('/colors/', payload)
+    return data
+  },
+
+  async updateColor(id: number, payload: Partial<Color>) {
+    const { data } = await api.patch<Color>(`/colors/${id}/`, payload)
     return data
   },
 
@@ -110,6 +141,74 @@ export const catalogApi = {
   /** Skaner uchun: kod bo'yicha variant. Topilmasa 404 qaytadi. */
   async byBarcode(code: string) {
     const { data } = await api.get<Variant>('/variants/by-barcode/', { params: { code } })
+    return data
+  },
+
+  // --- Katalog -----------------------------------------------------------
+
+  async catalog(filters: CatalogFilters = {}) {
+    const { data } = await api.get<Paginated<CatalogCard>>('/catalog/', {
+      params: clean(filters),
+    })
+    return data
+  },
+
+  async catalogProduct(id: number) {
+    const { data } = await api.get<CatalogProduct>(`/catalog/${id}/`)
+    return data
+  },
+
+  // --- Rasmlar -----------------------------------------------------------
+
+  async productImages(product: number) {
+    const { data } = await api.get<ProductImage[]>('/product-images/', { params: { product } })
+    return data
+  },
+
+  /**
+   * Rasmni yuklaydi. `onProgress` 0 dan 1 gacha ulush oladi.
+   *
+   * `Content-Type` ataylab ko'rsatilgan: umumiy mijoz JSON sarlavhasi
+   * bilan yaratilgan va shu holatda axios `FormData` ni JSON ga
+   * aylantirib yuboradi — fayl umuman ketmaydi.
+   */
+  async uploadImage(
+    product: number,
+    file: File,
+    color: number | null,
+    onProgress?: (share: number) => void,
+  ) {
+    const body = new FormData()
+
+    body.append('product', String(product))
+    body.append('image', file)
+
+    if (color !== null) body.append('color', String(color))
+
+    const { data } = await api.post<ProductImage>('/product-images/', body, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (event) => {
+        if (event.total) onProgress?.(event.loaded / event.total)
+      },
+    })
+
+    return data
+  },
+
+  async updateImage(id: number, payload: { color?: number | null; is_primary?: boolean }) {
+    const { data } = await api.patch<ProductImage>(`/product-images/${id}/`, payload)
+    return data
+  },
+
+  async removeImage(id: number) {
+    await api.delete(`/product-images/${id}/`)
+  },
+
+  async reorderImages(product: number, images: number[]) {
+    const { data } = await api.post<ProductImage[]>('/product-images/reorder/', {
+      product,
+      images,
+    })
     return data
   },
 }

@@ -1,5 +1,6 @@
 """Katalog testlari: variant matritsasi, shtrix-kod, rasm va katalog API."""
 
+import os
 import shutil
 import tempfile
 from io import BytesIO
@@ -296,6 +297,23 @@ class ProductImageTests(MediaTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(ProductImage.objects.count(), ProductImage.MAX_PER_PRODUCT)
 
+    def test_deleting_primary_promotes_next_and_removes_files(self):
+        self.upload(self.client_admin, self.product)
+        self.upload(self.client_admin, self.product)
+
+        first, second = ProductImage.objects.order_by('id')
+        paths = [first.thumb.path, first.medium.path, first.large.path]
+
+        # Fayllar tranzaksiya yakunlangandan keyin o'chiriladi
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client_admin.delete(f'/api/product-images/{first.pk}/')
+
+        self.assertEqual(response.status_code, 204, response.content)
+        self.assertTrue(ProductImage.objects.get(pk=second.pk).is_primary)
+
+        for path in paths:
+            self.assertFalse(os.path.exists(path), path)
+
     def test_cashier_cannot_upload(self):
         response = self.upload(api_client(create_cashier()), self.product)
 
@@ -385,6 +403,104 @@ class CatalogApiTests(MediaTestCase):
         with_stock = self.client_cashier.get('/api/catalog/?in_stock=true').json()
 
         self.assertEqual([item['name'] for item in with_stock['results']], [self.product.name])
+
+
+class CatalogListTests(TestCase):
+    """Katalog ro'yxati: o'lcham bo'yicha qoldiq, tartib va filtrlar."""
+
+    def setUp(self):
+        self.client_cashier = api_client(create_cashier())
+
+    def cards(self, query=''):
+        response = self.client_cashier.get(f'/api/catalog/{query}')
+
+        self.assertEqual(response.status_code, 200, response.content)
+
+        return response.json()['results']
+
+    def names(self, query=''):
+        return [card['name'] for card in self.cards(query)]
+
+    def test_size_stock_sums_colors_in_size_order(self):
+        product = create_product(sizes=('S', 'M', 'L'), colors=('Qora', 'Oq'))
+
+        for (size, color), quantity in {
+            ('S', 'Qora'): 2,
+            ('S', 'Oq'): 1,
+            ('L', 'Qora'): 5,
+        }.items():
+            variant = product.variants.get(size__name=size, color__name=color)
+            receive_stock(variant, quantity, '100000')
+
+        card = self.cards()[0]
+
+        # Qoldig'i yo'q o'lcham ham ro'yxatda: "M tugagan" ham javob
+        self.assertEqual(
+            [(entry['size_name'], entry['quantity']) for entry in card['size_stock']],
+            [('S', 3), ('M', 0), ('L', 5)],
+        )
+        self.assertEqual(card['total_stock'], 8)
+
+    def test_product_without_sizes_has_empty_size_stock(self):
+        create_product(name='Sharf')
+
+        self.assertEqual(self.cards()[0]['size_stock'], [])
+
+    def test_search_by_name_does_not_multiply_stock(self):
+        """Ilgari qidiruv variantlarga ikkinchi JOIN qo'shib, yig'indini ko'paytirardi."""
+        product = create_product(name='Yozgi ko‘ylak', sizes=('S', 'M'), colors=('Qora', 'Oq'))
+        receive_stock(product.variants.first(), 3, '100000')
+
+        card = self.cards('?search=yozgi')[0]
+
+        self.assertEqual(card['total_stock'], 3)
+        self.assertEqual(sum(entry['quantity'] for entry in card['size_stock']), 3)
+
+    def test_newest_first_by_default(self):
+        for name in ('Birinchi', 'Ikkinchi', 'Uchinchi'):
+            create_product(name=name)
+
+        self.assertEqual(self.names(), ['Uchinchi', 'Ikkinchi', 'Birinchi'])
+
+    def test_order_by_name(self):
+        for name in ('Uchinchi', 'Birinchi', 'Ikkinchi'):
+            create_product(name=name)
+
+        self.assertEqual(self.names('?ordering=name'), ['Birinchi', 'Ikkinchi', 'Uchinchi'])
+
+    def test_order_by_stock_both_directions(self):
+        few = create_product(name='Oz')
+        many = create_product(name='Kop')
+        create_product(name='Yoq')
+
+        receive_stock(few.variants.get(), 1, '100000')
+        receive_stock(many.variants.get(), 9, '100000')
+
+        self.assertEqual(self.names('?ordering=stock'), ['Yoq', 'Oz', 'Kop'])
+        self.assertEqual(self.names('?ordering=-stock'), ['Kop', 'Oz', 'Yoq'])
+
+    def test_unknown_ordering_falls_back_to_newest(self):
+        for name in ('Birinchi', 'Ikkinchi'):
+            create_product(name=name)
+
+        self.assertEqual(self.names('?ordering=price'), ['Ikkinchi', 'Birinchi'])
+
+    def test_low_stock_shows_only_running_out(self):
+        for name, quantity, minimum in (
+            ('Tugayapti', 2, 3),
+            ('Yetarli', 10, 3),
+            # Minimal qoldiq belgilanmagan — kuzatilmaydi, qoldig'i nol bo'lsa ham
+            ('Kuzatilmaydi', 0, 0),
+        ):
+            variant = create_product(name=name).variants.get()
+
+            if quantity:
+                receive_stock(variant, quantity, '100000')
+
+            variant.min_stock = minimum
+            variant.save(update_fields=['min_stock'])
+
+        self.assertEqual(self.names('?low_stock=true'), ['Tugayapti'])
 
 
 class SlugTests(TestCase):

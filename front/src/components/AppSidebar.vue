@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import logoUrl from '@/assets/logo.png'
@@ -9,12 +9,14 @@ defineProps<{ show: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 
 const auth = useAuthStore()
+const route = useRoute()
 
 /** Kassirga ochiq bo'limlar */
 const daily = [
   { to: '/', icon: 'i-sale', label: 'Kassa' },
   { to: '/returns', icon: 'i-import', label: 'Qaytarish' },
   { to: '/receipts', icon: 'i-print', label: 'Cheklar' },
+  { to: '/catalog', icon: 'i-catalog', label: 'Katalog' },
   { to: '/products', icon: 'i-company', label: 'Mahsulotlar' },
   { to: '/stock', icon: 'i-stock', label: 'Qoldiq' },
 ]
@@ -49,6 +51,7 @@ const initials = computed(() => (auth.user?.full_name ?? 'X').slice(0, 1).toUppe
     <nav class="sidebar-menu">
       <span class="menu-caption">Kundalik ish</span>
 
+      <!-- `/catalog/5` ochiq bo'lsa ham "Katalog" bandi belgilangan qoladi -->
       <RouterLink
         v-for="item in daily"
         :key="item.to"
@@ -56,7 +59,11 @@ const initials = computed(() => (auth.user?.full_name ?? 'X').slice(0, 1).toUppe
         :to="item.to"
         custom
       >
-        <button class="menu-item" :class="{ active: isActive }" @click="navigate">
+        <button
+          class="menu-item"
+          :class="{ active: isActive || route.path.startsWith(`${item.to}/`) }"
+          @click="navigate"
+        >
           <span class="menu-icon"><svg><use :href="`#${item.icon}`" /></svg></span>
           <span>{{ item.label }}</span>
         </button>

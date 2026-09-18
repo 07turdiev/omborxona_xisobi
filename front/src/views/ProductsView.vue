@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 
 import LabelPrint from '@/components/LabelPrint.vue'
+import ProductImages from '@/components/ProductImages.vue'
 import { catalogApi, type ProductInput } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
@@ -31,7 +32,11 @@ const editing = ref<Product | null>(null)
 const form = ref({
   category: 0,
   name: '',
+  slug: '',
   brand: '',
+  description: '',
+  material: '',
+  care: '',
   sale_price: '',
   mxik_code: '',
   package_code: '',
@@ -42,6 +47,13 @@ const form = ref({
 /** MXIK kodi yo'q mahsulotlar — fiskal chekda rad etiladi */
 const withoutMxik = computed(() => products.value.filter((item) => !item.effective_mxik_code))
 
+/** Rasmni shu ranglardan biriga biriktirish mumkin */
+const formColors = computed(() => colors.value.filter((item) => form.value.color_ids.includes(item.id)))
+
+/** Formaning ichidagi xabar — sahifadagisi ochiq oyna ortida ko'rinmaydi */
+const formNotice = ref('')
+const formError = ref('')
+
 /** Yorliqqa chiqariladigan variantlar */
 const labelItems = ref<{ barcode: string; name: string; label: string; price: string; quantity: number }[]>([])
 const labels = ref<InstanceType<typeof LabelPrint> | null>(null)
@@ -49,6 +61,7 @@ const labels = ref<InstanceType<typeof LabelPrint> | null>(null)
 const newCategory = ref('')
 const newSize = ref('')
 const newColor = ref('')
+const newColorHex = ref('#808080')
 
 async function load() {
   loading.value = true
@@ -78,10 +91,17 @@ async function loadAttributes() {
 
 function openCreate() {
   editing.value = null
+  formNotice.value = ''
+  formError.value = ''
+
   form.value = {
     category: categories.value[0]?.id ?? 0,
     name: '',
+    slug: '',
     brand: '',
+    description: '',
+    material: '',
+    care: '',
     sale_price: '',
     mxik_code: '',
     package_code: '',
@@ -94,12 +114,18 @@ function openCreate() {
 
 function openEdit(product: Product) {
   editing.value = product
+  formNotice.value = ''
+  formError.value = ''
 
   // Mavjud variantlardan o'lcham va ranglar tiklanadi
   form.value = {
     category: product.category,
     name: product.name,
+    slug: product.slug,
     brand: product.brand,
+    description: product.description,
+    material: product.material,
+    care: product.care,
     sale_price: product.sale_price,
     mxik_code: product.mxik_code,
     package_code: product.package_code,
@@ -114,12 +140,16 @@ async function onSave() {
   if (!form.value.name.trim() || saving.value) return
 
   saving.value = true
-  error.value = ''
+  formError.value = ''
+  formNotice.value = ''
 
   const payload: ProductInput = {
     category: form.value.category,
     name: form.value.name,
     brand: form.value.brand,
+    description: form.value.description,
+    material: form.value.material.trim(),
+    care: form.value.care.trim(),
     sale_price: normalizeMoneyInput(form.value.sale_price || '0'),
     mxik_code: form.value.mxik_code.trim(),
     package_code: form.value.package_code.trim(),
@@ -127,17 +157,26 @@ async function onSave() {
     color_ids: form.value.color_ids,
   }
 
+  // Bo'sh bo'lsa yuborilmaydi: yangi mahsulotda nomdan yasaladi,
+  // mavjudida esa o'zgarmaydi (tashqi havolalar uzilmasin)
+  if (form.value.slug.trim()) payload.slug = form.value.slug.trim()
+
   try {
     if (editing.value) {
       await catalogApi.updateProduct(editing.value.id, payload)
+      formOpen.value = false
     } else {
-      await catalogApi.createProduct(payload)
+      // Yaratilgach forma yopilmaydi: rasmni darhol shu yerda qo'shish mumkin
+      const created = await catalogApi.createProduct(payload)
+
+      editing.value = created
+      form.value.slug = created.slug
+      formNotice.value = 'Saqlandi. Endi rasm qo‘shishingiz mumkin.'
     }
 
-    formOpen.value = false
     await load()
   } catch (err) {
-    error.value = errorMessage(err, 'Saqlab bo‘lmadi.')
+    formError.value = errorMessage(err, 'Saqlab bo‘lmadi.')
   } finally {
     saving.value = false
   }
@@ -204,9 +243,32 @@ async function addSize() {
 async function addColor() {
   if (!newColor.value.trim()) return
 
-  await catalogApi.createColor(newColor.value.trim())
-  newColor.value = ''
-  await loadAttributes()
+  error.value = ''
+
+  try {
+    await catalogApi.createColor({
+      name: newColor.value.trim(),
+      hex_code: newColorHex.value.toUpperCase(),
+    })
+
+    newColor.value = ''
+    newColorHex.value = '#808080'
+    await loadAttributes()
+  } catch (err) {
+    error.value = errorMessage(err, 'Rangni qo‘shib bo‘lmadi.')
+  }
+}
+
+/** Katalogdagi rang doirachasi shu kod bilan chiziladi */
+async function saveColorHex(item: Color, value: string) {
+  error.value = ''
+
+  try {
+    await catalogApi.updateColor(item.id, { hex_code: value.toUpperCase() })
+    await loadAttributes()
+  } catch (err) {
+    error.value = errorMessage(err, 'Rang kodini saqlab bo‘lmadi.')
+  }
 }
 
 async function removeAttribute(kind: 'category' | 'size' | 'color', id: number) {
@@ -466,12 +528,23 @@ onMounted(async () => {
 
         <div class="add-row">
           <input v-model="newColor" type="text" placeholder="Qora, oq…" @keydown.enter="addColor" />
+          <input v-model="newColorHex" class="color-input" type="color" aria-label="Rang kodi" />
           <button class="button button-outline" type="button" @click="addColor">Qo‘shish</button>
         </div>
 
         <ul class="attribute-list">
           <li v-for="item in colors" :key="item.id">
-            <span>{{ item.name }}</span>
+            <span class="color-row">
+              <input
+                class="color-input"
+                type="color"
+                :value="item.hex_code"
+                :aria-label="`${item.name} rang kodi`"
+                @change="saveColorHex(item, ($event.target as HTMLInputElement).value)"
+              />
+              <span>{{ item.name }}</span>
+              <small>{{ item.hex_code }}</small>
+            </span>
             <button class="icon-button delete" type="button" @click="removeAttribute('color', item.id)">
               <svg><use href="#i-trash" /></svg>
             </button>
@@ -484,6 +557,9 @@ onMounted(async () => {
     <div v-if="formOpen" class="overlay" @click.self="formOpen = false">
       <div class="overlay-card">
         <h3>{{ editing ? 'Mahsulotni tahrirlash' : 'Yangi mahsulot' }}</h3>
+
+        <p v-if="formError" class="load-error">{{ formError }}</p>
+        <p v-if="formNotice" class="notice">{{ formNotice }}</p>
 
         <div class="field">
           <label>Kategoriya</label>
@@ -503,6 +579,21 @@ onMounted(async () => {
         </div>
 
         <div class="field">
+          <label>Tarkibi</label>
+          <input v-model="form.material" type="text" placeholder="60% paxta, 40% polyester" />
+        </div>
+
+        <div class="field">
+          <label>Parvarish</label>
+          <input v-model="form.care" type="text" placeholder="30° da yuvish, past haroratda dazmollash" />
+        </div>
+
+        <div class="field">
+          <label>Tavsif</label>
+          <textarea v-model="form.description" rows="3" />
+        </div>
+
+        <div class="field">
           <label>Sotuv narxi</label>
           <input v-model="form.sale_price" type="text" inputmode="decimal" />
         </div>
@@ -518,6 +609,15 @@ onMounted(async () => {
           />
           <small class="field-hint">
             Faqat shu mahsulotning kodi kategoriyanikidan farq qilsa to‘ldiring.
+          </small>
+        </div>
+
+        <div class="field">
+          <label>Manzil qismi (slug)</label>
+          <input v-model="form.slug" type="text" placeholder="Nomdan avtomatik yasaladi" />
+          <small class="field-hint">
+            Kelajakdagi onlayn do‘kon manzili. Do‘kon ochilgach o‘zgartirmang —
+            tashqi havolalar uziladi.
           </small>
         </div>
 
@@ -558,6 +658,14 @@ onMounted(async () => {
         <p class="field-hint">
           Har o‘lcham va rang juftligi uchun alohida variant va shtrix-kod yaratiladi.
         </p>
+
+        <div class="field">
+          <ProductImages v-if="editing" :product-id="editing.id" :colors="formColors" />
+
+          <p v-else class="field-hint">
+            Rasm qo‘shish uchun avval mahsulotni saqlang — forma yopilmaydi.
+          </p>
+        </div>
 
         <div class="form-actions">
           <button class="button button-outline" type="button" @click="formOpen = false">
@@ -685,14 +793,40 @@ onMounted(async () => {
   background: rgb(15 23 42 / 45%);
 }
 
+.color-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-row small {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.color-input {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+}
+
 .overlay-card {
   width: 100%;
-  max-width: 460px;
+  max-width: 560px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 20px;
   border-radius: var(--radius);
   background: var(--surface);
+}
+
+.overlay-card > .field {
+  margin-bottom: 12px;
 }
 
 .chips {

@@ -149,6 +149,37 @@ def set_primary_image(image: ProductImage) -> ProductImage:
 
 
 @transaction.atomic
+def remove_product_image(image: ProductImage) -> None:
+    """Rasmni fayllari bilan birga o'chiradi.
+
+    Django qatorni o'chirganda fayllarga tegmaydi — ular MEDIA_ROOT da
+    yetim bo'lib qolardi. Fayllar tranzaksiya yakunlangandan keyin
+    o'chiriladi: orqaga qaytsa qator ham, fayl ham joyida qoladi.
+
+    Asosiy rasm o'chirilsa keyingisi asosiy bo'ladi, aks holda kartada
+    tasodifiy rasm chiqardi.
+    """
+    product = image.product
+    was_primary = image.is_primary
+    files = [(field.storage, field.name) for field in (image.thumb, image.medium, image.large) if field]
+
+    image.delete()
+
+    if was_primary:
+        successor = product.images.order_by('sort_order', 'id').first()
+
+        if successor is not None:
+            successor.is_primary = True
+            successor.save(update_fields=['is_primary'])
+
+    def delete_files():
+        for storage, name in files:
+            storage.delete(name)
+
+    transaction.on_commit(delete_files)
+
+
+@transaction.atomic
 def reorder_images(product, image_ids: list[int]) -> None:
     """Rasmlarni berilgan ketma-ketlikka keltiradi."""
     positions = {image_id: index for index, image_id in enumerate(image_ids)}

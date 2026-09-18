@@ -305,3 +305,8 @@ class Variant(TimeStampedModel):
     def price(self):
         """Amaldagi sotuv narxi: variantniki bo'lmasa — mahsulotniki."""
         return self.sale_price if self.sale_price is not None else self.product.sale_price
+
+
+#: Tugayotgan variant: minimal qoldiq belgilangan va qoldiq unga yetgan.
+#: Qoldiq ro'yxati ham, katalog ham shu bitta qoidaga qaraydi.
+LOW_STOCK = models.Q(min_stock__gt=0, stock_quantity__lte=models.F('min_stock'))
