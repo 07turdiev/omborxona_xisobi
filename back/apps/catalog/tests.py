@@ -1,10 +1,38 @@
-"""Katalog testlari: variant matritsasi va shtrix-kod."""
+"""Katalog testlari: variant matritsasi, shtrix-kod, rasm va katalog API."""
 
-from django.test import TestCase
+import shutil
+import tempfile
+from io import BytesIO
 
-from apps.catalog.models import Variant
-from apps.catalog.services import ean13_check_digit, next_internal_barcode
-from apps.core.factories import api_client, create_admin, create_cashier, create_product
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
+from PIL import Image
+
+from apps.catalog.images import MAX_UPLOAD_BYTES
+from apps.catalog.models import Color, Product, ProductImage, Variant
+from apps.catalog.services import ean13_check_digit, next_internal_barcode, unique_slug
+from apps.core.factories import (
+    api_client,
+    create_admin,
+    create_cashier,
+    create_product,
+    receive_stock,
+)
+
+
+def image_upload(name='rasm.jpg', size=(1200, 900), orientation=None) -> SimpleUploadedFile:
+    """Sinov uchun haqiqiy JPEG fayl."""
+    buffer = BytesIO()
+    image = Image.new('RGB', size, '#336699')
+
+    if orientation is None:
+        image.save(buffer, format='JPEG')
+    else:
+        exif = Image.Exif()
+        exif[0x0112] = orientation  # Orientation
+        image.save(buffer, format='JPEG', exif=exif)
+
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type='image/jpeg')
 
 
 def is_valid_ean13(code: str) -> bool:
@@ -135,6 +163,263 @@ class VariantApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(Variant.objects.get(pk=self.variant.pk).sale_price, 300000)
+
+
+class MediaTestCase(TestCase):
+    """Rasm testlari uchun asos: MEDIA_ROOT vaqtinchalik papkaga olinadi."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.media = tempfile.mkdtemp()
+        cls.override = override_settings(MEDIA_ROOT=cls.media)
+        cls.override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.override.disable()
+        shutil.rmtree(cls.media, ignore_errors=True)
+        super().tearDownClass()
+
+    def upload(self, client, product, image=None, color=None):
+        data = {'product': product.pk, 'image': image or image_upload()}
+
+        if color is not None:
+            data['color'] = color.pk
+
+        return client.post('/api/product-images/', data, format='multipart')
+
+
+class ProductImageTests(MediaTestCase):
+
+    def setUp(self):
+        self.product = create_product(sizes=('M',), colors=('Qora', 'Oq'))
+        self.client_admin = api_client(create_admin())
+
+    def test_upload_creates_three_sizes(self):
+        response = self.upload(
+            self.client_admin, self.product, image_upload(size=(2000, 1500))
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        image = ProductImage.objects.get()
+
+        for field, longest in (('thumb', 200), ('medium', 800), ('large', 1600)):
+            with Image.open(getattr(image, field).path) as rendered:
+                self.assertEqual(rendered.format, 'WEBP', field)
+                self.assertEqual(max(rendered.size), longest, field)
+
+    def test_small_image_is_not_enlarged(self):
+        self.upload(self.client_admin, self.product, image_upload(size=(300, 300)))
+
+        image = ProductImage.objects.get()
+
+        with Image.open(image.large.path) as rendered:
+            self.assertEqual(rendered.size, (300, 300))
+
+    def test_exif_rotation_is_applied(self):
+        """Telefonda yotgan holatda olingan rasm to'g'ri buriladi."""
+        response = self.upload(
+            self.client_admin, self.product, image_upload(size=(1200, 900), orientation=6)
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        with Image.open(ProductImage.objects.get().thumb.path) as rendered:
+            width, height = rendered.size
+
+            self.assertGreater(height, width, 'rasm burilmagan')
+            # EXIF saqlanmaydi: u bilan birga suratga olingan joy ham ketardi
+            self.assertFalse(rendered.getexif())
+
+    def test_oversized_file_is_rejected(self):
+        big = SimpleUploadedFile(
+            'katta.jpg', b'\0' * (MAX_UPLOAD_BYTES + 1), content_type='image/jpeg'
+        )
+
+        response = self.upload(self.client_admin, self.product, big)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('15 MB', str(response.json()))
+        self.assertEqual(ProductImage.objects.count(), 0)
+
+    def test_non_image_is_rejected(self):
+        text = SimpleUploadedFile('hujjat.txt', b'salom', content_type='text/plain')
+
+        response = self.upload(self.client_admin, self.product, text)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('rasm emas', str(response.json()))
+
+    def test_image_belongs_to_a_color_or_to_the_product(self):
+        black = Color.objects.get(name='Qora')
+
+        self.upload(self.client_admin, self.product, color=black)
+        self.upload(self.client_admin, self.product)
+
+        by_color = ProductImage.objects.filter(color=black).count()
+        general = ProductImage.objects.filter(color__isnull=True).count()
+
+        self.assertEqual((by_color, general), (1, 1))
+
+    def test_first_image_becomes_primary(self):
+        self.upload(self.client_admin, self.product)
+        self.upload(self.client_admin, self.product)
+
+        primary = ProductImage.objects.filter(is_primary=True)
+
+        self.assertEqual(primary.count(), 1)
+        self.assertEqual(primary.get(), ProductImage.objects.order_by('id').first())
+
+    def test_primary_can_be_switched(self):
+        self.upload(self.client_admin, self.product)
+        self.upload(self.client_admin, self.product)
+
+        second = ProductImage.objects.order_by('id').last()
+
+        response = self.client_admin.patch(
+            f'/api/product-images/{second.pk}/', {'is_primary': True}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(ProductImage.objects.filter(is_primary=True).count(), 1)
+        self.assertTrue(ProductImage.objects.get(pk=second.pk).is_primary)
+
+    def test_eleventh_image_is_rejected(self):
+        for _ in range(ProductImage.MAX_PER_PRODUCT):
+            self.assertEqual(self.upload(self.client_admin, self.product).status_code, 201)
+
+        response = self.upload(self.client_admin, self.product)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(ProductImage.objects.count(), ProductImage.MAX_PER_PRODUCT)
+
+    def test_cashier_cannot_upload(self):
+        response = self.upload(api_client(create_cashier()), self.product)
+
+        self.assertEqual(response.status_code, 403)
+
+
+class CatalogApiTests(MediaTestCase):
+
+    def setUp(self):
+        self.product = create_product(sizes=('S', 'M'), colors=('Qora', 'Oq'))
+        self.client_admin = api_client(create_admin())
+        self.client_cashier = api_client(create_cashier())
+
+        self.variant = self.product.variants.first()
+        receive_stock(self.variant, 5, '100000')
+
+    def test_list_card_has_image_price_and_stock(self):
+        self.upload(self.client_admin, self.product)
+
+        response = self.client_cashier.get('/api/catalog/')
+
+        self.assertEqual(response.status_code, 200, response.content)
+
+        card = response.json()['results'][0]
+
+        self.assertEqual(card['name'], self.product.name)
+        self.assertEqual(card['total_stock'], 5)
+        self.assertEqual(card['sale_price'], '250000.00')
+        self.assertIsNotNone(card['primary_image']['thumb'])
+
+    def test_product_without_images_has_no_primary(self):
+        response = self.client_cashier.get('/api/catalog/')
+
+        self.assertIsNone(response.json()['results'][0]['primary_image'])
+
+    def test_detail_groups_images_by_color(self):
+        black = Color.objects.get(name='Qora')
+
+        self.upload(self.client_admin, self.product, color=black)
+        self.upload(self.client_admin, self.product, color=black)
+        self.upload(self.client_admin, self.product)
+
+        response = self.client_cashier.get(f'/api/catalog/{self.product.pk}/')
+
+        self.assertEqual(response.status_code, 200, response.content)
+
+        groups = {group['color']: group for group in response.json()['image_groups']}
+
+        self.assertEqual(len(groups[None]['images']), 1)
+        self.assertEqual(len(groups[black.pk]['images']), 2)
+        self.assertEqual(groups[black.pk]['hex_code'], black.hex_code)
+
+    def test_detail_lists_colors_and_sizes_in_order(self):
+        body = self.client_cashier.get(f'/api/catalog/{self.product.pk}/').json()
+
+        self.assertEqual([size['name'] for size in body['sizes']], ['S', 'M'])
+        self.assertEqual([color['name'] for color in body['colors']], ['Oq', 'Qora'])
+        self.assertTrue(all(color['hex_code'] for color in body['colors']))
+
+    def test_detail_has_stock_per_variant(self):
+        body = self.client_cashier.get(f'/api/catalog/{self.product.pk}/').json()
+
+        stock = {variant['id']: variant['stock_quantity'] for variant in body['variants']}
+
+        self.assertEqual(stock[self.variant.pk], 5)
+        self.assertEqual(len(stock), 4)
+
+    def test_cashier_does_not_see_cost(self):
+        body = self.client_cashier.get(f'/api/catalog/{self.product.pk}/').json()
+
+        for variant in body['variants']:
+            self.assertNotIn('average_cost', variant)
+
+    def test_admin_sees_cost(self):
+        body = self.client_admin.get(f'/api/catalog/{self.product.pk}/').json()
+
+        self.assertIn('average_cost', body['variants'][0])
+
+    def test_search_by_barcode(self):
+        response = self.client_cashier.get(f'/api/catalog/?search={self.variant.barcode}')
+
+        self.assertEqual(response.json()['count'], 1)
+
+    def test_in_stock_filter_hides_empty_products(self):
+        create_product(name='Qoldiqsiz')
+
+        with_stock = self.client_cashier.get('/api/catalog/?in_stock=true').json()
+
+        self.assertEqual([item['name'] for item in with_stock['results']], [self.product.name])
+
+
+class SlugTests(TestCase):
+
+    def test_slug_is_generated_from_name(self):
+        product = create_product(name='Yozgi ko‘ylak')
+
+        self.assertEqual(product.slug, 'yozgi-koylak')
+
+    def test_same_name_gets_a_different_slug(self):
+        first = create_product(name='Ko‘ylak')
+        second = create_product(name='Ko‘ylak')
+
+        self.assertNotEqual(first.slug, second.slug)
+        self.assertEqual(Product.objects.filter(slug=first.slug).count(), 1)
+
+    def test_name_without_latin_letters_still_gets_a_slug(self):
+        product = create_product(name='Кўйлак')
+
+        self.assertTrue(product.slug)
+
+    def test_admin_can_set_slug(self):
+        product = create_product()
+
+        response = api_client(create_admin()).patch(
+            f'/api/products/{product.pk}/', {'slug': 'maxsus-manzil'}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(Product.objects.get(pk=product.pk).slug, 'maxsus-manzil')
+
+    def test_unique_slug_helper_skips_taken_values(self):
+        create_product(name='Sharf')
+
+        self.assertEqual(unique_slug('Sharf'), 'sharf-2')
 
 
 class MxikCodeTests(TestCase):

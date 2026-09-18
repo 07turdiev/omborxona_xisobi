@@ -112,8 +112,13 @@ class Command(BaseCommand):
             for index, name in enumerate(['S', 'M', 'L', 'XL'], 1)
         }
         colors = {
-            name: Color.objects.create(name=name)
-            for name in ['Oq', 'Qora', 'Qizil', 'Ko‘k']
+            name: Color.objects.create(name=name, hex_code=hex_code)
+            for name, hex_code in [
+                ('Oq', '#FFFFFF'),
+                ('Qora', '#1A1A1A'),
+                ('Qizil', '#D32F2F'),
+                ('Ko‘k', '#1976D2'),
+            ]
         }
 
         for category, name, brand, price, product_sizes, product_colors in PRODUCTS:

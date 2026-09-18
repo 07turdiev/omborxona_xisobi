@@ -58,7 +58,10 @@ def create_product(
         Size.objects.get_or_create(name=size, defaults={'position': index})[0]
         for index, size in enumerate(sizes)
     ]
-    color_objects = [Color.objects.get_or_create(name=color)[0] for color in colors]
+    color_objects = [
+        Color.objects.get_or_create(name=color, defaults={'hex_code': '#808080'})[0]
+        for color in colors
+    ]
 
     sync_variant_matrix(
         product,

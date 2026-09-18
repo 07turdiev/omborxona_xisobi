@@ -19,6 +19,12 @@ MXIK_VALIDATOR = RegexValidator(
     message=_('MXIK kodi 17 xonali raqamdan iborat bo‘lishi kerak.'),
 )
 
+#: Rang kodi — katalogdagi rang doirachasi shu kod bilan chiziladi.
+HEX_VALIDATOR = RegexValidator(
+    regex=r'^#[0-9A-Fa-f]{6}$',
+    message=_('Rang kodi #RRGGBB ko‘rinishida bo‘lishi kerak, masalan #1A2B3C.'),
+)
+
 
 class Category(TimeStampedModel):
     """Kategoriya — oddiy ro'yxat, ichma-ich emas.
@@ -68,9 +74,16 @@ class Size(TimeStampedModel):
 
 
 class Color(TimeStampedModel):
-    """Rang."""
+    """Rang. `hex_code` — katalogdagi rang doirachasi uchun."""
 
     name = models.CharField(_('Nomi'), max_length=40, unique=True)
+
+    hex_code = models.CharField(
+        _('Rang kodi'),
+        max_length=7,
+        validators=[HEX_VALIDATOR],
+        help_text=_('#RRGGBB ko‘rinishida.'),
+    )
 
     class Meta:
         verbose_name = _('Rang')
@@ -93,9 +106,25 @@ class Product(TimeStampedModel):
 
     name = models.CharField(_('Nomi'), max_length=200)
     brand = models.CharField(_('Brend'), max_length=100, blank=True)
-    description = models.CharField(_('Izoh'), max_length=300, blank=True)
+    description = models.TextField(_('Tavsif'), blank=True)
 
-    photo = models.ImageField(_('Rasm'), upload_to='products/', blank=True, null=True)
+    material = models.CharField(
+        _('Tarkibi'), max_length=200, blank=True,
+        help_text=_('Masalan: 60% paxta, 40% polyester.'),
+    )
+
+    care = models.CharField(
+        _('Parvarish'), max_length=300, blank=True,
+        help_text=_('Yuvish va dazmollash ko‘rsatmasi.'),
+    )
+
+    #: Onlayn do'kon manzilida ishlatiladi. Hozir hech qayerda
+    #: ko'rinmaydi, lekin keyin o'zgartirilsa tashqi havolalar uziladi —
+    #: shuning uchun mahsulot yaratilganda darhol beriladi.
+    slug = models.SlugField(
+        _('Manzil qismi'), max_length=220, unique=True,
+        help_text=_('Nomdan avtomatik yasaladi. O‘zgartirish mumkin, lekin keyin emas.'),
+    )
 
     sale_price = MoneyField(_('Sotuv narxi'), default=0)
 
@@ -120,6 +149,16 @@ class Product(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Xizmat modelga emas, model xizmatga tayanmasligi uchun
+            # import shu yerda: `services` modellarni import qiladi
+            from apps.catalog.services import unique_slug
+
+            self.slug = unique_slug(self.name, exclude_pk=self.pk)
+
+        super().save(*args, **kwargs)
+
     @property
     def effective_mxik_code(self) -> str:
         """Amaldagi MXIK: mahsulotniki bo'lmasa — kategoriyaniki."""
@@ -128,6 +167,61 @@ class Product(TimeStampedModel):
     @property
     def effective_package_code(self) -> str:
         return self.package_code or self.category.package_code
+
+
+class ProductImage(TimeStampedModel):
+    """Mahsulot rasmi — uchta o'lchamda saqlanadi.
+
+    Rasm bitta rangga bog'langan bo'lishi mumkin (qora ko'ylakning
+    surati) yoki umumiy bo'lishi mumkin (o'lcham jadvali, brend yorlig'i)
+    — u holda `color` bo'sh qoladi.
+
+    Yuklangan asl fayl saqlanmaydi, faqat qayta o'lchangan uchta WebP
+    (izoh: `images.py`).
+    """
+
+    #: Bitta mahsulotga bundan ortiq rasm biriktirib bo'lmaydi
+    MAX_PER_PRODUCT = 10
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='images',
+        verbose_name=_('Mahsulot'),
+    )
+
+    color = models.ForeignKey(
+        Color,
+        on_delete=models.PROTECT,
+        related_name='images',
+        null=True,
+        blank=True,
+        verbose_name=_('Rang'),
+        help_text=_('Bo‘sh bo‘lsa rasm butun mahsulotga tegishli.'),
+    )
+
+    thumb = models.ImageField(_('Kichik'), upload_to='products/thumb/')
+    medium = models.ImageField(_('O‘rta'), upload_to='products/medium/')
+    large = models.ImageField(_('Katta'), upload_to='products/large/')
+
+    sort_order = models.PositiveSmallIntegerField(_('Tartib'), default=0)
+    is_primary = models.BooleanField(_('Asosiy'), default=False)
+
+    class Meta:
+        verbose_name = _('Mahsulot rasmi')
+        verbose_name_plural = _('Mahsulot rasmlari')
+        ordering = ['sort_order', 'id']
+        constraints = [
+            # Ro'yxatdagi karta aynan bitta rasmni ko'rsatadi
+            models.UniqueConstraint(
+                fields=['product'],
+                condition=models.Q(is_primary=True),
+                name='one_primary_image_per_product',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.product.name} — {self.color or "umumiy"}'
 
 
 class Variant(TimeStampedModel):

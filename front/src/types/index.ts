@@ -72,6 +72,17 @@ export interface Variant {
   is_active: boolean
 }
 
+export interface ProductImage {
+  id: number
+  /** Bo'sh bo'lsa rasm butun mahsulotga tegishli */
+  color: number | null
+  thumb: string
+  medium: string
+  large: string
+  is_primary: boolean
+  sort_order: number
+}
+
 export interface Product {
   id: number
   category: number
@@ -79,8 +90,12 @@ export interface Product {
   name: string
   brand: string
   description: string
-  photo: string | null
+  material: string
+  care: string
+  /** Onlayn do'kon manzili uchun. Hozir hech qayerda ko'rsatilmaydi. */
+  slug: string
   sale_price: string
+  images: ProductImage[]
   /** Bo'sh bo'lsa kategoriyaniki ishlatiladi */
   mxik_code: string
   package_code: string

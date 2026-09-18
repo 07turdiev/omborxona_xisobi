@@ -1,18 +1,23 @@
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Q, Sum
+from django.db.models.functions import Coalesce
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
-from apps.catalog.models import Category, Color, Product, Size, Variant
+from apps.catalog.models import Category, Color, Product, ProductImage, Size, Variant
 from apps.catalog.serializers import (
+    CatalogProductListSerializer,
+    CatalogProductSerializer,
     CategorySerializer,
     ColorSerializer,
+    ProductImageSerializer,
     ProductSerializer,
     SizeSerializer,
     VariantSerializer,
 )
-from apps.core.permissions import IsAdminOrReadOnly
+from apps.catalog.services import reorder_images
+from apps.core.permissions import IsAdmin, IsAdminOrReadOnly
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -66,6 +71,88 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=True)
 
         return queryset
+
+
+class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
+    """Xodimlar uchun katalog: rasm, rang, o'lcham va qoldiq.
+
+    Ikkala rol ham ko'radi. Tannarx faqat administrator javobida bo'ladi
+    (`CatalogVariantSerializer`).
+    """
+
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return CatalogProductListSerializer
+
+        return CatalogProductSerializer
+
+    def get_queryset(self):
+        queryset = (
+            Product.objects.select_related('category')
+            .prefetch_related('images__color', 'variants__size', 'variants__color')
+            .annotate(total_stock=Coalesce(Sum('variants__stock_quantity'), 0))
+        )
+
+        params = self.request.query_params
+
+        if search := params.get('search'):
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(variants__barcode=search)
+            ).distinct()
+
+        if category := params.get('category'):
+            queryset = queryset.filter(category_id=category)
+
+        if params.get('in_stock') == 'true':
+            queryset = queryset.filter(total_stock__gt=0)
+
+        if params.get('active') != 'false':
+            queryset = queryset.filter(is_active=True)
+
+        return queryset
+
+
+class ProductImageViewSet(viewsets.ModelViewSet):
+    """Mahsulot rasmlari — yuklash, tartiblash, asosiysini tanlash.
+
+    Faqat administrator: rasm katalogning ko'rinishini belgilaydi.
+    """
+
+    serializer_class = ProductImageSerializer
+    permission_classes = [IsAdmin]
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = ProductImage.objects.select_related('color')
+
+        if product := self.request.query_params.get('product'):
+            queryset = queryset.filter(product_id=product)
+
+        return queryset
+
+    @action(detail=False, methods=['post'])
+    def reorder(self, request):
+        """Rasmlar tartibi: `{"product": 1, "images": [12, 10, 11]}`."""
+        product_id = request.data.get('product')
+        image_ids = request.data.get('images')
+
+        if not product_id or not isinstance(image_ids, list):
+            raise ValidationError('Mahsulot va rasmlar ro‘yxati kerak.')
+
+        product = Product.objects.filter(pk=product_id).first()
+
+        if product is None:
+            raise NotFound('Mahsulot topilmadi.')
+
+        reorder_images(product, image_ids)
+
+        return Response(
+            ProductImageSerializer(
+                product.images.all(), many=True, context={'request': request}
+            ).data
+        )
 
 
 class VariantViewSet(viewsets.ModelViewSet):

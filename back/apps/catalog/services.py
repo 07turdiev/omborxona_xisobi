@@ -1,8 +1,12 @@
-"""Katalog xizmatlari: shtrix-kod va variant matritsasi."""
+"""Katalog xizmatlari: shtrix-kod, variant matritsasi va rasmlar."""
 
+from django.core.exceptions import ValidationError
 from django.db import connection, transaction
+from django.utils.text import slugify
+from django.utils.translation import gettext_lazy as _
 
-from apps.catalog.models import Color, Size, Variant
+from apps.catalog.images import build_sizes
+from apps.catalog.models import Color, Product, ProductImage, Size, Variant
 
 #: Ichki (do'kon ichidagi) kodlar uchun EAN-13 prefiksi.
 #: 200-299 oralig'i xalqaro standartda aynan shu maqsad uchun ajratilgan.
@@ -83,3 +87,72 @@ def sync_variant_matrix(product, size_ids=None, color_ids=None) -> list[Variant]
             created.append(create_variant(product, size=size, color=color))
 
     return created
+
+
+def unique_slug(name: str, *, exclude_pk=None) -> str:
+    """Nomdan takrorlanmaydigan manzil qismini yasaydi.
+
+    `slugify` lotin bo'lmagan belgilarni tashlaydi, shuning uchun
+    butunlay kirilcha nomdan bo'sh qator chiqishi mumkin — u holda
+    umumiy asos olinadi va raqam qo'shiladi.
+    """
+    base = slugify(name)[:200] or 'mahsulot'
+    candidate = base
+    index = 2
+
+    while Product.objects.filter(slug=candidate).exclude(pk=exclude_pk).exists():
+        candidate = f'{base}-{index}'
+        index += 1
+
+    return candidate
+
+
+@transaction.atomic
+def add_product_image(product, upload, color=None) -> ProductImage:
+    """Rasmni uchta o'lchamda saqlaydi va mahsulotga biriktiradi."""
+    if product.images.count() >= ProductImage.MAX_PER_PRODUCT:
+        raise ValidationError(
+            _('Bitta mahsulotga eng ko‘pi %(count)d ta rasm qo‘shish mumkin.')
+            % {'count': ProductImage.MAX_PER_PRODUCT}
+        )
+
+    files = build_sizes(upload)
+
+    last = product.images.order_by('-sort_order').first()
+
+    return ProductImage.objects.create(
+        product=product,
+        color=color,
+        sort_order=(last.sort_order + 1) if last else 0,
+        # Birinchi rasm o'zi asosiy bo'ladi: kartada nimadir ko'rinsin
+        is_primary=not product.images.exists(),
+        **files,
+    )
+
+
+@transaction.atomic
+def set_primary_image(image: ProductImage) -> ProductImage:
+    """Asosiy rasmni almashtiradi.
+
+    Avval eskisi olib tashlanadi: bitta mahsulotda bitta asosiy rasm
+    bo'lishini baza cheklovi ham talab qiladi.
+    """
+    ProductImage.objects.filter(product=image.product, is_primary=True).exclude(
+        pk=image.pk
+    ).update(is_primary=False)
+
+    if not image.is_primary:
+        image.is_primary = True
+        image.save(update_fields=['is_primary'])
+
+    return image
+
+
+@transaction.atomic
+def reorder_images(product, image_ids: list[int]) -> None:
+    """Rasmlarni berilgan ketma-ketlikka keltiradi."""
+    positions = {image_id: index for index, image_id in enumerate(image_ids)}
+
+    for image in product.images.filter(pk__in=positions):
+        image.sort_order = positions[image.pk]
+        image.save(update_fields=['sort_order'])
