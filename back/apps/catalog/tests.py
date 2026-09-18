@@ -604,3 +604,36 @@ class MxikCodeTests(TestCase):
 
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.json()['effective_mxik_code'], self.CODE)
+
+
+class CatalogSearchTests(TestCase):
+    """Birlashtirilgan mahsulotlar sahifasi: qoldiq sahifasidagi qidiruvlar ham ishlaydi."""
+
+    def setUp(self):
+        self.product = create_product(name='Yozgi ko‘ylak', sizes=('M',))
+        self.product.brand = 'Zara'
+        self.product.save(update_fields=['brand'])
+        create_product(name='Sharf')
+
+    def names(self, query, user=None):
+        client = api_client(user or create_cashier())
+        response = client.get(f'/api/catalog/?search={query}')
+
+        self.assertEqual(response.status_code, 200, response.content)
+
+        return [item['name'] for item in response.json()['results']]
+
+    def test_search_by_sku(self):
+        sku = self.product.variants.get().sku
+
+        self.assertEqual(self.names(sku), [self.product.name])
+
+    def test_search_by_brand(self):
+        self.assertEqual(self.names('zara'), [self.product.name])
+
+    def test_mxik_code_only_for_admin(self):
+        cashier_card = api_client(create_cashier()).get('/api/catalog/').json()['results'][0]
+        admin_card = api_client(create_admin()).get('/api/catalog/').json()['results'][0]
+
+        self.assertNotIn('effective_mxik_code', cashier_card)
+        self.assertIn('effective_mxik_code', admin_card)

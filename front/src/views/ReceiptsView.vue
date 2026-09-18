@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 
 import ReceiptPrint from '@/components/ReceiptPrint.vue'
 import { errorMessage } from '@/api/client'
@@ -9,6 +10,7 @@ import { formatMoney, formatSum } from '@/utils/money'
 import type { Sale } from '@/types'
 
 const auth = useAuthStore()
+const route = useRoute()
 
 const sales = ref<Sale[]>([])
 const selected = ref<Sale | null>(null)
@@ -86,7 +88,17 @@ function time(value: string): string {
   })
 }
 
-onMounted(load)
+/** Mahsulotning qoldiq tarixidan kelingan bo'lsa (`?number=SOT-…`) — o'sha chek ochiladi */
+onMounted(async () => {
+  const number = String(route.query.number ?? '').trim()
+
+  if (!number) return load()
+
+  search.value = number
+  await onSearch()
+
+  if (sales.value[0]) open(sales.value[0])
+})
 </script>
 
 <template>
@@ -190,6 +202,14 @@ onMounted(load)
             <svg><use href="#i-print" /></svg>
             <span>Chop etish</span>
           </button>
+
+          <RouterLink
+            v-if="auth.isAdmin && selected.status === 'completed'"
+            class="button button-outline"
+            :to="{ path: '/returns', query: { number: selected.number } }"
+          >
+            Qaytarish / almashtirish
+          </RouterLink>
 
           <button
             v-if="auth.isAdmin && selected.status === 'completed'"

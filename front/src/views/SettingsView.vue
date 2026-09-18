@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
 
 import { settingsApi } from '@/api/accounts'
 import { errorMessage } from '@/api/client'
@@ -101,18 +100,6 @@ async function onSave() {
       </button>
     </div>
 
-    <div v-if="!loading" class="table-card card-padded settings-card">
-      <h3>Qurilmalar</h3>
-
-      <p class="field-hint">
-        Printer va skanerni sinab ko‘rish: sinov yorlig‘i, sinov cheki va
-        skaner maydoni. Yangi qurilma ulanganda shu yerdan tekshiring.
-      </p>
-
-      <RouterLink class="button button-outline" to="/settings/devices">
-        Qurilmalarni sinash
-      </RouterLink>
-    </div>
   </section>
 </template>
 

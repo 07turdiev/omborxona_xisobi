@@ -74,6 +74,8 @@ export interface CatalogCard {
   total_stock: number
   size_stock: SizeStock[]
   primary_image: ProductImage | null
+  /** Faqat administrator javobida */
+  effective_mxik_code?: string
 }
 
 export interface ImageGroup {
@@ -296,6 +298,10 @@ export interface StockMovement {
   reason_display: string
   document_type: string
   document_id: number | null
+  /** KIR-…, SOT-…; hisobdan chiqarishda yo'q */
+  document_number: string | null
+  /** Qaytarishda — qaysi chekdan */
+  document_sale_number: string | null
   unit_cost: string
   user: number | null
   user_name: string | null

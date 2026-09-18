@@ -191,3 +191,40 @@ class RecomputeCommandTests(TestCase):
 
         self.assertIn('tuzatildi', output.getvalue())
         self.assertEqual(Variant.objects.get(pk=self.variant.pk).stock_quantity, 7)
+
+
+class MovementDocumentTests(TestCase):
+    """Jurnal yozuvida hujjat raqami — mahsulot sahifasidagi tarix havolalari uchun."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.variant = create_product(sizes=('M',), colors=('qora',)).variants.get()
+
+    def movements(self):
+        response = api_client(self.admin).get(f'/api/movements/?variant={self.variant.pk}')
+
+        self.assertEqual(response.status_code, 200, response.content)
+
+        return response.json()['results']
+
+    def test_purchase_movement_carries_document_number(self):
+        purchase = receive_stock(self.variant, 3, '100000', user=self.admin)
+
+        [movement] = self.movements()
+
+        self.assertEqual(movement['document_type'], 'purchase')
+        self.assertEqual(movement['document_id'], purchase.pk)
+        self.assertEqual(movement['document_number'], purchase.number)
+
+    def test_write_off_has_no_number(self):
+        receive_stock(self.variant, 3, '100000', user=self.admin)
+        create_write_off(variant=self.variant, quantity=1, reason='Yirtilgan', user=self.admin)
+
+        write_off = next(item for item in self.movements() if item['document_type'] == 'writeoff')
+
+        self.assertIsNone(write_off['document_number'])
+
+    def test_cashier_cannot_read_movements(self):
+        response = api_client(create_cashier()).get('/api/movements/')
+
+        self.assertEqual(response.status_code, 403)

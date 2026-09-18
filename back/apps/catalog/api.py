@@ -123,9 +123,13 @@ class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
 
         params = self.request.query_params
 
+        # Nomi, brendi, artikuli yoki shtrix-kodi — mahsulotlar sahifasi
+        # birlashtirilgan, qoldiq sahifasidagi SKU qidiruvi ham shu yerda
         if search := params.get('search', '').strip():
             queryset = queryset.filter(
-                Exists(variants.filter(barcode=search)) | Q(name__icontains=search)
+                Exists(variants.filter(Q(barcode=search) | Q(sku__icontains=search)))
+                | Q(name__icontains=search)
+                | Q(brand__icontains=search)
             )
 
         if category := params.get('category'):

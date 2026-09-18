@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import ReceiptPrint from '@/components/ReceiptPrint.vue'
 import ScanField from '@/components/ScanField.vue'
@@ -307,6 +308,9 @@ function reprint() {
         </button>
       </div>
 
+      <!-- Qaytarish kassadan ochiladi: administrator menyusida alohida band yo'q -->
+      <RouterLink class="returns-link" to="/returns">Qaytarish yoki almashtirish</RouterLink>
+
       <div v-if="lastSale" class="last-sale">
         <span>Oxirgi chek: <strong>{{ lastSale.number }}</strong> — {{ formatSum(lastSale.total) }}</span>
         <button class="button button-outline" type="button" @click="reprint">
@@ -443,6 +447,13 @@ function reprint() {
 .complete {
   min-height: 48px;
   font-size: 16px;
+}
+
+.returns-link {
+  align-self: center;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .last-sale {

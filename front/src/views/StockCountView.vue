@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import ScanField from '@/components/ScanField.vue'
 import { catalogApi } from '@/api/catalog'
@@ -14,6 +15,7 @@ const AUTOSAVE_DELAY = 3000
 
 const counts = ref<StockCount[]>([])
 const categories = ref<Category[]>([])
+const route = useRoute()
 const opened = ref<StockCount | null>(null)
 
 const loading = ref(false)
@@ -310,7 +312,14 @@ async function onConfirmFromList(count: StockCount) {
   }
 }
 
-onMounted(load)
+/** Mahsulotning qoldiq tarixidan kelingan bo'lsa (`?open=<id>`) — o'sha sanoq ochiladi */
+onMounted(async () => {
+  await load()
+
+  const id = Number(route.query.open)
+
+  if (id) await onOpen({ id } as StockCount)
+})
 
 // Sahifadan chiqishda saqlanmagan o'zgarish qolmasin
 onBeforeUnmount(() => {

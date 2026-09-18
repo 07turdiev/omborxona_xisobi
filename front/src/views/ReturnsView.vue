@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import ScanField from '@/components/ScanField.vue'
 import { catalogApi } from '@/api/catalog'
@@ -9,6 +10,7 @@ import { addMoney, compareMoney, formatMoney, formatSum, multiplyMoney, subtract
 import { uuid } from '@/utils/uuid'
 import type { Sale, Variant } from '@/types'
 
+const route = useRoute()
 const scanner = ref<InstanceType<typeof ScanField> | null>(null)
 
 const sale = ref<Sale | null>(null)
@@ -182,6 +184,13 @@ async function onSubmit() {
     scanner.value?.focus()
   }
 }
+
+/** Cheklar sahifasidan kelingan bo'lsa (`?number=SOT-…`) — chek darhol ochiladi */
+onMounted(() => {
+  const number = String(route.query.number ?? '').trim()
+
+  if (number) void onScanReceipt(number)
+})
 </script>
 
 <template>

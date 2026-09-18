@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 
-defineProps<{ title: string }>()
+defineProps<{ title: string; description?: string }>()
 const emit = defineEmits<{ toggleSidebar: [] }>()
 
 const auth = useAuthStore()
@@ -39,6 +39,8 @@ function onLogout() {
 
       <div class="page-heading">
         <h1>{{ title }}</h1>
+        <!-- Yangi xodim sahifa nima uchun ekanini shu qatordan biladi -->
+        <p v-if="description" class="page-lead" :title="description">{{ description }}</p>
       </div>
     </div>
 
@@ -70,3 +72,17 @@ function onLogout() {
     </div>
   </header>
 </template>
+
+<style scoped>
+.page-heading {
+  min-width: 0;
+}
+
+/* Bir qator: sig'masa kesiladi, to'liq matn — sichqoncha ustida */
+.page-lead {
+  overflow: hidden;
+  max-width: 62vw;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

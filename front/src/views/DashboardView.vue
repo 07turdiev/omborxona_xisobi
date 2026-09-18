@@ -82,7 +82,7 @@ onMounted(async () => {
           <small class="cell-sub">Eng kam qoldiq chegarasidan pastga tushganlari</small>
         </div>
 
-        <RouterLink class="button button-outline" to="/stock">Qoldiqni ko‘rish</RouterLink>
+        <RouterLink class="button button-outline" to="/products?low_stock=true">Tugayotganlarni ko‘rish</RouterLink>
       </div>
     </template>
   </section>

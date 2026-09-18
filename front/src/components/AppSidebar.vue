@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
+import { ADMIN_MENU, CASHIER_MENU } from '@/navigation'
 import { useAuthStore } from '@/stores/auth'
 import logoUrl from '@/assets/logo.png'
 
@@ -11,28 +12,8 @@ const emit = defineEmits<{ close: [] }>()
 const auth = useAuthStore()
 const route = useRoute()
 
-/** Kassirga ochiq bo'limlar */
-const daily = [
-  { to: '/', icon: 'i-sale', label: 'Kassa' },
-  { to: '/returns', icon: 'i-import', label: 'Qaytarish' },
-  { to: '/receipts', icon: 'i-print', label: 'Cheklar' },
-  { to: '/catalog', icon: 'i-catalog', label: 'Katalog' },
-  { to: '/products', icon: 'i-company', label: 'Mahsulotlar' },
-  { to: '/stock', icon: 'i-stock', label: 'Qoldiq' },
-]
-
-/** Faqat administrator uchun */
-const management = [
-  { to: '/dashboard', icon: 'i-dashboard', label: 'Boshqaruv paneli' },
-  { to: '/purchases', icon: 'i-import', label: 'Kirim' },
-  { to: '/suppliers', icon: 'i-users', label: 'Ta’minotchilar' },
-  { to: '/stock-counts', icon: 'i-warehouse', label: 'Inventarizatsiya' },
-  { to: '/write-offs', icon: 'i-trash', label: 'Hisobdan chiqarish' },
-  { to: '/expenses', icon: 'i-report', label: 'Xarajatlar' },
-  { to: '/reports', icon: 'i-report', label: 'Hisobotlar' },
-  { to: '/users', icon: 'i-users', label: 'Xodimlar' },
-  { to: '/settings', icon: 'i-settings', label: 'Sozlamalar' },
-]
+/** Tuzilma: `navigation.ts`. Kassir uchta bandni ko'radi. */
+const menu = computed(() => (auth.isAdmin ? ADMIN_MENU : CASHIER_MENU))
 
 const initials = computed(() => (auth.user?.full_name ?? 'X').slice(0, 1).toUpperCase())
 </script>
@@ -48,43 +29,26 @@ const initials = computed(() => (auth.user?.full_name ?? 'X').slice(0, 1).toUppe
       </button>
     </div>
 
-    <nav class="sidebar-menu">
-      <span class="menu-caption">Kundalik ish</span>
-
-      <!-- `/catalog/5` ochiq bo'lsa ham "Katalog" bandi belgilangan qoladi -->
+    <nav class="sidebar-menu" aria-label="Asosiy menyu">
+      <!-- Band o'z bo'limidagi har sahifada belgilangan qoladi:
+           masalan Ta'minotchilar ochiq bo'lsa ham "Kirim" -->
       <RouterLink
-        v-for="item in daily"
+        v-for="item in menu"
         :key="item.to"
-        v-slot="{ isActive, navigate }"
+        v-slot="{ navigate }"
         :to="item.to"
         custom
       >
         <button
           class="menu-item"
-          :class="{ active: isActive || route.path.startsWith(`${item.to}/`) }"
+          :class="{ active: item.sections.includes(route.meta.section ?? '') }"
+          :aria-current="item.sections.includes(route.meta.section ?? '') ? 'page' : undefined"
           @click="navigate"
         >
           <span class="menu-icon"><svg><use :href="`#${item.icon}`" /></svg></span>
           <span>{{ item.label }}</span>
         </button>
       </RouterLink>
-
-      <template v-if="auth.isAdmin">
-        <span class="menu-caption second">Boshqaruv</span>
-
-        <RouterLink
-          v-for="item in management"
-          :key="item.to"
-          v-slot="{ isActive, navigate }"
-          :to="item.to"
-          custom
-        >
-          <button class="menu-item" :class="{ active: isActive }" @click="navigate">
-            <span class="menu-icon"><svg><use :href="`#${item.icon}`" /></svg></span>
-            <span>{{ item.label }}</span>
-          </button>
-        </RouterLink>
-      </template>
     </nav>
 
     <div class="sidebar-footer">
@@ -111,5 +75,9 @@ const initials = computed(() => (auth.user?.full_name ?? 'X').slice(0, 1).toUppe
   max-width: 184px;
   height: auto;
   object-fit: contain;
+}
+
+.sidebar-menu {
+  padding-top: 12px;
 }
 </style>

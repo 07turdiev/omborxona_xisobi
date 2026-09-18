@@ -12,13 +12,32 @@ class StockMovementSerializer(serializers.ModelSerializer):
     reason_display = serializers.CharField(source='get_reason_display', read_only=True)
     user_name = serializers.CharField(source='user.username', read_only=True, default=None)
 
+    #: Hujjat raqami (KIR-…, SOT-…). Jurnalda faqat turi va id saqlanadi,
+    #: raqamlar sahifa uchun bir yo'la olinadi (`inventory.api`)
+    document_number = serializers.SerializerMethodField()
+
+    #: Qaytarishda — qaysi chekdan qaytgani: havola o'sha chekka olib boradi
+    document_sale_number = serializers.SerializerMethodField()
+
     class Meta:
         model = StockMovement
         fields = (
             'id', 'variant', 'product_name', 'variant_label', 'sku', 'quantity',
             'reason', 'reason_display', 'document_type', 'document_id',
+            'document_number', 'document_sale_number',
             'unit_cost', 'user', 'user_name', 'created_at',
         )
+
+    def _document(self, movement) -> dict:
+        documents = self.context.get('documents', {})
+
+        return documents.get((movement.document_type, movement.document_id), {})
+
+    def get_document_number(self, movement):
+        return self._document(movement).get('number')
+
+    def get_document_sale_number(self, movement):
+        return self._document(movement).get('sale_number')
 
 
 class StockCountLineSerializer(serializers.ModelSerializer):

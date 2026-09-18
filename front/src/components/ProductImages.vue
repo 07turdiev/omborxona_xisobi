@@ -8,13 +8,15 @@ import type { Color, ProductImage } from '@/types'
 /**
  * Mahsulot rasmlarini boshqarish (administrator).
  *
- * Har amal darhol serverga ketadi — mahsulot formasidagi "Saqlash"ni
- * kutmaydi. Yuklash navbat bilan, bittadan boradi (telefon internetida
- * bir vaqtda o'nta fayl hammasini sekinlashtiradi) va formani to'sib
- * qo'ymaydi: yuklanayotganda boshqa maydonlarni to'ldirish mumkin.
+ * Har amal darhol serverga ketadi. Yuklash navbat bilan, bittadan boradi
+ * (telefon internetida bir vaqtda o'nta fayl hammasini sekinlashtiradi) va
+ * sahifani to'sib qo'ymaydi: yuklanayotganda boshqa amallar ishlayveradi.
  */
 
 const props = defineProps<{ productId: number; colors: Color[] }>()
+
+/** Har o'zgarishdan keyin — sahifadagi galereya yangilansin */
+const emit = defineEmits<{ changed: [] }>()
 
 const MAX_IMAGES = 10
 const MAX_BYTES = 15 * 1024 * 1024
@@ -125,6 +127,7 @@ async function pump() {
 
         images.value.push(image)
         dismiss(upload)
+        emit('changed')
       } catch (err) {
         upload.status = 'failed'
         upload.error = errorMessage(err, `«${upload.file.name}» yuklanmadi.`)
@@ -163,6 +166,7 @@ async function run(action: () => Promise<void>, fallback: string) {
 
   try {
     await action()
+    emit('changed')
   } catch (err) {
     error.value = errorMessage(err, fallback)
   } finally {
@@ -387,8 +391,7 @@ function colorLabel(id: number | null) {
     </ul>
 
     <p class="field-hint">
-      Rasm yuklanayotganda formaning boshqa maydonlarini to‘ldirishda davom
-      etishingiz mumkin. Har rasmni rangga biriktiring: katalogda rang
+      Rasm yuklanayotganda sahifadagi boshqa amallar ishlayveradi. Har rasmni rangga biriktiring: katalogda rang
       tanlanganda o‘sha rasmlar chiqadi.
     </p>
   </div>

@@ -1,19 +1,79 @@
 /**
- * Testlar uchun ma'lumot: qoldig'i bor variantlar.
+ * UI testlari uchun umumiy yordamchilar: kirish, ilovani ochish va
+ * testning o'z ma'lumoti (mahsulot, qoldiq, sotuv).
  *
  * Namuna ma'lumotdagi qoldiq har yurgizishda sotuv bilan kamayadi va bir
  * necha yurgizishdan keyin tugab qoladi — testlar esa "tovar yo'q" deb
  * yiqiladi (shunday bo'ldi: bazada 4 ta qoldiqli variant qolgan edi).
- * Shuning uchun kerakli qoldiqni test o'zi kirim bilan to'ldiradi.
+ * Shuning uchun kerakli ma'lumotni test o'zi yaratadi.
+ *
+ * Diqqat: testlar ular ulangan bazada mahsulot, kirim va sotuv yaratadi —
+ * faqat ishlab chiqish bazasiga qarshi yurgiziladi.
  */
 
-import { expect, type APIRequestContext } from '@playwright/test'
+import { expect, type APIRequestContext, type Page } from '@playwright/test'
+
+/** Backend manzili — `playwright.config.ts` dagi bilan bir xil manba */
+export const API = process.env.VITE_API_TARGET ?? 'http://127.0.0.1:8000'
+
+/** seed_demo dagi parol */
+const PASSWORD = 'demo12345'
+
+export interface Session {
+  access: string
+  refresh: string
+}
+
+export interface Named {
+  id: number
+  name: string
+}
 
 export interface TestVariant {
   id: number
   barcode: string
   price: string
   stock_quantity: number
+}
+
+export interface TestProduct extends Named {
+  sizes: Named[]
+  colors: Named[]
+  /** Qoldiq kiritilgan kirim — tarixdagi havolani tekshirish uchun */
+  purchase: { id: number; number: string }
+}
+
+export async function login(request: APIRequestContext, username = 'admin'): Promise<Session> {
+  const response = await request.post(`${API}/api/auth/login/`, {
+    data: { username, password: PASSWORD },
+  })
+
+  expect(response.ok(), `Backend ${API} da «${username}» kira olmadi — seed_demo ishga tushirilganmi?`)
+    .toBeTruthy()
+
+  const body = await response.json()
+
+  return { access: body.access, refresh: body.refresh }
+}
+
+/** Tokenlarni brauzerga qo'yib, sahifani ochadi. */
+export async function openApp(page: Page, session: Session, path: string) {
+  await page.addInitScript(
+    ([access, refresh]) => {
+      localStorage.setItem('access_token', access as string)
+      localStorage.setItem('refresh_token', refresh as string)
+    },
+    [session.access, session.refresh],
+  )
+
+  // Chop etish agenti bu testlarga aloqasi yo'q
+  await page.route('http://127.0.0.1:7777/**', (route) => route.abort('connectionrefused'))
+
+  await page.goto(path)
+}
+
+function headers(access: string) {
+  return { Authorization: `Bearer ${access}` }
 }
 
 /** `count` ta faol variant; qoldig'i yo'qlari bittadan to'ldiriladi. */
@@ -23,14 +83,13 @@ export async function stockedVariants(
   access: string,
   count: number,
 ): Promise<TestVariant[]> {
-  const headers = { Authorization: `Bearer ${access}` }
   const found: TestVariant[] = []
 
   let url: string | null = `${api}/api/variants/?active=true`
 
   while (url && found.length < count) {
     const page: { results: TestVariant[]; next: string | null } = await (
-      await request.get(url, { headers })
+      await request.get(url, { headers: headers(access) })
     ).json()
 
     found.push(...page.results)
@@ -44,28 +103,105 @@ export async function stockedVariants(
   const empty = chosen.filter((variant) => variant.stock_quantity < 1)
 
   if (empty.length) {
-    const purchase = await (
-      await request.post(`${api}/api/purchases/`, {
-        headers,
-        data: {
-          date: new Date().toISOString().slice(0, 10),
-          supplier: null,
-          note: 'Test uchun qoldiq',
-          lines: empty.map((variant) => ({
-            variant: variant.id,
-            quantity: 1,
-            unit_cost: '10000',
-          })),
-        },
-      })
-    ).json()
-
-    const confirmed = await request.post(`${api}/api/purchases/${purchase.id}/confirm/`, {
-      headers,
-    })
-
-    expect(confirmed.ok(), 'test uchun kirim tasdiqlanishi kerak').toBeTruthy()
+    await receive(request, access, empty.map((variant) => ({ variant: variant.id, quantity: 1 })))
   }
 
   return chosen
+}
+
+/** Tasdiqlangan kirim. */
+async function receive(
+  request: APIRequestContext,
+  access: string,
+  lines: { variant: number; quantity: number }[],
+): Promise<{ id: number; number: string }> {
+  const purchase = await (
+    await request.post(`${API}/api/purchases/`, {
+      headers: headers(access),
+      data: {
+        date: new Date().toISOString().slice(0, 10),
+        supplier: null,
+        note: 'Test uchun qoldiq',
+        lines: lines.map((line) => ({ ...line, unit_cost: '100000' })),
+      },
+    })
+  ).json()
+
+  const confirmed = await request.post(`${API}/api/purchases/${purchase.id}/confirm/`, {
+    headers: headers(access),
+  })
+
+  expect(confirmed.ok(), 'test uchun kirim tasdiqlanishi kerak').toBeTruthy()
+
+  return { id: purchase.id, number: purchase.number }
+}
+
+/**
+ * Uch o'lcham × ikki rangli mahsulot. Qoldiq:
+ *   1-rang: 1-o'lcham 2, 3-o'lcham 5
+ *   2-rang: 1-o'lcham 1
+ * Ya'ni o'lchamlar bo'yicha jami: 3 · 0 · 5, hammasi 8 dona.
+ */
+export async function createTestProduct(
+  request: APIRequestContext,
+  session: Session,
+): Promise<TestProduct> {
+  const get = async (path: string) =>
+    (await request.get(`${API}${path}`, { headers: headers(session.access) })).json()
+
+  const categories = await get('/api/categories/')
+  const sizes: Named[] = (await get('/api/sizes/')).slice(0, 3)
+  const colors: Named[] = (await get('/api/colors/')).slice(0, 2)
+
+  expect(sizes.length, 'kamida 3 ta o‘lcham kerak — seed_demo').toBe(3)
+  expect(colors.length, 'kamida 2 ta rang kerak — seed_demo').toBe(2)
+
+  const name = `Sinov mahsuloti ${Date.now()}`
+
+  const created = await (
+    await request.post(`${API}/api/products/`, {
+      headers: headers(session.access),
+      data: {
+        category: categories[0].id,
+        name,
+        sale_price: '250000',
+        material: '95% paxta, 5% elastan',
+        size_ids: sizes.map((size) => size.id),
+        color_ids: colors.map((color) => color.id),
+      },
+    })
+  ).json()
+
+  const variant = (size: number, color: number): number =>
+    created.variants.find(
+      (item: { size: number; color: number }) =>
+        item.size === sizes[size]!.id && item.color === colors[color]!.id,
+    ).id
+
+  const purchase = await receive(request, session.access, [
+    { variant: variant(0, 0), quantity: 2 },
+    { variant: variant(2, 0), quantity: 5 },
+    { variant: variant(0, 1), quantity: 1 },
+  ])
+
+  return { id: created.id, name, sizes, colors, purchase }
+}
+
+/** Bitta qatorli, naqd to'langan sotuv. Chek raqamini qaytaradi. */
+export async function createSale(request: APIRequestContext, session: Session): Promise<string> {
+  const [variant] = await stockedVariants(request, API, session.access, 1)
+
+  const response = await request.post(`${API}/api/sales/`, {
+    headers: headers(session.access),
+    data: {
+      lines: [{ variant: variant!.id, quantity: 1 }],
+      cash_amount: variant!.price,
+      card_amount: '0.00',
+      request_key: crypto.randomUUID(),
+    },
+  })
+
+  expect(response.ok(), `sotuv yaratilmadi: ${await response.text()}`).toBeTruthy()
+
+  return (await response.json()).number
 }

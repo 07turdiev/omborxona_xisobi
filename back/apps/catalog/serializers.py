@@ -188,14 +188,20 @@ class CatalogVariantSerializer(HideFromCashierMixin, serializers.ModelSerializer
         )
 
 
-class CatalogProductListSerializer(serializers.ModelSerializer):
+class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     """Ro'yxatdagi karta: rasm, nom, narx va umumiy qoldiq.
 
     Bu yerda rasmlar va variantlar to'liq berilmaydi — yigirma beshta
     mahsulotni ochishda ular javobni keraksiz kattalashtiradi.
+
+    MXIK kodi faqat administratorga: jadval ko'rinishida kodsiz
+    mahsulotlar ogohlantiriladi (fiskal chek ularni qabul qilmaydi).
     """
 
+    admin_only_fields = ('effective_mxik_code',)
+
     category_name = serializers.CharField(source='category.name', read_only=True)
+    effective_mxik_code = serializers.CharField(read_only=True)
     total_stock = serializers.IntegerField(read_only=True)
     size_stock = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
@@ -205,6 +211,7 @@ class CatalogProductListSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'slug', 'category', 'category_name', 'brand',
             'sale_price', 'total_stock', 'size_stock', 'primary_image',
+            'effective_mxik_code',
         )
 
     def get_size_stock(self, product):

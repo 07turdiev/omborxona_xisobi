@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import LabelPrint from '@/components/LabelPrint.vue'
 import ScanField from '@/components/ScanField.vue'
@@ -18,6 +19,8 @@ interface DraftLine {
   quantity: number
   unit_cost: string
 }
+
+const route = useRoute()
 
 const purchases = ref<Purchase[]>([])
 const suppliers = ref<Supplier[]>([])
@@ -189,7 +192,20 @@ async function printLabels(purchase: Purchase) {
   setTimeout(() => labels.value?.printLabels(), 50)
 }
 
-onMounted(load)
+/** Mahsulotning qoldiq tarixidan kelingan bo'lsa (`?open=<id>`) — o'sha kirim ochiladi */
+onMounted(async () => {
+  await load()
+
+  const id = Number(route.query.open)
+
+  if (!id) return
+
+  try {
+    opened.value = await purchasesApi.get(id)
+  } catch (err) {
+    error.value = errorMessage(err, 'Kirimni ochib bo‘lmadi.')
+  }
+})
 </script>
 
 <template>
@@ -309,6 +325,60 @@ onMounted(load)
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Ochilgan kirim: mahsulotning qoldiq tarixidagi havoladan (`?open=<id>`)
+         yoki tasdiqlash/bekor qilish natijasi -->
+    <div v-if="opened" class="table-card card-padded opened" data-testid="opened-purchase">
+      <div class="opened-head">
+        <h3>
+          {{ opened.number }}
+          <span
+            class="pill"
+            :class="{
+              'pill-green': opened.status === 'confirmed',
+              'pill-red': opened.status === 'cancelled',
+              'pill-grey': opened.status === 'draft',
+            }"
+          >
+            {{ opened.status_display }}
+          </span>
+        </h3>
+
+        <button class="icon-button" type="button" aria-label="Yopish" @click="opened = null">
+          <svg><use href="#i-close" /></svg>
+        </button>
+      </div>
+
+      <p class="opened-meta">
+        {{ formatDate(opened.date) }} · {{ opened.supplier_name ?? 'Ta’minotchisiz' }} ·
+        {{ formatSum(opened.total) }}
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tovar</th>
+            <th class="num">Soni</th>
+            <th class="num">Tannarx</th>
+            <th class="num">Summa</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr v-for="line in opened.lines" :key="line.id ?? line.variant">
+            <td>
+              {{ line.product_name }}
+              <small class="cell-sub">{{ line.variant_label || line.sku }}</small>
+            </td>
+            <td class="num">{{ line.quantity }}</td>
+            <td class="num">{{ formatMoney(line.unit_cost) }}</td>
+            <td class="num">
+              {{ formatMoney(line.line_total ?? multiplyMoney(line.unit_cost, line.quantity)) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="table-card">
@@ -436,5 +506,27 @@ onMounted(load)
 
 .row-actions .button {
   margin-left: 6px;
+}
+.opened {
+  margin-bottom: 12px;
+}
+
+.opened-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.opened-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.opened-meta {
+  margin: 4px 0 10px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 </style>

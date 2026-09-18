@@ -1,3 +1,6 @@
+from collections import defaultdict
+
+from django.apps import apps
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
@@ -13,11 +16,59 @@ from apps.inventory.serializers import (
 )
 
 
+#: Jurnaldagi `document_type` → hujjat modeli.
+#: Hisobdan chiqarishning raqami yo'q, shuning uchun u bu ro'yxatda emas.
+DOCUMENT_MODELS = {
+    'purchase': 'purchases.Purchase',
+    'sale': 'sales.Sale',
+    'salereturn': 'sales.SaleReturn',
+    'stockcount': 'inventory.StockCount',
+}
+
+
+def document_numbers(movements) -> dict:
+    """Sahifadagi yozuvlar hujjatlarining raqamlari.
+
+    Har hujjat turi uchun bitta so'rov — yozuv boshiga alohida so'rov
+    bo'lsa, 25 qatorli sahifa 25 ta qo'shimcha so'rov qilardi.
+    """
+    wanted = defaultdict(set)
+
+    for movement in movements:
+        if movement.document_type in DOCUMENT_MODELS and movement.document_id:
+            wanted[movement.document_type].add(movement.document_id)
+
+    documents = {}
+
+    for document_type, ids in wanted.items():
+        model = apps.get_model(DOCUMENT_MODELS[document_type])
+        fields = ['pk', 'number']
+
+        if document_type == 'salereturn':
+            fields.append('sale__number')
+
+        for row in model.objects.filter(pk__in=ids).values(*fields):
+            documents[(document_type, row['pk'])] = {
+                'number': row['number'],
+                'sale_number': row.get('sale__number'),
+            }
+
+    return documents
+
+
 class StockMovementViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """Ombor jurnali — o'zgartirilmaydi, faqat o'qiladi."""
 
     serializer_class = StockMovementSerializer
     permission_classes = [IsAdmin]
+
+    def list(self, request, *args, **kwargs):
+        page = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
+
+        context = {**self.get_serializer_context(), 'documents': document_numbers(page)}
+        serializer = self.get_serializer(page, many=True, context=context)
+
+        return self.get_paginated_response(serializer.data)
 
     def get_queryset(self):
         queryset = StockMovement.objects.select_related(

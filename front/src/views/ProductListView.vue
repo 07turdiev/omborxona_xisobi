@@ -1,13 +1,26 @@
 <script setup lang="ts">
 import { computed, onActivated, onMounted, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
+import ProductForm from '@/components/ProductForm.vue'
+import SizeStockLine from '@/components/SizeStockLine.vue'
 import { catalogApi, type CatalogOrdering } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
-import { formatSum } from '@/utils/money'
-import type { CatalogCard, Category } from '@/types'
+import { useAuthStore } from '@/stores/auth'
+import { formatMoney, formatSum } from '@/utils/money'
+import type { CatalogCard, Category, Product } from '@/types'
 
+/**
+ * Mahsulotlar — do'kondagi hamma tovar bitta ro'yxatda.
+ *
+ * Ilgari uchta sahifa (katalog, mahsulotlar, qoldiq) bir xil ma'lumotni
+ * uch xil ko'rsatardi. Endi qoldiq — shu ro'yxatning ustuni, tahrirlash,
+ * yorliq va hisobdan chiqarish — mahsulot sahifasidagi amallar.
+ */
+
+const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const search = ref('')
 const category = ref('')
@@ -24,6 +37,7 @@ const loading = ref(false)
 const loadingMore = ref(false)
 const error = ref('')
 const filtersOpen = ref(false)
+const formOpen = ref(false)
 
 const ORDERINGS: { value: CatalogOrdering; label: string }[] = [
   { value: 'newest', label: 'Avval yangilari' },
@@ -31,6 +45,35 @@ const ORDERINGS: { value: CatalogOrdering; label: string }[] = [
   { value: '-stock', label: 'Qoldig‘i ko‘pi' },
   { value: 'stock', label: 'Qoldig‘i kami' },
 ]
+
+// --- Ko'rinish: kartalar yoki ixcham jadval (faqat administrator) ---------
+
+const VIEW_KEY = 'products-view'
+
+function savedView(): 'grid' | 'table' {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'table' ? 'table' : 'grid'
+  } catch {
+    return 'grid'
+  }
+}
+
+const view = ref<'grid' | 'table'>(savedView())
+
+watch(view, (value) => {
+  try {
+    localStorage.setItem(VIEW_KEY, value)
+  } catch {
+    // Shaxsiy oynada saqlash yopiq bo'lishi mumkin — muhim emas
+  }
+})
+
+const tableView = computed(() => auth.isAdmin && view.value === 'table')
+
+/** Fiskal chek MXIK kodisiz tovarni qabul qilmaydi */
+const withoutMxik = computed(() =>
+  auth.isAdmin ? cards.value.filter((card) => !card.effective_mxik_code).length : 0,
+)
 
 /** Telefondagi "Filtr" tugmasida nechta filtr yoqilgani ko'rinadi */
 const activeFilters = computed(
@@ -70,13 +113,17 @@ async function load(more = false) {
     page.value = target
     hasMore.value = Boolean(data.next)
   } catch (err) {
-    if (current === request) error.value = errorMessage(err, 'Katalogni yuklab bo‘lmadi.')
+    if (current === request) error.value = errorMessage(err, 'Mahsulotlarni yuklab bo‘lmadi.')
   } finally {
     if (current === request) {
       loading.value = false
       loadingMore.value = false
     }
   }
+}
+
+function open(card: CatalogCard) {
+  void router.push(`/products/${card.id}`)
 }
 
 /** Enter (skaner ham oxirida Enter yuboradi) — kutmasdan qidiradi. */
@@ -88,9 +135,14 @@ async function searchNow() {
   await load()
 
   // Yorliqdagi kod skanerlandi va aynan bitta mahsulot topildi — o'zi ochiladi
-  if (/^\d{8,}$/.test(query) && cards.value.length === 1) {
-    await router.push(`/catalog/${cards.value[0]!.id}`)
-  }
+  if (/^\d{8,}$/.test(query) && cards.value.length === 1) open(cards.value[0]!)
+}
+
+function onCreated(product: Product) {
+  formOpen.value = false
+
+  // Rasm, yorliq va boshqa amallar — mahsulot sahifasida
+  void router.push(`/products/${product.id}`)
 }
 
 watch(search, () => {
@@ -114,14 +166,31 @@ onMounted(async () => {
  * kelinganda esa qoldiq eskirgan bo'lishi mumkin — qayta yuklanadi.
  */
 onActivated(() => {
+  // Boshqaruv panelidagi "tugayotganlar" havolasi: ?low_stock=true
+  if (route.query.low_stock === 'true') {
+    void router.replace({ query: {} })
+
+    if (!lowStock.value) {
+      lowStock.value = true // kuzatuvchi o'zi yuklaydi
+      return
+    }
+  }
+
   const forward = String(window.history.state?.forward ?? '')
 
-  if (!forward.startsWith('/catalog/') || !cards.value.length) void load()
+  if (!forward.startsWith('/products/') || !cards.value.length) void load()
 })
 </script>
 
 <template>
   <section class="app-section active catalog">
+    <p v-if="withoutMxik" class="mxik-warning">
+      <strong>{{ withoutMxik }} ta mahsulotda MXIK kodi yo‘q.</strong>
+      Fiskal chek bunday tovarni qabul qilmaydi. Kodni kategoriyaga bir marta
+      yozsangiz, ichidagi hamma mahsulotga tarqaladi —
+      <RouterLink to="/products/attributes">Kategoriya, o‘lcham, rang</RouterLink>
+    </p>
+
     <div class="catalog-toolbar">
       <div class="catalog-search">
         <svg aria-hidden="true"><use href="#i-search" /></svg>
@@ -131,7 +200,7 @@ onActivated(() => {
           inputmode="search"
           enterkeyhint="search"
           autocomplete="off"
-          placeholder="Nomi yoki shtrix-kod"
+          placeholder="Nomi, brend, SKU yoki shtrix-kod"
           aria-label="Mahsulot qidirish"
           @keydown.enter.prevent="searchNow"
         />
@@ -141,14 +210,14 @@ onActivated(() => {
         class="filter-toggle"
         type="button"
         :aria-expanded="filtersOpen"
-        aria-controls="catalog-filters"
+        aria-controls="product-filters"
         @click="filtersOpen = !filtersOpen"
       >
         Filtr
         <span v-if="activeFilters" class="filter-count">{{ activeFilters }}</span>
       </button>
 
-      <div id="catalog-filters" class="catalog-filters" :class="{ open: filtersOpen }">
+      <div id="product-filters" class="catalog-filters" :class="{ open: filtersOpen }">
         <select v-model="category" aria-label="Kategoriya">
           <option value="">Barcha kategoriya</option>
           <option v-for="item in categories" :key="item.id" :value="String(item.id)">
@@ -172,6 +241,32 @@ onActivated(() => {
           <span>Tugayotganlar</span>
         </label>
       </div>
+
+      <div v-if="auth.isAdmin" class="admin-tools">
+        <div class="view-toggle" role="group" aria-label="Ko‘rinish">
+          <button
+            type="button"
+            :class="{ active: view === 'grid' }"
+            :aria-pressed="view === 'grid'"
+            @click="view = 'grid'"
+          >
+            Kartalar
+          </button>
+          <button
+            type="button"
+            :class="{ active: view === 'table' }"
+            :aria-pressed="view === 'table'"
+            @click="view = 'table'"
+          >
+            Jadval
+          </button>
+        </div>
+
+        <button class="button button-gradient" type="button" @click="formOpen = true">
+          <svg><use href="#i-plus" /></svg>
+          <span>Yangi mahsulot</span>
+        </button>
+      </div>
     </div>
 
     <p v-if="error" class="load-error">{{ error }}</p>
@@ -180,12 +275,69 @@ onActivated(() => {
       {{ loading ? 'Yuklanmoqda…' : `${count} ta mahsulot` }}
     </p>
 
-    <div class="card-grid">
+    <!-- Ixcham jadval: ko'p tovarni bir qarashda ko'rish uchun -->
+    <div v-if="tableView" class="table-card">
+      <div class="table-scroll">
+        <table class="data-table product-table">
+          <thead>
+            <tr>
+              <th class="thumb-cell"></th>
+              <th>Nomi</th>
+              <th class="num">Narxi</th>
+              <th>O‘lchamlar</th>
+              <th class="num">Qoldiq</th>
+              <th>MXIK</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="card in cards" :key="card.id" class="clickable" @click="open(card)">
+              <td class="thumb-cell">
+                <img
+                  v-if="card.primary_image"
+                  :src="card.primary_image.thumb"
+                  alt=""
+                  loading="lazy"
+                  width="32"
+                  height="40"
+                />
+                <span v-else class="thumb-empty" />
+              </td>
+
+              <td>
+                <RouterLink class="row-link" :to="`/products/${card.id}`" @click.stop>
+                  {{ card.name }}
+                </RouterLink>
+                <small class="cell-sub">
+                  {{ card.category_name }}<template v-if="card.brand"> · {{ card.brand }}</template>
+                </small>
+              </td>
+
+              <td class="num">{{ formatMoney(card.sale_price) }}</td>
+              <td><SizeStockLine :entries="card.size_stock" /></td>
+
+              <td class="num">
+                <span :class="{ out: !card.total_stock }">{{ card.total_stock }}</span>
+              </td>
+
+              <td>
+                <span v-if="card.effective_mxik_code" class="mxik-code">
+                  {{ card.effective_mxik_code }}
+                </span>
+                <span v-else class="pill pill-red">yo‘q</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div v-else class="card-grid">
       <RouterLink
         v-for="card in cards"
         :key="card.id"
         class="product-card"
-        :to="`/catalog/${card.id}`"
+        :to="`/products/${card.id}`"
       >
         <div class="card-image">
           <img
@@ -210,15 +362,7 @@ onActivated(() => {
           </span>
 
           <!-- "Qaysi o'lcham qoldi" — mahsulotni ochmasdan ko'rinadi -->
-          <p v-if="card.size_stock.length" class="size-line">
-            <span
-              v-for="entry in card.size_stock"
-              :key="entry.size_id"
-              :class="{ zero: !entry.quantity }"
-            >
-              {{ entry.size_name }}&nbsp;{{ entry.quantity }}
-            </span>
-          </p>
+          <SizeStockLine v-if="card.size_stock.length" class="size-line" :entries="card.size_stock" />
         </div>
       </RouterLink>
     </div>
@@ -234,6 +378,8 @@ onActivated(() => {
     >
       {{ loadingMore ? 'Yuklanmoqda…' : 'Yana ko‘rsatish' }}
     </button>
+
+    <ProductForm v-if="formOpen" :product="null" @saved="onCreated" @close="formOpen = false" />
   </section>
 </template>
 
@@ -250,6 +396,15 @@ onActivated(() => {
   from {
     opacity: 0;
   }
+}
+
+.mxik-warning {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius);
+  background: var(--orange-soft);
+  font-size: 13px;
 }
 
 .catalog-toolbar {
@@ -346,11 +501,89 @@ onActivated(() => {
   background: var(--accent-soft);
 }
 
+.admin-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.view-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.view-toggle button {
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.view-toggle button + button {
+  border-left: 1px solid var(--border-strong);
+}
+
+.view-toggle button.active {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
 .catalog-count {
   margin: 0 0 8px;
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* --- Jadval --- */
+
+.product-table .thumb-cell {
+  width: 44px;
+  padding-right: 0;
+}
+
+.thumb-cell img,
+.thumb-empty {
+  display: block;
+  width: 32px;
+  height: 40px;
+  border-radius: var(--radius-small);
+  background: var(--surface-soft);
+  object-fit: cover;
+}
+
+.row-link {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.row-link:hover {
+  color: var(--accent);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.out {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.mxik-code {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Kartalar --- */
 
 .card-grid {
   display: grid;
@@ -451,24 +684,7 @@ onActivated(() => {
 }
 
 .size-line {
-  margin: 2px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.size-line span {
-  white-space: nowrap;
-}
-
-.size-line span + span::before {
-  content: '·';
-  margin: 0 5px;
-  color: var(--text-muted);
-}
-
-.size-line .zero {
-  color: var(--gray-5);
+  margin-top: 2px;
 }
 
 .load-more {
@@ -558,6 +774,12 @@ onActivated(() => {
     min-height: 48px;
     height: 48px;
     font-size: 15px;
+  }
+
+  /* Telefonda jadval va yangi mahsulot tugmasi kerak emas: tahrirlash
+     kompyuterda qulayroq, ro'yxat esa kartalarda o'qiladi */
+  .admin-tools {
+    display: none;
   }
 
   .card-grid {
