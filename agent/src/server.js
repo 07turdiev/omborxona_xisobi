@@ -216,15 +216,21 @@ export function createServer(config, deps = {}) {
           return
         }
 
-        const bytes = buildReceipt(data, {
-          columns: printer.columns,
-          codePage: config.codePage,
-          cashDrawer: data.openDrawer ?? printer.cashDrawer ?? false,
-          feedBeforeCut: printer.feedBeforeCut,
-          cut: printer.cut,
-          barcodeHeight: printer.barcodeHeight,
-          barcodeWidth: printer.barcodeWidth,
-        })
+        // Sozlamada yo'q qiymatlar shu yerda `undefined` bo'lib ketadi —
+        // ularni `buildReceipt` standart qiymat bilan to'ldiradi
+        const bytes = buildReceipt(
+          data,
+          {
+            columns: printer.columns,
+            codePage: config.codePage,
+            cashDrawer: data.openDrawer ?? printer.cashDrawer ?? false,
+            feedBeforeCut: printer.feedBeforeCut,
+            cut: printer.cut,
+            barcodeHeight: printer.barcodeHeight,
+            barcodeWidth: printer.barcodeWidth,
+          },
+          'chek printeri',
+        )
 
         await printTo('receipt', bytes)
 
@@ -248,11 +254,15 @@ export function createServer(config, deps = {}) {
           return
         }
 
-        const bytes = buildLabels(data, {
-          density: printer.density,
-          speed: printer.speed,
-          barcodeHeight: printer.barcodeHeight,
-        })
+        const bytes = buildLabels(
+          data,
+          {
+            density: printer.density,
+            speed: printer.speed,
+            barcodeHeight: printer.barcodeHeight,
+          },
+          'yorliq printeri',
+        )
 
         await printTo('label', bytes)
 

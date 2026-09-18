@@ -12,6 +12,7 @@
  * beriladi, keyin har yorliq uchun `CLS` + chizish + `PRINT n,1`.
  */
 
+import { merge } from './settings.js'
 import { normalize } from './text.js'
 
 /** 203 dpi da bitta millimetr necha nuqta */
@@ -32,6 +33,20 @@ export const LABEL_DEFAULTS = {
   barcodeWide: 2,
 }
 
+const LABEL_RULES = {
+  positive: [
+    'widthMm',
+    'heightMm',
+    'density',
+    'speed',
+    'barcodeHeight',
+    'barcodeNarrow',
+    'barcodeWide',
+  ],
+  // Uzluksiz lentada yorliqlar orasida oraliq bo'lmaydi
+  nonNegative: ['gapMm'],
+}
+
 /** TSPL matni qo'shtirnoq ichida yuboriladi — ichidagisini tozalaymiz. */
 function quote(value) {
   return normalize(value).replace(/["\\]/g, '').replace(/[\r\n]+/g, ' ').trim()
@@ -48,10 +63,12 @@ function fit(value, limit) {
  * Yorliqlar to'plamini TSPL ga o'giradi.
  *
  * @param {object} job - { widthMm, heightMm, gapMm, density, speed, labels[] }
- * @param {object} options - LABEL_DEFAULTS ustidan yoziladigan qiymatlar
+ * @param {object} options - LABEL_DEFAULTS ustidan yoziladigan qiymatlar;
+ *   yo'q qiymatlar standart bilan to'ldiriladi
+ * @param {string} where - ogohlantirishlarda ko'rsatiladigan printer nomi
  */
-export function buildLabels(job, options = {}) {
-  const settings = { ...LABEL_DEFAULTS, ...options, ...clean(job) }
+export function buildLabels(job, options = {}, where = 'yorliq printeri') {
+  const settings = merge(LABEL_DEFAULTS, { ...options, ...clean(job) }, LABEL_RULES, where)
   const lines = []
 
   // O'lcham va zichlik — butun ish uchun bir marta
@@ -114,7 +131,9 @@ function clean(job = {}) {
   for (const key of allowed) {
     const value = Number(job[key])
 
-    if (Number.isFinite(value) && value > 0) result[key] = value
+    // `0` ham to'g'ri qiymat (uzluksiz lentada oraliq yo'q); butunlay
+    // noto'g'ri qiymatni quyida `merge` ushlaydi
+    if (Number.isFinite(value) && value >= 0) result[key] = value
   }
 
   return result

@@ -229,3 +229,76 @@ describe('HTTP xizmat', () => {
     assert.equal(response.status, 404)
   })
 })
+
+describe('to‘liq bo‘lmagan config.json', () => {
+  let server
+  let base
+  let printed
+
+  before(async () => {
+    printed = []
+
+    // Faqat ulanish ko'rsatilgan: qolgan sozlamalar umuman yo'q.
+    // Server ularni `undefined` qilib uzatadi — standart qiymatlar
+    // shundan keyin ham saqlanishi kerak.
+    const minimal = {
+      origins: [ORIGIN],
+      printers: {
+        receipt: { transport: 'file', path: 'sinov.bin' },
+        label: { transport: 'file', path: 'sinov-label.bin' },
+      },
+    }
+
+    server = createServer(minimal, {
+      send: async (printer, bytes) => printed.push(bytes),
+      probe: async () => true,
+    })
+
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+
+    base = `http://127.0.0.1:${server.address().port}`
+  })
+
+  after(() => server.close())
+
+  it('chek standart sozlama bilan chiqadi', async () => {
+    const response = await fetch(`${base}/receipt`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(RECEIPT),
+    })
+
+    assert.equal(response.status, 200)
+
+    const bytes = printed.at(-1)
+
+    assert.ok(bytes.indexOf(Buffer.from([0x1d, 0x68, 80])) > 0, 'shtrix-kod balandligi 0')
+    assert.ok(bytes.indexOf(Buffer.from([0x1d, 0x77, 2])) > 0, 'shtrix-kod kengligi 0')
+    assert.ok(bytes.indexOf(Buffer.from([0x1b, 0x64, 5])) > 0, 'qog‘oz tortilmadi')
+    assert.deepEqual(bytes.subarray(-3), Buffer.from([0x1d, 0x56, 0x00]))
+
+    const text = bytes.toString('latin1')
+
+    assert.equal(text.includes('undefined'), false)
+    assert.equal(text.includes('NaN'), false)
+  })
+
+  it('yorliq standart sozlama bilan chiqadi', async () => {
+    const response = await fetch(`${base}/labels`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(LABELS),
+    })
+
+    assert.equal(response.status, 200)
+
+    const commands = printed.at(-1).toString('latin1')
+
+    assert.match(commands, /DENSITY 8/)
+    assert.match(commands, /SPEED 4/)
+    assert.match(commands, /BARCODE 20,110,"EAN13",90,1,0,2,2,"2000000000015"/)
+
+    assert.equal(commands.includes('undefined'), false)
+    assert.equal(commands.includes('NaN'), false)
+  })
+})

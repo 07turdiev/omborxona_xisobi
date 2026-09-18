@@ -138,6 +138,44 @@ describe('buildReceipt — shtrix-kod o‘lchami', () => {
   })
 })
 
+describe('buildReceipt — to‘liq bo‘lmagan sozlama', () => {
+  /**
+   * `config.json` da faqat `transport` va `path` bo'lsa, server aynan
+   * shunday obyekt yasaydi: har bir sozlama `undefined`.
+   */
+  const fromMinimalConfig = {
+    columns: undefined,
+    codePage: undefined,
+    cashDrawer: undefined,
+    feedBeforeCut: undefined,
+    cut: undefined,
+    barcodeHeight: undefined,
+    barcodeWidth: undefined,
+  }
+
+  it('standart qiymatlar saqlanadi — natija to‘liq sozlama bilan bir xil', () => {
+    assert.deepEqual(buildReceipt(SAMPLE, fromMinimalConfig), build())
+  })
+
+  it('shtrix-kod va kesish o‘z joyida qoladi', () => {
+    const bytes = buildReceipt(SAMPLE, fromMinimalConfig)
+
+    // Ilgari bu qiymatlar 0 bo'lib qolardi: kod umuman bosilmasdi,
+    // oxirgi qatorlar esa pichoqdan pastda qolib ketardi
+    assert.ok(bytes.indexOf(Buffer.from([0x1d, 0x68, 80])) > 0, 'kod balandligi 0')
+    assert.ok(bytes.indexOf(Buffer.from([0x1d, 0x77, 2])) > 0, 'kod kengligi 0')
+    assert.ok(bytes.indexOf(Buffer.from([0x1b, 0x64, 5])) > 0, 'qog‘oz tortilmadi')
+    assert.deepEqual(bytes.subarray(-3), Buffer.from([0x1d, 0x56, 0x00]))
+  })
+
+  it('baytlarda "undefined" yoki "NaN" bo‘lmaydi', () => {
+    const text = buildReceipt(SAMPLE, fromMinimalConfig).toString('latin1')
+
+    assert.equal(text.includes('undefined'), false)
+    assert.equal(text.includes('NaN'), false)
+  })
+})
+
 describe('buildReceipt — o‘zgarmaganligi (golden fixture)', () => {
   it('baytlar saqlangan namunaga aynan teng', () => {
     const current = build().toString('hex')

@@ -6,6 +6,7 @@
  * yerda kesiladi va hech qanday oyna ochilmaydi.
  */
 
+import { merge } from './settings.js'
 import { CODE_PAGES, encode, formatAmount, twoColumns, wrap } from './text.js'
 
 const ESC = 0x1b
@@ -32,6 +33,11 @@ export const RECEIPT_DEFAULTS = {
   barcodeHeight: 80,
   /** Shtrix-kod modul kengligi (2 ~ 0.25 mm) */
   barcodeWidth: 2,
+}
+
+/** Musbat son bo'lishi shart sozlamalar */
+const RECEIPT_RULES = {
+  positive: ['columns', 'feedBeforeCut', 'barcodeHeight', 'barcodeWidth'],
 }
 
 /** Buyruqlar va matnni ketma-ket yig'adigan kichik yordamchi. */
@@ -110,10 +116,12 @@ function cutCommand(builder, mode) {
  * Chek baytlari.
  *
  * @param {object} receipt - chek ma'lumoti (shopName, number, lines...)
- * @param {object} options - RECEIPT_DEFAULTS ga qarang
+ * @param {object} options - RECEIPT_DEFAULTS ga qarang; yo'q qiymatlar
+ *   standart bilan to'ldiriladi
+ * @param {string} where - ogohlantirishlarda ko'rsatiladigan printer nomi
  */
-export function buildReceipt(receipt, options = {}) {
-  const settings = { ...RECEIPT_DEFAULTS, ...options }
+export function buildReceipt(receipt, options = {}, where = 'chek printeri') {
+  const settings = merge(RECEIPT_DEFAULTS, options, RECEIPT_RULES, where)
   const { columns, codePage } = settings
   const page = CODE_PAGES[codePage] ?? CODE_PAGES.cp1252
 

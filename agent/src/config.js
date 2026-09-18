@@ -19,6 +19,46 @@ export const DEFAULTS = {
   printers: {},
 }
 
+/** Printer sozlamasida bo'lishi mumkin bo'lgan kalitlar */
+const PRINTER_KEYS = [
+  'transport',
+  'host',
+  'port',
+  'share',
+  'path',
+  'timeout',
+  'probeTimeout',
+  'columns',
+  'cashDrawer',
+  'feedBeforeCut',
+  'cut',
+  'barcodeHeight',
+  'barcodeWidth',
+  'density',
+  'speed',
+]
+
+/**
+ * Noma'lum sozlama nomi haqida ogohlantiradi.
+ *
+ * Xato yozilgan kalit (masalan `barcodeheight`) jimgina e'tiborsiz
+ * qoladi: sozlama yozilgandek ko'rinadi, lekin hech narsaga ta'sir
+ * qilmaydi va buni faqat chop etilgan chekdan bilib olish mumkin.
+ */
+function checkPrinter(name, printer) {
+  for (const key of Object.keys(printer ?? {})) {
+    if (PRINTER_KEYS.includes(key)) continue
+
+    const similar = PRINTER_KEYS.find((known) => known.toLowerCase() === key.toLowerCase())
+
+    console.warn(
+      similar
+        ? `config.json: "${name}" printerida "${key}" — "${similar}" bo'lishi kerakmi?`
+        : `config.json: "${name}" printerida noma'lum sozlama: "${key}"`,
+    )
+  }
+}
+
 export function loadConfig(path = join(ROOT, 'config.json')) {
   let file = {}
 
@@ -33,6 +73,10 @@ export function loadConfig(path = join(ROOT, 'config.json')) {
   const config = { ...DEFAULTS, ...file }
 
   config.printers = { ...DEFAULTS.printers, ...(file.printers ?? {}) }
+
+  for (const [name, printer] of Object.entries(config.printers)) {
+    checkPrinter(name, printer)
+  }
 
   return config
 }
