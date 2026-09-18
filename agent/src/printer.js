@@ -71,8 +71,19 @@ export async function send(printer, bytes) {
   await transport(printer, bytes)
 }
 
-/** Printer javob beradimi — tez tekshiruv (chop etmasdan). */
+/**
+ * Printer javob beradimi — tez tekshiruv (chop etmasdan).
+ *
+ * `null` — tekshirib bo'lmaydi. Windows'dagi printer ulashuvi fayl
+ * tizimi obyekti emas: unga **yozib** bo'ladi, lekin `fs.access` doim
+ * xato qaytaradi — haqiqiy, chop etayotgan ulashuvda ham `ENOENT`
+ * (qurilmada tekshirilgan). Ulashuvni ochib ko'rish esa bo'sh yorliq
+ * chiqarib yuborishi mumkin, shuning uchun umuman tekshirilmaydi:
+ * haqiqiy holat oxirgi xatoda (`lastError`) ko'rinadi.
+ */
 export function probe(printer) {
+  if (printer?.transport === 'windows') return Promise.resolve(null)
+
   if (printer?.transport === 'tcp') {
     return new Promise((resolve) => {
       const socket = createConnection({ host: printer.host, port: printer.port ?? 9100 })
@@ -89,7 +100,7 @@ export function probe(printer) {
     })
   }
 
-  const target = printer?.share ?? printer?.path
+  const target = printer?.path
 
   if (!target) return Promise.resolve(false)
 

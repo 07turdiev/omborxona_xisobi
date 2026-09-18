@@ -45,7 +45,7 @@ describe('buildLabels — tuzilishi', () => {
   })
 
   it('EAN-13 ni printerning o‘zi chizadi', () => {
-    assert.match(text(), /BARCODE 20,\d+,"EAN13",90,1,0,2,2,"2000000000015"/)
+    assert.match(text(), /BARCODE 65,\d+,"EAN13",90,1,0,2,2,"2000000000015"/)
   })
 
   it('nusxalar soni PRINT buyrug‘ida beriladi', () => {
@@ -77,15 +77,45 @@ describe('buildLabels — tuzilishi', () => {
     }).toString('latin1')
 
     assert.equal(risky.includes('"Ko"ylak'), false)
-    assert.match(risky, /TEXT 12,30,"2",0,1,1,"Koylaktest"/)
+    assert.match(risky, /TEXT \d+,30,"2",0,1,1,"Koylaktest"/)
   })
 
   it('shtrix-kod yorliq ichida qoladi', () => {
     const height = 30 * DOTS_PER_MM
-    const [, y] = /BARCODE 20,(\d+),/.exec(text())
+    const [, y] = /BARCODE \d+,(\d+),/.exec(text())
 
     assert.ok(Number(y) > 0)
     assert.ok(Number(y) + 90 <= height, 'kod yorliqdan chiqib ketgan')
+  })
+
+  it('mazmun yorliq o‘rtasida turadi', () => {
+    // Qurilmada tekshirilgan: markazlashtirilmasa chizma chapga
+    // surilib qoladi va o'ngda ~14 mm bo'sh joy qoladi
+    const width = 40 * DOTS_PER_MM
+    const commands = text()
+
+    // EAN-13 doim 95 modul: (320 - 95*2) / 2 = 65
+    assert.match(commands, /BARCODE 65,/)
+
+    for (const [, x, font, value] of commands.matchAll(/TEXT (\d+),\d+,"(\d)",0,1,1,"([^"]*)"/g)) {
+      const fontWidth = { 1: 8, 2: 12, 3: 16 }[font]
+
+      const left = Number(x)
+      const right = width - (left + value.length * fontWidth)
+
+      // Yaxlitlash tufayli bir nuqta farq bo'lishi mumkin
+      assert.ok(
+        Math.abs(left - right) <= 1,
+        `"${value}" markazda emas: chapda ${left}, o‘ngda ${right} nuqta`,
+      )
+    }
+  })
+
+  it('yorliq kengaysa markaz ham suriladi', () => {
+    const wide = buildLabels({ ...JOB, widthMm: 60 }).toString('latin1')
+
+    // (60*8 - 190) / 2 = 145
+    assert.match(wide, /BARCODE 145,/)
   })
 
   it('miqdor ko‘rsatilmasa bitta yorliq', () => {
@@ -123,7 +153,7 @@ describe('buildLabels — to‘liq bo‘lmagan sozlama', () => {
     const commands = buildLabels(JOB, fromMinimalConfig).toString('latin1')
 
     // Ilgari shunday chiqardi: BARCODE 20,NaN,"EAN13",undefined,...
-    assert.match(commands, /BARCODE 20,110,"EAN13",90,1,0,2,2,"2000000000015"/)
+    assert.match(commands, /BARCODE 65,110,"EAN13",90,1,0,2,2,"2000000000015"/)
   })
 
   it('buyruqlarda "undefined" yoki "NaN" bo‘lmaydi', () => {

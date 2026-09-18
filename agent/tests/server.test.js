@@ -296,7 +296,7 @@ describe('to‘liq bo‘lmagan config.json', () => {
 
     assert.match(commands, /DENSITY 8/)
     assert.match(commands, /SPEED 4/)
-    assert.match(commands, /BARCODE 20,110,"EAN13",90,1,0,2,2,"2000000000015"/)
+    assert.match(commands, /BARCODE 65,110,"EAN13",90,1,0,2,2,"2000000000015"/)
 
     assert.equal(commands.includes('undefined'), false)
     assert.equal(commands.includes('NaN'), false)

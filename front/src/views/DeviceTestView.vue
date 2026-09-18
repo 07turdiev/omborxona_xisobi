@@ -9,6 +9,7 @@ import { lastReceiptHeight, printWithPageSize } from '@/utils/print'
 import { useAgentStore } from '@/stores/agent'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import type { AgentPrinter } from '@/api/agent'
 
 /** Nazorat raqami to'g'ri bo'lgan sinov kodi */
 const TEST_EAN13 = '2000000000015'
@@ -65,6 +66,22 @@ onMounted(() => {
 /** Vaqtni qisqartiradi: `2026-09-18T10:00:00.000Z` → `2026-09-18 10:00` */
 function shortTime(iso: string): string {
   return iso.replace('T', ' ').slice(0, 16)
+}
+
+/**
+ * Printer holati.
+ *
+ * Windows'dagi ulashilgan printerni oldindan tekshirib bo'lmaydi —
+ * agent bunday printer uchun `null` qaytaradi. Uni "javob yo'q" deb
+ * qizil ko'rsatish noto'g'ri bo'lardi: printer ishlayotgan bo'lishi
+ * mumkin. Haqiqiy holat "Oxirgi xato" ustunida ko'rinadi.
+ */
+function status(printer: AgentPrinter): { text: string; pill: string } {
+  if (printer.responds === null) return { text: 'tekshirib bo‘lmaydi', pill: 'pill-grey' }
+
+  return printer.responds
+    ? { text: 'javob bermoqda', pill: 'pill-green' }
+    : { text: 'javob yo‘q', pill: 'pill-red' }
 }
 
 async function send(what: string, action: () => Promise<void>) {
@@ -277,9 +294,7 @@ async function lookup(code: string): Promise<string> {
               </td>
 
               <td>
-                <span class="pill" :class="printer.responds ? 'pill-green' : 'pill-red'">
-                  {{ printer.responds ? 'javob bermoqda' : 'javob yo‘q' }}
-                </span>
+                <span class="pill" :class="status(printer).pill">{{ status(printer).text }}</span>
               </td>
 
               <td>

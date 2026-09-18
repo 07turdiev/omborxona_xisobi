@@ -94,6 +94,12 @@ async function openApp(page: Page, path: string) {
     [access, refresh],
   )
 
+  // Chop etish agenti bu testda qatnashmasligi kerak: u kompyuterda
+  // ishlab tursa chek brauzerga emas, to'g'ridan-to'g'ri printerga
+  // ketadi va PDF umuman olinmaydi. Agent yo'li `agent.spec.ts` da
+  // alohida tekshiriladi.
+  await page.route('http://127.0.0.1:7777/**', (route) => route.abort('connectionrefused'))
+
   await page.goto(path)
 }
 

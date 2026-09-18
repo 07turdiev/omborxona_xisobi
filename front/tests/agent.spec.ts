@@ -29,9 +29,10 @@ const HEALTH = {
     { name: 'receipt', transport: 'tcp', target: '192.0.2.10', responds: true, lastError: null },
     {
       name: 'label',
+      // Windows ulashuvini oldindan tekshirib bo'lmaydi — agent `null` qaytaradi
       transport: 'windows',
       target: '\\\\127.0.0.1\\XP365B',
-      responds: false,
+      responds: null,
       lastError: { at: '2026-09-18T10:00:00.000Z', message: 'ulanib bo‘lmadi' },
     },
   ],

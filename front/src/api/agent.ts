@@ -33,7 +33,8 @@ export interface AgentPrinter {
   name: string
   transport: string
   target: string | null
-  responds: boolean
+  /** `null` — tekshirib bo'lmaydi (Windows printer ulashuvi) */
+  responds: boolean | null
   lastError: AgentError | null
 }
 

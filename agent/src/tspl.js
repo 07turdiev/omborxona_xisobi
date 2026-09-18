@@ -10,6 +10,9 @@
  * yoki `SIZE`/`GAP` qayta yuborilsa, printer qog'ozni bir yorliqqa
  * surib qo'yadi. Shuning uchun bu yerda o'lcham **bir marta**
  * beriladi, keyin har yorliq uchun `CLS` + chizish + `PRINT n,1`.
+ *
+ * TSPL da matnni markazga qo'yish buyrug'i yo'q — x koordinatasi
+ * shrift kengligidan hisoblab chiqariladi.
  */
 
 import { merge } from './settings.js'
@@ -17,6 +20,15 @@ import { normalize } from './text.js'
 
 /** 203 dpi da bitta millimetr necha nuqta */
 export const DOTS_PER_MM = 8
+
+/** Ichki shriftlarda bitta belgi necha nuqta (x1 kattalashtirishda) */
+const FONT_WIDTH = { 1: 8, 2: 12, 3: 16, 4: 24, 5: 32 }
+
+/** Yorliq chetidan qoldiriladigan eng kam bo'shliq, nuqta */
+const MARGIN = 8
+
+/** EAN-13 doim 95 modul (tinch zonasiz) */
+const EAN13_MODULES = 95
 
 export const LABEL_DEFAULTS = {
   widthMm: 40,
@@ -52,11 +64,22 @@ function quote(value) {
   return normalize(value).replace(/["\\]/g, '').replace(/[\r\n]+/g, ' ').trim()
 }
 
-/** Matnni belgilangan uzunlikka qisqartiradi (yorliq tor). */
-function fit(value, limit) {
+/** Matnni yorliqqa sig'adigan uzunlikka qisqartiradi. */
+function fit(value, labelWidth, font) {
+  const limit = Math.floor((labelWidth - MARGIN * 2) / FONT_WIDTH[font])
   const text = quote(value)
 
   return text.length <= limit ? text : `${text.slice(0, Math.max(0, limit - 1))}.`
+}
+
+/** Matn yorliq o'rtasida turishi uchun x koordinatasi. */
+function centerText(labelWidth, text, font) {
+  return Math.max(MARGIN, Math.round((labelWidth - text.length * FONT_WIDTH[font]) / 2))
+}
+
+/** Shtrix-kod yorliq o'rtasida turishi uchun x koordinatasi. */
+function centerBarcode(labelWidth, narrow) {
+  return Math.max(MARGIN, Math.round((labelWidth - EAN13_MODULES * narrow) / 2))
 }
 
 /**
@@ -83,35 +106,34 @@ export function buildLabels(job, options = {}, where = 'yorliq printeri') {
   const width = settings.widthMm * DOTS_PER_MM
   const height = settings.heightMm * DOTS_PER_MM
 
-  // Yorliqqa sig'adigan taxminiy belgi soni (2-shrift ~12 nuqta keng)
-  const nameLimit = Math.floor(width / 12)
-  const smallLimit = Math.floor(width / 9)
-
   for (const label of job.labels ?? []) {
     const quantity = Math.max(1, Number(label.quantity) || 1)
 
     lines.push('CLS')
 
-    if (label.shopName) {
-      lines.push(`TEXT 12,8,"1",0,1,1,"${fit(label.shopName, smallLimit)}"`)
+    /** Bitta qatorni yorliq o'rtasiga yozadi */
+    const put = (y, font, value) => {
+      const text = fit(value, width, font)
+
+      if (!text) return
+
+      lines.push(`TEXT ${centerText(width, text, font)},${y},"${font}",0,1,1,"${text}"`)
     }
 
-    lines.push(`TEXT 12,30,"2",0,1,1,"${fit(label.name, nameLimit)}"`)
+    if (label.shopName) put(8, 1, label.shopName)
 
-    if (label.variant) {
-      lines.push(`TEXT 12,58,"1",0,1,1,"${fit(label.variant, smallLimit)}"`)
-    }
+    put(30, 2, label.name)
 
-    if (label.price) {
-      lines.push(`TEXT 12,80,"3",0,1,1,"${fit(label.price, nameLimit)}"`)
-    }
+    if (label.variant) put(58, 1, label.variant)
+    if (label.price) put(80, 3, label.price)
 
     // Shtrix-kodni printerning o'zi chizadi — rasm yuborilmaydi
     if (label.barcode) {
-      const barcodeY = height - settings.barcodeHeight - 40
+      const y = height - settings.barcodeHeight - 40
+      const x = centerBarcode(width, settings.barcodeNarrow)
 
       lines.push(
-        `BARCODE 20,${barcodeY},"EAN13",${settings.barcodeHeight},1,0,` +
+        `BARCODE ${x},${y},"EAN13",${settings.barcodeHeight},1,0,` +
           `${settings.barcodeNarrow},${settings.barcodeWide},"${quote(label.barcode)}"`,
       )
     }
