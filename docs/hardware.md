@@ -141,11 +141,94 @@ yuborilmaydi, shuning uchun drayverda **"Open cash drawer before
 printing"** (yoki shunga o'xshash) bandini yoqing — u holda har chek
 bosilganda quti ochiladi.
 
-### 3.3. LAN orqali ulash (ixtiyoriy)
+### 3.3. LAN orqali ulash
 
-Printer USB bilan ham ishlaydi. LAN kerak bo'lsa: self-test varag'ida
-printerning IP manzili yoziladi, drayverda **Standard TCP/IP port**
-sifatida qo'shiladi.
+Printer USB bilan ham ishlaydi, lekin LAN afzal: kassa kompyuteri
+almashsa ham printer o'z joyida qoladi va chop etish agenti unga
+to'g'ridan-to'g'ri **9100-port** orqali yozadi.
+
+#### 1. Zavod sozlamasi — printer darhol ko'rinmaydi
+
+XP-Q80AS zavoddan **`192.168.123.100`** IP bilan va **DHCP o'chirilgan**
+holda keladi. Do'kon tarmog'i boshqa pastki tarmoqda bo'lgani uchun
+printer tarmoqqa ulangan zahoti ko'rinmaydi — avval IP ni o'zgartirish
+kerak, buni esa faqat **USB orqali** qilib bo'ladi.
+
+#### 2. Statik IP berish
+
+XPrinter sozlash dasturida, printer **USB bilan ulangan** holda:
+
+```
+Port Select: USB  →  New IP: <do'kon tarmog'idagi bo'sh manzil>
+  →  Set New IP  →  DHCP Close
+```
+
+Keyin printerni **o'chirib-yoqing** va **FEED** tugmasi bilan self-test
+varag'ini chiqaring — yangi IP o'sha varaqda yozilgan bo'lishi kerak.
+
+> Manzilni routerning DHCP diapazonidan **tashqaridan** tanlang, aks
+> holda router o'sha IP ni boshqa qurilmaga berib yuborishi mumkin.
+
+#### 3. Routerda MAC bo'yicha band qiling
+
+Router qayta yuklanganda IP o'zgarib ketmasligi uchun printerning MAC
+manzili bo'yicha rezervatsiya qiling (DHCP reservation / static lease).
+Buni qilmasangiz, bir kuni chek chop etilmay qoladi va sababini topish
+qiyin bo'ladi.
+
+#### 4. Tekshirish
+
+PowerShell'da:
+
+```powershell
+ping <ip>
+Test-NetConnection <ip> -Port 9100
+```
+
+**`TcpTestSucceeded : True`** bo'lishi shart. `ping` o'tib, port o'tmasa —
+printer tarmoqda bor, lekin chop etish ulanishi band (1-tuzoq).
+
+#### 5. Windows'da port
+
+| Sozlama | Qiymat |
+|---|---|
+| Port turi | **Standard TCP/IP Port** |
+| Protocol | **Raw** |
+| Port raqami | **9100** |
+| SNMP Status Enabled | **belgilanmagan** (2-tuzoq) |
+
+Ro'yxatda printerning **bitta** yozuvi qolsin va nomi aniq bo'lsin
+(masalan `XP-Q80AS LAN`). USB orqali o'rnatilgan eski nusxalarni
+o'chiring — aks holda chek noto'g'ri yozuvga ketib, navbatda qotib
+qoladi.
+
+#### Ikki tuzoq — ikkalasi ham amalda uchragan
+
+**1. Sozlash dasturi ulanishni ushlab turadi.** Printer bir vaqtda
+**bitta** TCP ulanishni qabul qiladi. XPrinter sozlash dasturi ochiq
+tursa, o'sha yagona ulanishni egallaydi va na Windows, na agent
+printerga yoza oladi. Sozlashni tugatgach dasturni **butunlay yoping** —
+trey (bildirishnomalar) belgisini ham tekshiring.
+
+**2. SNMP tufayli "oflayn".** Port sozlamalarida (Configure Port)
+**SNMP Status Enabled** yoqilgan bo'lsa, Windows printerni oflayn deb
+belgilaydi va topshiriqlar navbatda qolib ketadi — printer aslida
+ishlab turgan bo'lsa ham. Bu bandni **o'chiring**.
+
+#### Do'kon uchun yozib qo'yiladigan ma'lumot
+
+| Nima | Qiymat |
+|---|---|
+| IP manzil | `_______________` |
+| MAC manzil | `_______________` |
+| Bosiladigan en | 72 mm / 48 belgi |
+| Kod sahifasi | WPC1252 |
+| Kesuvchi | bor |
+
+> Haqiqiy IP va MAC bu faylga yozilmaydi — ular har do'konda boshqacha.
+> Jadvalni to'ldirib, do'konning o'z yozuvlarida saqlang. Agent
+> sozlamasida ham o'sha IP ishlatiladi (`agent/config.json` →
+> `printers.receipt.host`), u fayl repoga kirmaydi.
 
 ### 3.4. Dasturdan tekshirish
 
@@ -245,3 +328,7 @@ Shu besh qadam o'tsa, qurilmalar to'liq ishlayapti.
 | Kod o'rniga harflar | Klaviatura tili | Skanerni Numeric Keypad rejimiga o'tkazing |
 | Enter kelmaydi | Suffiks sozlanmagan | Qo'llanmadagi CR suffiks kodini skanerlang |
 | Chek kesilmaydi | Auto-cut o'chiq | Drayverda yoqing |
+| Chek chiqmaydi, navbatda qotadi | Port sozlamasida SNMP yoqilgan | Configure Port → SNMP Status Enabled ni o'chiring (3.3) |
+| `ping` o'tadi, 9100-port o'tmaydi | XPrinter sozlash dasturi yagona ulanishni ushlab turibdi | Dasturni butunlay yoping (3.3) |
+| Router qayta yuklangach printer topilmaydi | IP MAC bo'yicha band qilinmagan | Routerda rezervatsiya qiling (3.3) |
+| Printer tarmoqda umuman ko'rinmaydi | Zavod IP `192.168.123.100`, DHCP o'chiq | USB orqali statik IP bering (3.3) |
