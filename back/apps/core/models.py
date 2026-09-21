@@ -44,6 +44,13 @@ class ShopSettings(TimeStampedModel):
         default=Decimal('10.00'),
     )
 
+    #: Kirimda ustama foizidan taklif qilinadigan sotuv narxi shu qadamga
+    #: yaxlitlanadi: 53 332 so'm emas, 54 000 so'm. Yorliqda ham, kassada
+    #: ham butun son ko'rinadi.
+    price_rounding_step = models.PositiveIntegerField(
+        _('Narxni yaxlitlash qadami, so‘m'), default=1000
+    )
+
     class Meta:
         verbose_name = _('Do‘kon sozlamalari')
         verbose_name_plural = _('Do‘kon sozlamalari')

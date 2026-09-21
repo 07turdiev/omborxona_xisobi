@@ -99,6 +99,16 @@ qilmaydi: narx doim bazadan olinadi. Agar kassa narx yuborsa, u joriy
 narxga teng bo'lishi shart — aks holda so'rov rad etiladi ("narxi
 o'zgargan"). Bu savatdagi eskirgan narxdan ham himoya qiladi.
 
+**Kirimda narx taklif qilinadi.** Ustama foizi yozilsa, sotuv narxi
+`tannarx × (1 + ustama/100)` bo'lib hisoblanadi va sozlamadagi qadamga
+(`price_rounding_step`, standart 1 000 so'm) **yuqoriga** yaxlitlanadi:
+53 332,80 so'm → 54 000 so'm. Yuqoriga — chunki pastga yaxlitlansa
+ustama kiritilganidan kam bo'lib qolardi.
+
+Taklif qoralamada shunchaki yozib qo'yiladi (`PurchaseLine.new_sale_price`)
+va mahsulotga faqat **kirim tasdiqlanganda** ko'chiriladi. Shuning uchun
+hali kelmagan tovarning narxi do'konda ko'rinmaydi.
+
 Chegirma esa mumkin: qatorga yoki butun chekka. Kassir uchun chegirma
 chegarasi sozlamalarda (`max_discount_percent`), administrator uchun
 cheklov yo'q.
@@ -144,7 +154,46 @@ ham topadi.
 
 ---
 
-## 7. Kassa oqimi
+## 7. Kirim oqimi
+
+Do'konga tovar **shtrix-kodsiz** keladi: yorliqni do'konning o'zi
+chiqaradi. Shuning uchun kirim ekrani skanerdan boshlanmaydi:
+
+```
+nom bo'yicha qidiruv  ─┐
+skanerlangan kod      ─┼─► model tanlanadi ─► o'lcham × rang katakchasi
+«Yangi mahsulot»      ─┘                            │
+                                                    ▼
+                                    tannarx (modelga bitta) + ustama %
+                                                    │
+                        «Saqlash va tasdiqlash» ────┤
+                                                    ▼
+                                 qoldiq + yangi narx + yorliqlar
+```
+
+Uch narsa e'tiborga olingan:
+
+1. **Model bo'yicha kiritiladi.** Bitta modelda 10-20 variant bo'ladi;
+   ularni bittalab qidirish o'rniga katakchaga dona yoziladi. Bo'sh
+   katak — kelmagan degani. Serverga baribir oddiy qatorlar ketadi.
+
+2. **Tannarx modelga bitta.** Bir kirimda bir model odatda bir narxda
+   keladi; kerak bo'lsa alohida qatorga boshqa narx yoziladi va u
+   modelnikidan ustun turadi.
+
+3. **Yangi mahsulot shu yerda yaratiladi** — kategoriya, nom, o'lcham va
+   ranglar. Matritsa va shtrix-kodlar avtomatik chiqadi, keyin darhol
+   katakcha ochiladi. Noma'lum kod skanerlansa, o'sha kod yangi
+   mahsulotning yagona variantiga yoziladi.
+
+Tasdiqlangandan keyin xulosa ko'rinadi (model, dona, tannarx, yorliq) va
+har dona uchun bitta yorliq chiqadi. "Qo'shimcha yorliq" — yopishtirishda
+yirtilganini almashtirish uchun; qo'shimchalar qatorlar bo'ylab navbat
+bilan taqsimlanadi.
+
+---
+
+## 8. Kassa oqimi
 
 ```
 skanerlash → savat → chegirma → to'lov turi → «Yakunlash»
@@ -168,7 +217,7 @@ Uch narsa e'tiborga olingan:
 
 ---
 
-## 8. Qaytarish va almashtirish
+## 9. Qaytarish va almashtirish
 
 Qaytarishda tovar **asl tannarxi bilan** omborga qaytadi va mijozga
 chegirma hisobga olingan summa beriladi. Qator to'liq qaytarilsa,
@@ -183,7 +232,7 @@ teng bo'ladi — sotuv, qaytarish va almashtirish qanday aralashmasin.
 
 ---
 
-## 9. Bekor qilish va kun chegarasi
+## 10. Bekor qilish va kun chegarasi
 
 Chekni bekor qilish faqat **o'sha kuni** va faqat administrator uchun.
 Ertasiga kunlik kassa yopilgan bo'ladi, shuning uchun qaytarish
@@ -195,7 +244,7 @@ mahalliy kun chegarasidan foydalanadi (`apps/core/dates.py`).
 
 ---
 
-## 10. Chop etish
+## 11. Chop etish
 
 Chek va yorliq brauzer orqali chiqadi — maxsus drayver kerak emas.
 
@@ -216,7 +265,7 @@ yozilganda o'lcham printer zichligiga (203 dpi) qarab suzib ketardi.
 
 ---
 
-## 11. Papkalar
+## 12. Papkalar
 
 ```
 back/apps/
@@ -245,7 +294,7 @@ saqlaydi.
 
 ---
 
-## 12. Fiskal modul
+## 13. Fiskal modul
 
 O'zbekistonda chek fiskal operatorga yuborilishi kerak. Hozir bu
 ulanmagan: `apps/sales/fiscal.py` da bo'sh provayder turibdi va u

@@ -11,6 +11,7 @@ import {
   normalizeMoneyInput,
   percentOf,
   subtractMoney,
+  suggestPrice,
   toCents,
 } from './money'
 
@@ -101,5 +102,30 @@ describe('kiritishni tozalash', () => {
     expect(normalizeMoneyInput('450 000,50')).toBe('450000.50')
     expect(normalizeMoneyInput('  ')).toBe('0')
     expect(normalizeMoneyInput('250000')).toBe('250000.00')
+  })
+})
+
+
+describe('kirimda narx taklifi', () => {
+  it('ustamani qo‘shib, qadamga yuqoriga yaxlitlaydi', () => {
+    // 200 000 + 60 % = 320 000 — qadamga aniq tushadi
+    expect(suggestPrice('200000', '60', 1000)).toBe('320000.00')
+
+    // 33 333 + 60 % = 53 332,80 — 54 000 bo'ladi, 53 000 emas
+    expect(suggestPrice('33333', '60', 1000)).toBe('54000.00')
+  })
+
+  it('qadam sozlamadan olinadi', () => {
+    expect(suggestPrice('33333', '60', 5000)).toBe('55000.00')
+    expect(suggestPrice('33333', '60', 1)).toBe('53333.00')
+  })
+
+  it('ustamasiz tannarxning o‘zini yaxlitlaydi', () => {
+    expect(suggestPrice('120500', '0', 1000)).toBe('121000.00')
+  })
+
+  it('bo‘sh tannarxda nol qaytaradi', () => {
+    expect(suggestPrice('', '60', 1000)).toBe('0.00')
+    expect(suggestPrice('0', '60', 1000)).toBe('0.00')
   })
 })

@@ -93,16 +93,17 @@ Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
 ## Testlar
 
 ```bash
-cd back && .venv/Scripts/python.exe manage.py test    # 136 ta
-cd front && npm run test:unit                         # 65 ta
+cd back && .venv/Scripts/python.exe manage.py test    # 144 ta
+cd front && npm run test:unit                         # 78 ta
 cd front && npm run build                             # type-check + build
 cd agent && npm test                                  # 85 ta
 ```
 
 ### Interfeys testlari — alohida bazada
 
-Playwright haqiqiy brauzerda ilovani tekshiradi (48 ta): navigatsiya va
-tuzilma, birlashtirilgan mahsulotlar sahifasi, kassa, telefon o'lchami,
+Playwright haqiqiy brauzerda ilovani tekshiradi (57 ta): navigatsiya va
+tuzilma, birlashtirilgan mahsulotlar sahifasi, kassa, kirim (nom bo'yicha
+qidiruv, o'lcham × rang katakchasi, yangi mahsulot), telefon o'lchami,
 chop etish (sahifalar soni va o'lchami chiqqan PDF dan o'lchanadi) va
 chop etish agenti.
 

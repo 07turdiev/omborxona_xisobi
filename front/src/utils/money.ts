@@ -118,3 +118,25 @@ export function normalizeMoneyInput(value: string): string {
 
   return fromCents(toCents(value))
 }
+
+/**
+ * Kirimda taklif qilinadigan sotuv narxi: tannarx + ustama foizi,
+ * yaxlitlash qadamiga **yuqoriga** yaxlitlangan.
+ *
+ * Yuqoriga: 53 332,80 so'm → 54 000 so'm. Pastga yaxlitlansa ustama
+ * kiritilganidan kam bo'lib qolardi, do'kon esa aynan shu foizni
+ * ko'zlab narx qo'yadi.
+ *
+ * Qadam sozlamada turadi (`price_rounding_step`, standart 1 000 so'm):
+ * yorliqda ham, kassada ham butun son ko'rinsin.
+ */
+export function suggestPrice(cost: string, markupPercent: string, step: number): string {
+  const withMarkup = toCents(cost) + toCents(percentOf(cost, markupPercent))
+
+  if (withMarkup <= ZERO) return '0.00'
+
+  const stepCents = BigInt(Math.max(1, Math.trunc(step))) * 100n
+  const steps = (withMarkup + stepCents - 1n) / stepCents
+
+  return fromCents(steps * stepCents)
+}

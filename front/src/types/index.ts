@@ -30,6 +30,8 @@ export interface ShopSettings {
   receipt_width_mm: number
   receipt_page_height_mm: number
   max_discount_percent: string
+  /** Kirimda ustamadan taklif qilingan narx shu qadamga yaxlitlanadi */
+  price_rounding_step: number
 }
 
 export interface Category {
@@ -187,12 +189,18 @@ export type PurchaseStatus = 'draft' | 'confirmed' | 'cancelled'
 export interface PurchaseLine {
   id?: number
   variant: number
+  /** Qoralamani qayta ochganda qatorlar shu maydon bo'yicha modelga guruhlanadi */
+  product?: number
   product_name?: string
   variant_label?: string
   sku?: string
   barcode?: string
+  /** Yorliqdagi narx */
+  price?: string
   quantity: number
   unit_cost: string
+  /** Tasdiqlanganda mahsulotga yoziladigan yangi sotuv narxi */
+  new_sale_price?: string | null
   line_total?: string
 }
 

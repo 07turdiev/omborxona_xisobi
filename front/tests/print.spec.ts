@@ -201,6 +201,38 @@ test('kirim yorliqlari: 3 dona — 3 sahifa', async ({ page, request }) => {
   expectMm(info.size.heightMm, 30, 'yorliq bo‘yi')
 })
 
+/**
+ * Yorliq yopishtirishda bir nechtasi yirtiladi, shuning uchun kirim
+ * tasdiqlangandan keyin "qo'shimcha yorliq" so'raladi. Qo'shimchalar
+ * qatorlar bo'ylab navbat bilan taqsimlanadi.
+ */
+test('kirim yorliqlari: 3 dona + 2 qo‘shimcha — 5 sahifa', async ({ page, request }) => {
+  const purchase = await createPurchaseWithThreeUnits(request, { confirm: false })
+
+  await openApp(page, '/purchases')
+
+  const row = page.locator('tr', { hasText: purchase.number })
+
+  await expect(row).toBeVisible()
+  await row.getByRole('button', { name: 'Tasdiqlash' }).click()
+
+  const summary = page.getByTestId('purchase-summary')
+
+  await expect(summary.getByTestId('label-count')).toHaveText('3')
+
+  await summary.getByLabel('Qo‘shimcha yorliq').fill('2')
+  await expect(summary.getByTestId('label-count')).toHaveText('5')
+
+  await summary.getByRole('button', { name: /Yorliqlarni chop etish/ }).click()
+
+  const pdf = await printToPdf(page)
+  const info = await readPdf(pdf)
+
+  console.log(`    qo‘shimcha yorliq: ${info.pages} sahifa`)
+
+  expect(info.pages, '3 dona + 2 qo‘shimcha = 5 yorliq').toBe(5)
+})
+
 test('sinov cheki: 1 sahifa, 80 mm en, chizg‘ich 50 mm', async ({ page }) => {
   await openApp(page, '/settings/devices')
 
@@ -301,7 +333,10 @@ async function authHeaders() {
 }
 
 /** Uch dona tovarli tasdiqlangan kirim yaratadi. */
-async function createPurchaseWithThreeUnits(request: APIRequestContext) {
+async function createPurchaseWithThreeUnits(
+  request: APIRequestContext,
+  { confirm = true } = {},
+) {
   const headers = await authHeaders()
 
   const categories = await (await request.get(`${API}/api/categories/`, { headers })).json()
@@ -332,9 +367,13 @@ async function createPurchaseWithThreeUnits(request: APIRequestContext) {
     })
   ).json()
 
-  const confirmed = await request.post(`${API}/api/purchases/${purchase.id}/confirm/`, { headers })
+  if (confirm) {
+    const confirmed = await request.post(`${API}/api/purchases/${purchase.id}/confirm/`, {
+      headers,
+    })
 
-  expect(confirmed.ok(), 'kirim tasdiqlanishi kerak').toBeTruthy()
+    expect(confirmed.ok(), 'kirim tasdiqlanishi kerak').toBeTruthy()
+  }
 
   return purchase
 }

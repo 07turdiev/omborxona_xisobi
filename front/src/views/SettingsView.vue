@@ -15,6 +15,7 @@ const form = ref<ShopSettings>({
   receipt_width_mm: 80,
   receipt_page_height_mm: 110,
   max_discount_percent: '0',
+  price_rounding_step: 1000,
 })
 
 const loading = ref(true)
@@ -86,6 +87,15 @@ async function onSave() {
           <strong>aynan bir xil</strong> bo‘lishi kerak. Brauzer orqali chop
           etishda sahifa balandligini har chekka moslab bo‘lmaydi — uni
           drayver hal qiladi. Qanday qilish: docs/hardware.md.
+        </small>
+      </div>
+
+      <div class="field">
+        <label>Narxni yaxlitlash qadami (so‘m)</label>
+        <input v-model.number="form.price_rounding_step" type="number" min="1" step="100" />
+        <small class="field-hint">
+          Kirimda ustama foizidan taklif qilingan sotuv narxi shu qadamga
+          yuqoriga yaxlitlanadi: 53 332 so‘m emas, 54 000 so‘m.
         </small>
       </div>
 

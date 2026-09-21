@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.catalog.models import Product
 from apps.inventory.models import MovementReason
 from apps.inventory.services import record_movement
 from apps.purchases.models import Purchase
@@ -24,9 +25,36 @@ def recalculate_total(purchase: Purchase) -> Purchase:
     return purchase
 
 
+def apply_new_sale_prices(lines) -> int:
+    """Kirimda yozilgan yangi sotuv narxlarini mahsulotlarga ko'chiradi.
+
+    Narx modelga tegishli: bitta modelning hamma qatorida bir xil qiymat
+    turadi, shuning uchun mahsulot bo'yicha guruhlanadi. Nechta mahsulot
+    yangilangani qaytariladi.
+    """
+    prices = {
+        line.variant.product_id: line.new_sale_price
+        for line in lines
+        if line.new_sale_price is not None
+    }
+
+    if not prices:
+        return 0
+
+    for product in Product.objects.filter(pk__in=prices):
+        product.sale_price = prices[product.pk]
+        product.save(update_fields=['sale_price', 'updated_at'])
+
+    return len(prices)
+
+
 @transaction.atomic
 def confirm(purchase: Purchase, user=None) -> Purchase:
-    """Tovarni omborga kiritadi va o'rtacha tannarxni qayta hisoblaydi."""
+    """Tovarni omborga kiritadi va o'rtacha tannarxni qayta hisoblaydi.
+
+    Shu yerda yangi sotuv narxi ham kuchga kiradi: qoralamada u faqat
+    yozib qo'yilgan bo'ladi, do'konda esa eski narx ishlaydi.
+    """
     if purchase.status != Purchase.Status.DRAFT:
         raise ValidationError('Faqat qoralama kirimni tasdiqlash mumkin')
 
@@ -44,6 +72,8 @@ def confirm(purchase: Purchase, user=None) -> Purchase:
             document=purchase,
             user=user,
         )
+
+    apply_new_sale_prices(lines)
 
     purchase.status = Purchase.Status.CONFIRMED
     purchase.confirmed_at = timezone.now()

@@ -13,11 +13,18 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
             'receipt_width_mm',
             'receipt_page_height_mm',
             'max_discount_percent',
+            'price_rounding_step',
         )
 
     def validate_max_discount_percent(self, value):
         if value < 0 or value > 100:
             raise serializers.ValidationError('Chegirma 0 dan 100 % gacha bo‘lishi kerak.')
+
+        return value
+
+    def validate_price_rounding_step(self, value):
+        if value < 1:
+            raise serializers.ValidationError('Yaxlitlash qadami kamida 1 so‘m bo‘lishi kerak.')
 
         return value
 

@@ -33,23 +33,40 @@ class SupplierPaymentSerializer(serializers.ModelSerializer):
 
 
 class PurchaseLineSerializer(serializers.ModelSerializer):
+    #: Qoralamani qayta ochganda qatorlar model bo'yicha guruhlanadi —
+    #: interfeys o'lcham × rang katakchasini shu maydondan tiklaydi
+    product = serializers.IntegerField(source='variant.product_id', read_only=True)
+
     product_name = serializers.CharField(source='variant.product.name', read_only=True)
     variant_label = serializers.CharField(source='variant.label', read_only=True)
     sku = serializers.CharField(source='variant.sku', read_only=True)
     barcode = serializers.CharField(source='variant.barcode', read_only=True)
+
+    #: Yorliqda chiqadigan narx. Usiz interfeys har qator uchun alohida
+    #: so'rov yuborib variantni qidirardi.
+    price = serializers.DecimalField(
+        source='variant.price', max_digits=14, decimal_places=2, read_only=True
+    )
+
     line_total = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
 
     class Meta:
         model = PurchaseLine
         fields = (
-            'id', 'variant', 'product_name', 'variant_label', 'sku', 'barcode',
-            'quantity', 'unit_cost', 'line_total',
+            'id', 'variant', 'product', 'product_name', 'variant_label', 'sku', 'barcode',
+            'price', 'quantity', 'unit_cost', 'new_sale_price', 'line_total',
         )
         read_only_fields = ('id',)
 
     def validate_quantity(self, value):
         if value <= 0:
             raise serializers.ValidationError('Miqdor noldan katta bo‘lishi kerak.')
+
+        return value
+
+    def validate_new_sale_price(self, value):
+        if value is not None and value <= 0:
+            raise serializers.ValidationError('Sotuv narxi noldan katta bo‘lishi kerak.')
 
         return value
 
@@ -91,6 +108,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
                 variant=line['variant'],
                 quantity=line['quantity'],
                 unit_cost=line['unit_cost'],
+                new_sale_price=line.get('new_sale_price'),
             )
             for line in lines
         ])

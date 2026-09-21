@@ -154,6 +154,11 @@ class PurchaseLine(models.Model):
     quantity = models.PositiveIntegerField(_('Miqdor'))
     unit_cost = MoneyField(_('Birlik tannarxi'))
 
+    #: Kirimda ustama foizidan taklif qilingan (yoki qo'lda yozilgan) yangi
+    #: sotuv narxi. Mahsulotga faqat kirim **tasdiqlanganda** ko'chiriladi:
+    #: qoralama hali kelmagan tovar, uning narxi do'konda ko'rinmasligi kerak.
+    new_sale_price = MoneyField(_('Yangi sotuv narxi'), null=True, blank=True)
+
     class Meta:
         verbose_name = _('Kirim qatori')
         verbose_name_plural = _('Kirim qatorlari')

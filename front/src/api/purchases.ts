@@ -6,7 +6,7 @@ export interface PurchaseInput {
   supplier: number | null
   note?: string
   amount_paid?: string
-  lines: Pick<PurchaseLine, 'variant' | 'quantity' | 'unit_cost'>[]
+  lines: Pick<PurchaseLine, 'variant' | 'quantity' | 'unit_cost' | 'new_sale_price'>[]
 }
 
 export const purchasesApi = {
