@@ -151,6 +151,17 @@ async function onConfirm(purchase: Purchase) {
   }
 }
 
+/** Qatordagi kirimni ochadi: qatorlari, yorliq va bekor qilish pastda. */
+async function open(purchase: Purchase) {
+  error.value = ''
+
+  try {
+    opened.value = await purchasesApi.get(purchase.id)
+  } catch (err) {
+    error.value = errorMessage(err, 'Kirimni ochib bo‘lmadi.')
+  }
+}
+
 async function onCancel(purchase: Purchase) {
   if (!window.confirm(`${purchase.number} bekor qilinsinmi? Tovar ombordan chiqariladi.`)) return
 
@@ -379,6 +390,26 @@ onMounted(async () => {
           </tr>
         </tbody>
       </table>
+
+      <div v-if="opened.status === 'confirmed'" class="opened-actions">
+        <button class="button button-outline" type="button" @click="printLabels(opened)">
+          <svg><use href="#i-print" /></svg>
+          <span>Yorliqlar chop etish</span>
+        </button>
+      </div>
+
+      <!-- Bekor qilish chop etishdan ataylab ajratilgan: tasodifan
+           bosilmasin, oqibati esa oldindan yozilgan -->
+      <div v-if="opened.status === 'confirmed'" class="danger-zone">
+        <div>
+          <strong>Kirimni bekor qilish</strong>
+          <small>Tovar ombordan chiqariladi, hujjat tarixda qoladi.</small>
+        </div>
+
+        <button class="button button-danger" type="button" @click="onCancel(opened)">
+          Bekor qilish
+        </button>
+      </div>
     </div>
 
     <div class="table-card">
@@ -405,12 +436,20 @@ onMounted(async () => {
               <td colspan="7" class="empty-state">Kirim hujjati yo‘q.</td>
             </tr>
 
-            <tr v-for="purchase in purchases" v-else :key="purchase.id">
+            <tr
+              v-for="purchase in purchases"
+              v-else
+              :key="purchase.id"
+              class="clickable"
+              :class="{ active: opened?.id === purchase.id }"
+              @click="open(purchase)"
+            >
               <td><strong>{{ purchase.number }}</strong></td>
               <td>{{ formatDate(purchase.date) }}</td>
               <td>{{ purchase.supplier_name ?? 'Ta’minotchisiz' }}</td>
               <td class="num">{{ formatMoney(purchase.total) }}</td>
-              <td class="num">{{ formatMoney(purchase.debt) }}</td>
+              <!-- Ta'minotchisiz va bekor qilingan kirimda qarz bo'lmaydi -->
+              <td class="num">{{ Number(purchase.debt) ? formatMoney(purchase.debt) : '—' }}</td>
               <td>
                 <span
                   class="pill"
@@ -429,28 +468,21 @@ onMounted(async () => {
                   v-if="purchase.status === 'draft'"
                   class="button button-gradient"
                   type="button"
-                  @click="onConfirm(purchase)"
+                  @click.stop="onConfirm(purchase)"
                 >
                   Tasdiqlash
                 </button>
 
+                <!-- Bekor qilish qatorda emas: u hujjatni ochib, chop etish
+                     tugmasidan ajratilgan holda turadi -->
                 <button
                   v-if="purchase.status === 'confirmed'"
                   class="button button-outline"
                   type="button"
-                  @click="printLabels(purchase)"
+                  @click.stop="printLabels(purchase)"
                 >
                   <svg><use href="#i-print" /></svg>
                   <span>Yorliqlar</span>
-                </button>
-
-                <button
-                  v-if="purchase.status === 'confirmed'"
-                  class="button button-danger"
-                  type="button"
-                  @click="onCancel(purchase)"
-                >
-                  Bekor
                 </button>
               </td>
             </tr>
@@ -528,5 +560,41 @@ onMounted(async () => {
   margin: 4px 0 10px;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.opened-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  background: var(--red-soft);
+}
+
+.danger-zone strong {
+  display: block;
+  font-size: 13px;
+}
+
+.danger-zone small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable.active td {
+  background: var(--accent-soft);
 }
 </style>

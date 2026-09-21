@@ -93,37 +93,46 @@ Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
 ## Testlar
 
 ```bash
-cd back && .venv/Scripts/python.exe manage.py test    # 95 ta
-cd front && npm run test:unit                         # 44 ta
+cd back && .venv/Scripts/python.exe manage.py test    # 136 ta
+cd front && npm run test:unit                         # 65 ta
 cd front && npm run build                             # type-check + build
 cd agent && npm test                                  # 85 ta
 ```
 
-### Chop etish testi
+### Interfeys testlari — alohida bazada
 
-Chek va yorliq **qog'ozga to'g'ri tushishini** tekshiradi: sahifalar
-soni, qog'oz o'lchami va chizg'ich uzunligi chiqqan PDF dan o'lchanadi
-(203 dpi da rasterlanadi). Brauzerdagi o'lcham yolg'on xotirjamlik
-beradi — sahifa sig'masa, Chromium chizmani jimgina kichraytiradi.
+Playwright haqiqiy brauzerda ilovani tekshiradi: navigatsiya va tuzilma,
+birlashtirilgan mahsulotlar sahifasi, telefon o'lchami, chop etish
+(sahifalar soni va o'lchami chiqqan PDF dan o'lchanadi) va chop etish
+agenti.
+
+Bu testlar ilovaga haqiqiy so'rovlar yuboradi — mahsulot, kirim va sotuv
+yaratadi. Shuning uchun ular **o'z bazasida** ishlaydi: `npm run test:ui`
+ishlab chiqish bazangiz nomiga `_test_ui` qo'shib, o'sha bazani qaytadan
+yaratadi (migratsiya va namuna ma'lumot bilan), backendni 8010-portda
+ko'taradi va testlarni faqat o'shanga qarshi yurgizadi.
+**Ishlab chiqish bazasiga tegilmaydi.**
 
 ```bash
 # Bir marta: test brauzerini o'rnatish
 cd front && npx playwright install chromium
 
-# Backend ishlab tursin (boshqa oynada)
-cd back && .venv/Scripts/python.exe manage.py runserver
-cd back && .venv/Scripts/python.exe manage.py seed_demo   # namuna ma'lumot
+# Hamma UI testlari — baza, backend va brauzerni skript o'zi ko'taradi
+cd front && npm run test:ui
 
-# Testni yurgizish
+# Faqat chop etish testlari
 cd front && npm run test:print
+
+# Bitta fayl
+cd front && npm run test:ui tests/products.spec.ts
 ```
 
-Test ilovani o'zi quradi va `vite preview` bilan ko'taradi. Backend
-standart holatda `http://127.0.0.1:8000` da kutiladi; boshqa portda
-bo'lsa manzilni bering:
+Baza yaratish uchun baza foydalanuvchisida `CREATEDB` huquqi bo'lishi
+kerak (`ALTER ROLE <foydalanuvchi> CREATEDB;`). Boshqa bazani ko'rsatish
+mumkin: `UI_TEST_DATABASE_URL=… npm run test:ui`, portni almashtirish:
+`UI_TEST_PORT=8011`.
 
-```bash
-VITE_API_TARGET=http://127.0.0.1:8004 npm run test:print
-```
+To'g'ridan-to'g'ri `npx playwright test` yurgizilmaydi — u ishlab chiqish
+bazasiga yozib yuborardi, shuning uchun ataylab to'xtatiladi.
 
-Boshqa brauzerda sinash uchun: `PLAYWRIGHT_CHANNEL=msedge npm run test:print`.
+Boshqa brauzerda sinash uchun: `PLAYWRIGHT_CHANNEL=msedge npm run test:ui`.

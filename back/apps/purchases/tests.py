@@ -149,6 +149,34 @@ class SupplierBalanceTests(TestCase):
 
         self.assertEqual(supplier_balance(self.supplier), Decimal('500000.00'))
 
+    def test_purchase_debt_only_for_supplier_and_not_cancelled(self):
+        """Qarz faqat ta'minotchili va bekor qilinmagan kirimda bo'ladi."""
+        purchase = receive_stock(
+            self.variant, 4, '200000', user=self.admin, supplier=self.supplier
+        )
+        purchase.amount_paid = Decimal('300000')
+        purchase.save(update_fields=['amount_paid'])
+
+        self.assertEqual(purchase.debt, Decimal('500000.00'))
+
+        # Boshlang'ich qoldiq — hech kimga qarz emas
+        own_stock = receive_stock(self.variant, 4, '200000', user=self.admin)
+
+        self.assertEqual(own_stock.debt, Decimal('0'))
+
+        cancelled = self.client_admin.post(f'/api/purchases/{purchase.pk}/cancel/')
+
+        self.assertEqual(cancelled.status_code, 200, cancelled.content)
+        self.assertEqual(Decimal(cancelled.json()['debt']), Decimal('0'))
+        self.assertEqual(Purchase.objects.get(pk=purchase.pk).debt, Decimal('0'))
+
+    def test_purchase_list_shows_no_debt_without_supplier(self):
+        receive_stock(self.variant, 2, '100000', user=self.admin)
+
+        rows = self.client_admin.get('/api/purchases/').json()['results']
+
+        self.assertEqual(Decimal(rows[0]['debt']), Decimal('0'))
+
     def test_supplier_list_shows_balance(self):
         receive_stock(self.variant, 1, '50000', user=self.admin, supplier=self.supplier)
 

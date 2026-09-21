@@ -121,7 +121,16 @@ class Purchase(TimeStampedModel):
 
     @property
     def debt(self) -> Decimal:
-        """Shu hujjat bo'yicha qolgan qarz."""
+        """Shu hujjat bo'yicha qolgan qarz.
+
+        Ta'minotchisiz kirim (do'kon ochilishidagi boshlang'ich qoldiq)
+        va bekor qilingan kirim hech kimning balansiga tushmaydi —
+        ularda qarz ham bo'lmaydi. Ta'minotchilar hisoboti allaqachon
+        shunday hisoblaydi (`reports.services.supplier_balances`).
+        """
+        if self.supplier_id is None or self.status == self.Status.CANCELLED:
+            return Decimal('0')
+
         return self.total - self.amount_paid
 
 

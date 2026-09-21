@@ -6,7 +6,7 @@ import { defineConfig } from '@playwright/test'
  * Brauzer — Playwright bilan keladigan Chromium. Boshqa brauzerda
  * sinash kerak bo'lsa:
  *
- *   PLAYWRIGHT_CHANNEL=msedge npm run test:print
+ *   PLAYWRIGHT_CHANNEL=msedge npm run test:ui
  *
  * Sinov qurilgan ilovaga qarshi o'tkaziladi (`vite preview`), chunki
  * chop etish uslublari faqat yakuniy CSS da to'liq ko'rinadi.
@@ -20,6 +20,8 @@ const channel = process.env.PLAYWRIGHT_CHANNEL
 
 export default defineConfig({
   testDir: './tests',
+  // Testlar ma'lumot yaratadi: faqat alohida test bazasiga qarshi
+  globalSetup: './tests/guard.ts',
   // Yangi kompyuterda Chromium birinchi marta sekin ko'tariladi (profil,
   // shriftlar): birinchi test 60 soniyaga tiqilib qolgan edi. Keyingi
   // yurgizishlarda butun to'plam ~10 soniyada tugaydi.
@@ -37,7 +39,9 @@ export default defineConfig({
   webServer: {
     command: 'npm run preview',
     url: 'http://127.0.0.1:4173',
-    reuseExistingServer: true,
+    // Har safar yangisi ko'tariladi: eskisi ishlab chiqish backendiga
+    // ulangan bo'lsa, testlar noto'g'ri bazaga tushib ketardi
+    reuseExistingServer: false,
     timeout: 60_000,
     env: { VITE_API_TARGET: apiTarget },
   },
