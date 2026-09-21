@@ -551,7 +551,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--orange);
   border-radius: var(--radius);
   background: var(--orange-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .editor-head {
@@ -567,7 +567,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 16px;
   margin: 10px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .counters .warn strong {
@@ -611,7 +611,7 @@ onBeforeUnmount(() => {
 .footer-hint {
   margin-right: auto;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .row-actions .button {

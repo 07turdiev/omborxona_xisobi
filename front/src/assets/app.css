@@ -107,6 +107,10 @@
 
     --sidebar-width: 252px;
 
+    /* Tepa panel balandligi. Kassa ekrani shu qiymatdan hisoblanadi —
+       ikkalasi ajralib qolmasin uchun bitta joyda turadi. */
+    --topbar-height: 60px;
+
     /* Tugma va maydon yumshoq burchakli, karta esa dizayndagi
        17px — ikkisi bitta o'lchamda bo'lsa yo tugma dumaloq,
        yo karta burchakli bo'lib qolardi. */
@@ -125,7 +129,7 @@
     /* Tugma, maydon va filtr bir xil balandlikda: bir qatorda turganda
        tepa va past chiziqlari mos kelsin. Ilgari tugma 32px, maydon
        34px edi — toolbar'da "zinapoya" hosil bo'lardi. */
-    --control-height: 34px;
+    --control-height: 40px;
 
     /* Brauzerning o'z elementlari (sana tanlagich, select ro'yxati,
        aylantirish chizig'i) ham temaga mos chizilsin */
@@ -171,7 +175,7 @@ body {
         var(--text);
 
     /* Mantine `sm` — InvenTree'ning asosiy matn o'lchami */
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.55;
 
     overflow-x: hidden;
@@ -263,7 +267,7 @@ svg {
     background-color:
         var(--surface);
 
-    font-size: 13px;
+    font-size: 14px;
 
     transition:
         border-color var(--transition),
@@ -383,7 +387,7 @@ svg {
 
 
 .sidebar-brand {
-    height: 56px;
+    height: var(--topbar-height);
 
     padding:
         0 16px;
@@ -400,8 +404,8 @@ svg {
 
 
 .brand-symbol {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
 
     flex-shrink: 0;
 
@@ -417,7 +421,7 @@ svg {
     background:
         var(--accent);
 
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
 }
 
@@ -432,7 +436,7 @@ svg {
     color:
         var(--text);
 
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: -.2px;
 }
@@ -444,7 +448,7 @@ svg {
     color:
         var(--sidebar-muted);
 
-    font-size: 11px;
+    font-size: 12px;
 
     text-transform: uppercase;
     letter-spacing: .4px;
@@ -456,8 +460,8 @@ svg {
 
     margin-left: auto;
 
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
 
     border-radius:
         var(--radius);
@@ -476,8 +480,8 @@ svg {
 
 
 .sidebar-close svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
 
     margin: auto;
 
@@ -510,7 +514,7 @@ svg {
     color:
         var(--sidebar-muted);
 
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
 
     letter-spacing: .4px;
@@ -525,7 +529,7 @@ svg {
 
 .menu-item {
     width: 100%;
-    height: 34px;
+    height: 42px;
 
     margin-bottom: 2px;
 
@@ -547,7 +551,7 @@ svg {
 
     text-align: left;
 
-    font-size: 14px;
+    font-size: 15px;
 
     transition:
         background var(--transition),
@@ -582,8 +586,8 @@ svg {
 
 
 .menu-icon {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
 
     flex-shrink: 0;
 
@@ -602,8 +606,8 @@ svg {
 
 
 .menu-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
 
     fill: none;
     stroke: currentColor;
@@ -632,7 +636,7 @@ svg {
     background:
         var(--surface-hover);
 
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
 }
 
@@ -666,8 +670,8 @@ svg {
 
 
 .sidebar-avatar {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
 
     flex-shrink: 0;
 
@@ -682,7 +686,7 @@ svg {
     background:
         var(--accent);
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
 }
 
@@ -705,7 +709,7 @@ svg {
     color:
         var(--text);
 
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
 }
 
@@ -716,7 +720,7 @@ svg {
     color:
         var(--sidebar-muted);
 
-    font-size: 12px;
+    font-size: 13px;
 }
 
 
@@ -742,7 +746,7 @@ svg {
 
     z-index: 40;
 
-    height: 56px;
+    height: var(--topbar-height);
 
     padding:
         0 20px;
@@ -788,7 +792,7 @@ svg {
     font-family:
         var(--font-display);
 
-    font-size: 21px;
+    font-size: 23px;
     font-weight: 500;
     line-height: 1.2;
     letter-spacing: -.2px;
@@ -801,15 +805,15 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 12px;
+    font-size: 13px;
 }
 
 
 .mobile-menu {
     display: none;
 
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
 
     border-radius: var(--radius);
 
@@ -826,8 +830,8 @@ svg {
 
 
 .mobile-menu svg {
-    width: 17px;
-    height: 17px;
+    width: 19px;
+    height: 19px;
 
     margin: auto;
 
@@ -842,7 +846,7 @@ svg {
 ========================================================= */
 
 .user-button {
-    height: 36px;
+    height: 40px;
 
     padding:
         0 6px;
@@ -868,8 +872,8 @@ svg {
 
 
 .user-avatar {
-    width: 33px;
-    height: 33px;
+    width: 36px;
+    height: 36px;
 
     display: grid;
     place-items: center;
@@ -882,7 +886,7 @@ svg {
     background:
         var(--accent);
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
 }
 
@@ -904,7 +908,7 @@ svg {
     white-space: nowrap;
     text-overflow: ellipsis;
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -914,7 +918,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 12px;
+    font-size: 13px;
 }
 
 
@@ -951,7 +955,7 @@ svg {
 
 
 .dropdown-profile strong {
-    font-size: 14px;
+    font-size: 15px;
 }
 
 
@@ -961,13 +965,13 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 12px;
+    font-size: 13px;
 }
 
 
 .logout-button {
     width: 100%;
-    height: 37px;
+    height: 40px;
 
     margin-top: 4px;
 
@@ -986,7 +990,7 @@ svg {
 
     background: transparent;
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -1012,7 +1016,7 @@ svg {
 
 .content {
     padding:
-        16px 20px 32px;
+        20px 20px 36px;
 }
 
 
@@ -1077,7 +1081,7 @@ svg {
 
     border-radius: var(--radius);
 
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
 
     transition:
@@ -1088,8 +1092,8 @@ svg {
 
 
 .button svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
 
     fill: none;
     stroke: currentColor;
@@ -1267,7 +1271,7 @@ svg {
 
 
 .card-heading h3 {
-    font-size: 15px;
+    font-size: 16px;
     letter-spacing: -.2px;
 }
 
@@ -1278,7 +1282,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 12px;
+    font-size: 13px;
 }
 
 
@@ -1292,7 +1296,7 @@ svg {
 
     border-radius: var(--radius);
 
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -1354,8 +1358,8 @@ svg {
 
 
 .search-field svg {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
 
     margin-left: 12px;
 
@@ -1382,7 +1386,7 @@ svg {
 
     background: transparent;
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -1432,7 +1436,7 @@ svg {
     background:
         var(--surface);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -1482,7 +1486,7 @@ svg {
 
 
 .data-table th {
-    height: 36px;
+    height: 42px;
 
     padding:
         0 12px;
@@ -1501,13 +1505,13 @@ svg {
         1px solid
         var(--border);
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
 }
 
 
 .data-table td {
-    height: 38px;
+    height: 46px;
 
     padding:
         4px 12px;
@@ -1521,7 +1525,7 @@ svg {
         1px solid
         var(--border);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -1586,7 +1590,7 @@ svg {
 
     border-radius: 999px;
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
 }
 
@@ -1636,7 +1640,7 @@ svg {
     background:
         var(--surface-hover);
 
-    font-size: 12px;
+    font-size: 13px;
 }
 
 
@@ -1645,8 +1649,8 @@ svg {
 ========================================================= */
 
 .icon-button {
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
 
     display: grid;
     place-items: center;
@@ -1679,8 +1683,8 @@ svg {
 
 
 .icon-button svg {
-    width: 13px;
-    height: 13px;
+    width: 16px;
+    height: 16px;
 
     fill: none;
     stroke: currentColor;
@@ -1701,7 +1705,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 13px;
+    font-size: 14px;
 }
 
 
@@ -1754,7 +1758,7 @@ svg {
 
 
 .settings-info h2 {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
 }
 
@@ -1765,7 +1769,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.6;
 }
 
@@ -1835,7 +1839,7 @@ svg {
     color:
         var(--text-secondary);
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
 }
 
@@ -1845,7 +1849,7 @@ svg {
 .field textarea {
     width: 100%;
 
-    min-height: 34px;
+    min-height: 40px;
 
     padding:
         0 8px;
@@ -1862,7 +1866,7 @@ svg {
     background:
         var(--surface);
 
-    font-size: 13px;
+    font-size: 14px;
 
     transition:
         border-color var(--transition),
@@ -1919,7 +1923,7 @@ svg {
     color:
         var(--text-muted);
 
-    font-size: 12px;
+    font-size: 13px;
 
     pointer-events: none;
 }
@@ -2303,7 +2307,7 @@ svg {
     margin-top: 2px;
 
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 12px;
 }
 
 /* Ichida forma boladigan karta: jadval kartasi bilan bir xil ramka,
@@ -2314,7 +2318,7 @@ svg {
 
 .card-padded > h3 {
     margin-bottom: 12px;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .card-padded .field {
@@ -2339,7 +2343,7 @@ svg {
     padding: 2px 8px;
     border-radius: 999px;
 
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
 }
@@ -2369,7 +2373,7 @@ svg {
 
     background: var(--red-soft);
     color: var(--red);
-    font-size: 13px;
+    font-size: 14px;
 }
 
 /* Muvaffaqiyatli amal haqida xabar */
@@ -2382,13 +2386,13 @@ svg {
 
     background: var(--accent-soft);
     color: var(--text);
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .field-hint {
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 12px;
 }
 
 /* Jadvaldagi tugmalar: katak ichida qatorga sigmasa pastga tushadi */

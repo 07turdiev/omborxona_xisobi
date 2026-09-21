@@ -116,9 +116,7 @@ onMounted(load)
         </div>
 
         <p class="field-hint">
-          MXIK — soliq tasnifi kodi, 17 xonali raqam. Kodni tasnif.soliq.uz dan
-          oling; u shu kategoriyadagi hamma mahsulotga tarqaladi. Kodsiz
-          mahsulotni fiskal chek qabul qilmaydi.
+          MXIK — 17 xonali soliq kodi, tasnif.soliq.uz dan olinadi.
         </p>
 
         <table class="data-table">
@@ -246,7 +244,7 @@ onMounted(load)
   justify-content: space-between;
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .color-row {

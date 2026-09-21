@@ -360,7 +360,7 @@ onMounted(() => {
 }
 
 .finish-amount strong {
-  font-size: 24px;
+  font-size: 26px;
   font-variant-numeric: tabular-nums;
 }
 

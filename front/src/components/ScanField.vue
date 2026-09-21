@@ -82,6 +82,6 @@ defineExpose({ focus })
   border: 0;
   background: none;
   box-shadow: none;
-  font-size: 16px;
+  font-size: 17px;
 }
 </style>

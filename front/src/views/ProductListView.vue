@@ -420,7 +420,7 @@ onActivated(() => {
   border: 1px solid var(--orange);
   border-radius: var(--radius);
   background: var(--orange-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .catalog-toolbar {
@@ -467,7 +467,7 @@ onActivated(() => {
   outline: 0;
   background: transparent;
   color: var(--text);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .filter-toggle {
@@ -488,7 +488,7 @@ onActivated(() => {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .check {
@@ -500,7 +500,7 @@ onActivated(() => {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   user-select: none;
 }
@@ -537,7 +537,7 @@ onActivated(() => {
   border: 0;
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -573,7 +573,7 @@ onActivated(() => {
   border-radius: 999px;
   background: var(--surface-soft);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -594,7 +594,7 @@ onActivated(() => {
 .catalog-count {
   margin: 0 0 10px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* --- Jadval --- */
@@ -635,7 +635,7 @@ onActivated(() => {
 
 .mxik-code {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -712,7 +712,7 @@ onActivated(() => {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -720,14 +720,14 @@ onActivated(() => {
 .card-category {
   order: -1;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
 }
 
 .card-price {
   color: var(--accent);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -736,7 +736,7 @@ onActivated(() => {
   align-self: flex-start;
   padding: 1px 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -788,7 +788,7 @@ onActivated(() => {
 
   /* 16px dan kichik shriftda iPhone maydonni kattalashtirib yuboradi */
   .catalog-search input {
-    font-size: 16px;
+    font-size: 17px;
   }
 
   .filter-toggle {
@@ -801,7 +801,7 @@ onActivated(() => {
     border-radius: var(--radius);
     background: var(--surface);
     color: var(--text);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
   }
 
@@ -814,7 +814,7 @@ onActivated(() => {
     border-radius: 999px;
     background: var(--accent);
     color: #fff;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   /* Filtrlar qidiruv ustida ochiladi — bosh barmoqdan uzoqqa ketmaydi */
@@ -840,7 +840,7 @@ onActivated(() => {
   .check {
     min-height: 48px;
     height: 48px;
-    font-size: 15px;
+    font-size: 16px;
   }
 
   /* Telefonda jadval va yangi mahsulot tugmasi kerak emas: tahrirlash

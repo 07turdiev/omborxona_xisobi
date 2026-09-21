@@ -391,8 +391,7 @@ function colorLabel(id: number | null) {
     </ul>
 
     <p class="field-hint">
-      Rasm yuklanayotganda sahifadagi boshqa amallar ishlayveradi. Har rasmni rangga biriktiring: katalogda rang
-      tanlanganda o‘sha rasmlar chiqadi.
+      Rasmni rangga biriktirsangiz, katalogda o‘sha rang tanlanganda chiqadi.
     </p>
   </div>
 </template>
@@ -414,7 +413,7 @@ function colorLabel(id: number | null) {
 
 .images-title {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -430,7 +429,7 @@ function colorLabel(id: number | null) {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .drop-zone {
@@ -451,13 +450,13 @@ function colorLabel(id: number | null) {
 
 .drop-hint {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .images-error {
   margin: 0;
   color: var(--red);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .image-grid {
@@ -504,7 +503,7 @@ function colorLabel(id: number | null) {
   border-radius: 999px;
   background: var(--accent);
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -514,7 +513,7 @@ function colorLabel(id: number | null) {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .image-actions {
@@ -530,7 +529,7 @@ function colorLabel(id: number | null) {
   border-radius: var(--radius-small);
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
   cursor: pointer;
 }
@@ -561,7 +560,7 @@ function colorLabel(id: number | null) {
   gap: 4px;
   padding: 6px;
   background: rgb(255 255 255 / 92%);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .upload-state progress {
@@ -580,7 +579,7 @@ function colorLabel(id: number | null) {
 
 .upload-color {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .link-button {
@@ -589,7 +588,7 @@ function colorLabel(id: number | null) {
   border: 0;
   background: none;
   color: var(--accent);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }

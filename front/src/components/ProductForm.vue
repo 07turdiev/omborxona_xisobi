@@ -187,11 +187,6 @@ async function onSave() {
             {{ item.name }}
           </button>
         </div>
-
-        <small class="field-hint">
-          Har o‘lcham va rang juftligi uchun alohida variant va shtrix-kod yaratiladi.
-          Mavjud variantlar o‘chirilmaydi.
-        </small>
       </div>
 
       <div class="field">
@@ -217,24 +212,13 @@ async function onSave() {
           inputmode="numeric"
           maxlength="17"
           placeholder="Bo‘sh qoldirilsa kategoriyaniki"
-        />
-        <small class="field-hint">
-          Faqat shu mahsulotning kodi kategoriyanikidan farq qilsa to‘ldiring.
-        </small>
-      </div>
+        />      </div>
 
       <div class="field">
         <label>Manzil qismi (slug)</label>
         <input v-model="form.slug" type="text" placeholder="Nomdan avtomatik yasaladi" />
-        <small class="field-hint">
-          Kelajakdagi onlayn do‘kon manzili. Do‘kon ochilgach o‘zgartirmang —
-          tashqi havolalar uziladi.
-        </small>
+        <small class="field-hint">Do‘kon ochilgach o‘zgartirmang.</small>
       </div>
-
-      <p v-if="isNew" class="field-hint">
-        Rasmlarni saqlagandan keyin mahsulot sahifasida qo‘shasiz.
-      </p>
 
       <div class="form-actions">
         <button class="button button-outline" type="button" @click="emit('close')">
@@ -291,7 +275,7 @@ async function onSave() {
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 

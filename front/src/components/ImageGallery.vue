@@ -175,7 +175,7 @@ function go(target: number) {
   border-radius: 50%;
   background: rgb(255 255 255 / 90%);
   color: var(--text);
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1;
   cursor: pointer;
 }
@@ -208,7 +208,7 @@ function go(target: number) {
   border-radius: 999px;
   background: rgb(0 0 0 / 55%);
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* Rasm bo'lmasa joy egallamasin: telefonda 4:5 bo'sh maydon narx va
@@ -223,7 +223,7 @@ function go(target: number) {
   border-radius: var(--radius-card);
   background: var(--surface-soft);
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .gallery-placeholder svg {

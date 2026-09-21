@@ -115,21 +115,21 @@ onMounted(async () => {
 
 .banner-name {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 28px;
   line-height: 1.1;
 }
 
 .banner-sub {
   margin-top: 3px;
   color: #d8c6a6;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 2.4px;
   text-transform: uppercase;
 }
 
 .block-title {
   margin: 0 0 8px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .kpi-row {
@@ -152,11 +152,11 @@ onMounted(async () => {
 
 .kpi-card span {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .kpi-card strong {
-  font-size: 20px;
+  font-size: 22px;
   font-variant-numeric: tabular-nums;
 }
 

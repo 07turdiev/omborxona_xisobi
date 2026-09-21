@@ -206,13 +206,13 @@ defineExpose({ focus })
   border: 0;
   background: none;
   box-shadow: none;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .search-state {
   flex: none;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .results {
@@ -252,7 +252,7 @@ defineExpose({ focus })
 .result-meta {
   grid-column: 1;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .result-price {
@@ -274,6 +274,6 @@ defineExpose({ focus })
   background: var(--surface);
   box-shadow: var(--shadow-large);
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 </style>

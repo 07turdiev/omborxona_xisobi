@@ -175,6 +175,12 @@ Qoidalar:
   raqamlar turli kenglikda bo'lib "titraydi".
 - **Shrift tizimniki.** Internetdan hech qanday shrift yuklanmaydi —
   do'konda internet uzilsa ham interfeys o'zgarmaydi.
+- **O'lchamlar.** Asosiy matn 15px, eng kichigi 12px; tugma va maydon
+  balandligi `--control-height` (40px), jadval qatori 46px. Ekran
+  do'konda turib, bir qadam narida ishlatiladi — mayda yozuv yaramaydi.
+- **Kichik o'rgatuvchi yozuvlar qo'shilmaydi.** Maydon nomi va tugma
+  yozuvi o'zini tushuntirsin. Izoh faqat oqibati bor joyda qoladi
+  (masalan: «Sanoq boshlangach kategoriyani o'zgartirib bo'lmaydi»).
 - **Rasmlar** `front/src/assets/` ichida, WebP formatida va ko'rsatiladigan
   o'lchamdan ikki barobar katta (Retina uchun): `logo.webp` (560 px),
   `boutique.webp` (1536 px, kirish foni va boshqaruv panelidagi lenta),

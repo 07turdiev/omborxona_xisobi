@@ -27,7 +27,7 @@ const toast = useToastStore()
 
   background: var(--green);
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 
   cursor: pointer;

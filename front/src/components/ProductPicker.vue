@@ -224,8 +224,6 @@ function take(variant: Variant | undefined) {
             </tbody>
           </table>
         </div>
-
-        <p class="variant-hint">Katakni bosing — o‘sha tovar savatga tushadi.</p>
       </div>
     </div>
   </div>
@@ -252,7 +250,7 @@ function take(variant: Variant | undefined) {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .picker-search {
@@ -266,7 +264,7 @@ function take(variant: Variant | undefined) {
 .picker-error {
   margin: 0;
   color: var(--red);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .tiles {
@@ -325,25 +323,25 @@ function take(variant: Variant | undefined) {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.25;
 }
 
 .tile-price {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .tile-stock {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .picker-empty {
   margin: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* --- O'lcham × rang katakchasi --- */
@@ -380,7 +378,7 @@ function take(variant: Variant | undefined) {
 
 .variant-head h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .variant-scroll {
@@ -395,7 +393,7 @@ function take(variant: Variant | undefined) {
 .variant-grid th {
   padding: 4px 8px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   text-align: center;
   white-space: nowrap;
@@ -418,7 +416,7 @@ function take(variant: Variant | undefined) {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -439,6 +437,6 @@ function take(variant: Variant | undefined) {
 .variant-hint {
   margin: 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 </style>

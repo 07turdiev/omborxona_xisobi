@@ -128,7 +128,17 @@ function check(width: number, height: number) {
           await openApp(page, admin, path)
         }
 
-        await expect(page.locator(screen.ready).first()).toBeVisible()
+        // Hisobot to'plangan ma'lumot ustida hisoblanadi — sekinroq keladi
+        const problem = page.locator('.load-error')
+
+        await expect(problem.or(page.locator(screen.ready)).first()).toBeVisible({
+          timeout: 15_000,
+        })
+
+        // Yuklash xatosi bo'lsa, sababi xabarda ko'rinsin
+        if (await problem.count()) {
+          throw new Error(`${screen.name}: ${await problem.first().innerText()}`)
+        }
         await screen.prepare?.(page)
 
         // Sahifa kirish animatsiyasi tugasin

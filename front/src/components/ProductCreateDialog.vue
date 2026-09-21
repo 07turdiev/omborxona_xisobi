@@ -284,11 +284,6 @@ async function onSave() {
             data-testid="camera-input"
             @change="onPick"
           />
-
-          <small class="field-hint">
-            Rasmsiz ham saqlanadi — suratni keyin mahsulot sahifasida qo‘shasiz.
-            Ko‘pi bilan {{ MAX_PHOTOS }} ta, birinchisi asosiy bo‘ladi.
-          </small>
         </aside>
 
         <!-- Ma'lumot -->
@@ -298,8 +293,7 @@ async function onSave() {
           <p v-if="error" class="load-error">{{ error }}</p>
 
           <p v-if="barcode" class="field-hint barcode-note">
-            Skanerlangan kod <strong>{{ barcode }}</strong> shu mahsulotning yagona
-            variantiga yoziladi. O‘lcham va ranglarni keyin qo‘shasiz.
+            Shtrix-kod: <strong>{{ barcode }}</strong>
           </p>
 
           <div class="field-grid">
@@ -356,12 +350,6 @@ async function onSave() {
           </div>
 
           <template v-if="!barcode">
-            <p class="field-hint variants-hint">
-              O‘lcham va rang — model <strong>qaysi ko‘rinishda kelgani</strong>.
-              Faqat kelganlarini belgilang. Keyin jadvalga sonini yozasiz.
-              Bittadan belgilansa, jadval bitta katakdan iborat bo‘ladi.
-            </p>
-
             <div class="field">
               <span class="field-label">Qaysi o‘lchamlar keldi?</span>
 
@@ -397,12 +385,6 @@ async function onSave() {
                   <small>{{ item.name }}</small>
                 </button>
               </div>
-
-              <small class="field-hint">
-                Har o‘lcham × rang juftligi uchun alohida shtrix-kod chiqadi.
-                Keyinroq yangi o‘lcham yoki rang kelsa, uni kirim jadvalining
-                o‘zida qo‘shasiz — qolgan juftliklar yaratilmaydi.
-              </small>
             </div>
           </template>
         </section>
@@ -462,7 +444,7 @@ async function onSave() {
 
 .dialog-head h2 {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 500;
 }
 
@@ -478,7 +460,7 @@ async function onSave() {
   display: block;
   margin-bottom: 12px;
   color: var(--accent);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 2px;
 }
 
@@ -525,11 +507,11 @@ async function onSave() {
 
 .drop-empty strong {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .drop-empty span {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .photo-grid {
@@ -556,7 +538,7 @@ async function onSave() {
   display: block;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: 11px;
   text-align: center;
 }
 
@@ -570,7 +552,7 @@ async function onSave() {
   border-radius: 50%;
   background: var(--surface);
   color: var(--red);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
 }
@@ -612,16 +594,11 @@ async function onSave() {
 .field > span,
 .field-label {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .barcode-note {
   margin-bottom: 12px;
-}
-
-.variants-hint {
-  margin-bottom: 10px;
-  line-height: 1.6;
 }
 
 .chips,
@@ -639,7 +616,7 @@ async function onSave() {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -678,7 +655,7 @@ async function onSave() {
 
 .swatch small {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
 }
 

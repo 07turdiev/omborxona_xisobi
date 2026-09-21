@@ -183,11 +183,11 @@ watch([category, lowOnly], load)
 .kpi-card span,
 .kpi-card small {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .kpi-card strong {
-  font-size: 18px;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -200,7 +200,7 @@ watch([category, lowOnly], load)
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
 }
 

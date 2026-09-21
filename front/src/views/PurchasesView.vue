@@ -752,13 +752,13 @@ onMounted(async () => {
   display: block;
   margin-bottom: 4px;
   color: var(--accent);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 2px;
 }
 
 .receiving-header h2 {
   font-family: var(--font-display);
-  font-size: 27px;
+  font-size: 29px;
   font-weight: 500;
   line-height: 1.15;
 }
@@ -767,7 +767,7 @@ onMounted(async () => {
   max-width: 62ch;
   margin-top: 4px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -775,7 +775,7 @@ onMounted(async () => {
   flex: none;
   min-height: 42px;
   padding: 0 18px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 /* --- Hujjat formasi --- */
@@ -783,7 +783,7 @@ onMounted(async () => {
 .card-title {
   margin-bottom: 12px;
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: 23px;
   font-weight: 500;
 }
 
@@ -833,11 +833,11 @@ onMounted(async () => {
 
 .editor-empty strong {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .editor-empty span {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .models-table {
@@ -855,13 +855,13 @@ onMounted(async () => {
 }
 
 .editor-footer strong {
-  font-size: 18px;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
 
 .editor-units {
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .editor-actions {
@@ -912,11 +912,11 @@ onMounted(async () => {
 
 .summary-grid span {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .summary-grid strong {
-  font-size: 20px;
+  font-size: 22px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -933,7 +933,7 @@ onMounted(async () => {
 
 .summary-actions .field span {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* --- Tarix va qoralamalar --- */
@@ -963,7 +963,7 @@ onMounted(async () => {
   border-radius: 999px;
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 

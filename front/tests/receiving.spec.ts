@@ -611,7 +611,6 @@ test('bitta o‘lcham va bitta rang: jadval bitta katakdan iborat', async ({ pag
 
   await expect(form).toContainText('Qaysi o‘lchamlar keldi?')
   await expect(form).toContainText('Qaysi ranglar keldi?')
-  await expect(form).toContainText('Faqat kelganlarini belgilang')
 
   await form.getByLabel('Mahsulot nomi').fill(name)
   await form.getByLabel('Sotuv narxi').fill('250000')

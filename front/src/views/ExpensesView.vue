@@ -180,10 +180,10 @@ onMounted(load)
 }
 
 .total-badge {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .total-badge strong {
-  font-size: 16px;
+  font-size: 17px;
 }
 </style>

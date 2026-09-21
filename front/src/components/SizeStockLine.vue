@@ -21,7 +21,7 @@ defineProps<{ entries: SizeStock[] }>()
 <style scoped>
 .size-line {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 

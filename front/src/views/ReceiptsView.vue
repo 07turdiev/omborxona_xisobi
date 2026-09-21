@@ -243,7 +243,7 @@ onMounted(async () => {
 
 .card-title {
   padding: 12px 16px 0;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .clickable {
@@ -264,11 +264,11 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   padding: 3px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .detail-totals .grand strong {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .detail-actions {

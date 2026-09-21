@@ -447,7 +447,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           </button>
         </div>
 
-        <p class="shortcut-hint">F4 — to‘lov turini almashtiradi</p>
 
         <div v-if="paymentMethod === 'mixed'" class="field">
           <label>Kartadan</label>
@@ -534,7 +533,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(280px, 320px);
   gap: 10px;
-  height: calc(100vh - 56px - 48px);
+  height: calc(100vh - var(--topbar-height) - 56px);
 }
 
 .pos-picker {
@@ -608,7 +607,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .cart-table th:nth-child(3) {
-  width: 74px;
+  width: 68px;
 }
 
 .cart-table th:nth-child(4) {
@@ -616,7 +615,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .cart-table th:nth-child(5) {
-  width: 40px;
+  width: 36px;
 }
 
 /* Jadval katakchasida umumiy `nowrap` bor — uzun nom shu yerda o'raladi */
@@ -653,7 +652,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
 }
@@ -673,7 +672,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   margin: 0;
   padding: 8px 12px;
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .pos-error {
@@ -704,7 +703,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   justify-content: space-between;
   gap: 8px;
   padding: 3px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .discount-controls {
@@ -731,7 +730,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .summary-total strong {
-  font-size: 24px;
+  font-size: 26px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -741,12 +740,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   gap: 6px;
 }
 
-.shortcut-hint {
-  margin: 4px 0 0;
-  color: var(--text-muted);
-  font-size: 11px;
-  text-align: center;
-}
 
 .cash-row {
   display: flex;
@@ -776,7 +769,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 .complete {
   min-height: 48px;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .key {
@@ -785,7 +778,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-small);
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* Oltin tugma ustida: yozuvi ham to'q jigarrang */
@@ -798,7 +791,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .returns-link {
   align-self: center;
   color: var(--accent);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -808,7 +801,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   gap: 6px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* --- Qaytim --- */
@@ -837,7 +830,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 .change-label {
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: 17px;
 }
 
 /* Xonaning narigi chetidan ham o'qiladi */
@@ -849,7 +842,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 .change-receipt {
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .change-close {
@@ -866,7 +859,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
   .pos-picker {
     position: fixed;
-    inset: 56px 0 0;
+    inset: var(--topbar-height) 0 0;
     z-index: 45;
     display: none;
     border-radius: 0;

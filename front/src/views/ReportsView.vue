@@ -280,11 +280,11 @@ onMounted(load)
 
 .kpi-card span {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .kpi-card strong {
-  font-size: 18px;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -297,7 +297,7 @@ onMounted(load)
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .report-grid {
@@ -310,6 +310,6 @@ onMounted(load)
 .card-title {
   padding: 12px 16px 0;
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
 }
 </style>

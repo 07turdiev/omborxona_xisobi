@@ -380,9 +380,6 @@ function when(value: string) {
             </div>
           </dl>
 
-          <p v-else-if="product.sizes.length" class="hint">
-            Shtrix-kodni ko‘rish uchun o‘lcham tanlang.
-          </p>
 
           <dl v-if="product.material || product.care" class="details">
             <div v-if="product.material">
@@ -452,9 +449,7 @@ function when(value: string) {
             <small v-if="variant">{{ [variant.size_name, variant.color_name].filter(Boolean).join(' / ') || product.name }}</small>
           </h3>
 
-          <p v-if="!variant" class="hint panel-hint">
-            Tarixni ko‘rish uchun rang va o‘lchamni tanlang yoki jadvaldagi qatorni bosing.
-          </p>
+          <p v-if="!variant" class="hint panel-hint">Variantni tanlang.</p>
 
           <div v-else class="table-scroll">
             <table class="data-table">
@@ -585,7 +580,7 @@ function when(value: string) {
   border: 0;
   background: none;
   color: var(--accent);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -608,14 +603,14 @@ function when(value: string) {
 .info-meta {
   margin: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* Mahsulot nomi — sahifaning sarlavhasi, shuning uchun serifda */
 .info-name {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 27px;
+  font-size: 29px;
   font-weight: 500;
   line-height: 1.2;
 }
@@ -623,7 +618,7 @@ function when(value: string) {
 .info-price {
   margin: 0;
   color: var(--accent);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -642,7 +637,7 @@ function when(value: string) {
 .option-label {
   margin: 0 0 8px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .swatches,
@@ -662,7 +657,7 @@ function when(value: string) {
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -707,13 +702,13 @@ function when(value: string) {
 }
 
 .size-name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .size-button small {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .size-button.active {
@@ -738,7 +733,7 @@ function when(value: string) {
   border-radius: var(--radius);
   background: var(--surface-soft);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .all-total {
@@ -760,25 +755,25 @@ function when(value: string) {
 .variant-box dt,
 .details dt {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .variant-box dd,
 .details dd {
   margin: 2px 0 0;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .barcode-text {
   font-family: ui-monospace, Consolas, monospace;
-  font-size: 16px;
+  font-size: 17px;
   letter-spacing: 0.04em;
 }
 
 .hint {
   margin: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .details {
@@ -789,7 +784,7 @@ function when(value: string) {
 
 .description {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
   white-space: pre-line;
 }
@@ -806,12 +801,12 @@ function when(value: string) {
   gap: 8px;
   margin: 0;
   padding: 12px 14px 8px;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .panel-title small {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
 }
 

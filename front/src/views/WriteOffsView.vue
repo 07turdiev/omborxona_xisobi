@@ -178,6 +178,6 @@ onMounted(load)
 
 .empty-state.small {
   padding: 10px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 </style>

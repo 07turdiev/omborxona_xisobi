@@ -218,14 +218,14 @@ const confirmed = computed(() => props.purchase.status === 'confirmed')
   gap: 8px;
   margin: 0;
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 500;
 }
 
 .opened-meta {
   margin: 4px 0 12px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .doc-model {
@@ -245,7 +245,7 @@ const confirmed = computed(() => props.purchase.status === 'confirmed')
 }
 
 .doc-model-head strong {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .doc-grid-scroll {
@@ -259,7 +259,7 @@ const confirmed = computed(() => props.purchase.status === 'confirmed')
 .doc-grid th {
   padding: 3px 8px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -280,7 +280,7 @@ const confirmed = computed(() => props.purchase.status === 'confirmed')
   border: 1px solid var(--border);
   border-radius: var(--radius-small);
   background: var(--surface);
-  font-size: 14px;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
@@ -321,11 +321,11 @@ const confirmed = computed(() => props.purchase.status === 'confirmed')
 
 .danger-zone strong {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .danger-zone small {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
 }
 </style>

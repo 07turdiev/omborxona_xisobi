@@ -61,7 +61,6 @@ async function onSave() {
       <div class="field">
         <label>Do‘kon nomi</label>
         <input v-model="form.shop_name" type="text" />
-        <small class="field-hint">Chek va yorliqlarda chiqadi.</small>
       </div>
 
       <div class="field">
@@ -83,26 +82,19 @@ async function onSave() {
         <label>Chek sahifasi bo‘yi (mm)</label>
         <input v-model.number="form.receipt_page_height_mm" type="number" min="40" max="300" />
         <small class="field-hint">
-          Bu ikki o‘lcham printer drayverida yaratilgan maxsus qog‘oz bilan
-          <strong>aynan bir xil</strong> bo‘lishi kerak. Brauzer orqali chop
-          etishda sahifa balandligini har chekka moslab bo‘lmaydi — uni
-          drayver hal qiladi. Qanday qilish: docs/hardware.md.
+          Printer drayveridagi maxsus qog‘oz bilan bir xil bo‘lishi kerak —
+          docs/hardware.md.
         </small>
       </div>
 
       <div class="field">
         <label>Narxni yaxlitlash qadami (so‘m)</label>
         <input v-model.number="form.price_rounding_step" type="number" min="1" step="100" />
-        <small class="field-hint">
-          Kirimda ustama foizidan taklif qilingan sotuv narxi shu qadamga
-          yuqoriga yaxlitlanadi: 53 332 so‘m emas, 54 000 so‘m.
-        </small>
       </div>
 
       <div class="field">
         <label>Kassir bera oladigan eng katta chegirma (%)</label>
         <input v-model="form.max_discount_percent" type="text" inputmode="decimal" />
-        <small class="field-hint">Administrator uchun cheklov yo‘q.</small>
       </div>
 
       <button class="button button-gradient" type="button" :disabled="saving" @click="onSave">

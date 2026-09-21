@@ -254,11 +254,6 @@ onMounted(async () => {
           :placeholder="formatMoney(model.currentPrice)"
         />
       </label>
-
-      <p class="price-hint">
-        Narx kirim <strong>tasdiqlanganda</strong> mahsulotga yoziladi.
-        Bo‘sh qoldirilsa, eski narx qoladi.
-      </p>
     </div>
 
     <div class="grid-scroll">
@@ -321,8 +316,6 @@ onMounted(async () => {
         <svg><use href="#i-plus" /></svg>
         <span>O‘lcham yoki rang</span>
       </button>
-
-      <span class="add-hint">Model yangi o‘lchamda yoki rangda kelgan bo‘lsa</span>
     </div>
 
     <div v-if="pickerOpen" class="variant-picker">
@@ -453,7 +446,7 @@ onMounted(async () => {
 }
 
 .model-head strong {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .model-prices {
@@ -477,7 +470,7 @@ onMounted(async () => {
 
 .price-field span {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .price-field input {
@@ -489,7 +482,7 @@ onMounted(async () => {
   flex: 1;
   min-width: 200px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .grid-scroll {
@@ -503,7 +496,7 @@ onMounted(async () => {
 .quantity-grid th {
   padding: 4px 8px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -521,7 +514,7 @@ onMounted(async () => {
   width: 62px;
   height: 40px;
   text-align: center;
-  font-size: 15px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -533,7 +526,7 @@ onMounted(async () => {
   border-radius: var(--radius);
   background: transparent;
   color: var(--gray-5);
-  font-size: 16px;
+  font-size: 17px;
   cursor: pointer;
 }
 
@@ -550,11 +543,6 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   margin-top: 10px;
-}
-
-.add-hint {
-  color: var(--text-muted);
-  font-size: 12px;
 }
 
 .variant-picker {
@@ -578,7 +566,7 @@ onMounted(async () => {
   width: 64px;
   padding-top: 8px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .picker-chips {
@@ -595,7 +583,7 @@ onMounted(async () => {
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -632,7 +620,7 @@ onMounted(async () => {
 
 .swatch small {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .swatch.active small {
@@ -657,7 +645,7 @@ onMounted(async () => {
 }
 
 .model-total {
-  font-size: 15px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
 

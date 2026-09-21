@@ -146,7 +146,7 @@ defineExpose({ reload })
 
 .chip-copy strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -154,13 +154,13 @@ defineExpose({ reload })
 
 .chip-copy small {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .chip-plus {
   margin-left: auto;
   color: var(--accent);
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
 }
 </style>
