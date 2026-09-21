@@ -89,6 +89,27 @@ def sync_variant_matrix(product, size_ids=None, color_ids=None) -> list[Variant]
     return created
 
 
+@transaction.atomic
+def add_variant(product, size=None, color=None) -> Variant:
+    """Bitta variant qo'shadi — aynan shu o'lcham × rang juftligi uchun.
+
+    `sync_variant_matrix` dan farqi shunda: u to'liq ko'paytma yasaydi.
+    Ko'k M va L bo'lgan modelga qizil XL qo'shilsa, matritsa qizil M,
+    qizil L va ko'k XL ni ham yaratib yuborardi — do'konda bunday tovar
+    yo'q, lekin ular qoldiq ro'yxatida va yorliqlarda paydo bo'lardi.
+    Kirimda esa aynan kelgani kerak.
+
+    Juftlik allaqachon bo'lsa, borini qaytaradi — ikki marta bosilsa
+    ikkinchi variant yaratilmaydi.
+    """
+    existing = product.variants.filter(size=size, color=color).first()
+
+    if existing is not None:
+        return existing
+
+    return create_variant(product, size=size, color=color)
+
+
 def unique_slug(name: str, *, exclude_pk=None) -> str:
     """Nomdan takrorlanmaydigan manzil qismini yasaydi.
 

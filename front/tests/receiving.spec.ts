@@ -464,3 +464,177 @@ test('ochilgan hujjatda qatorlar model bo‘yicha katakchada', async ({ page }) 
     model.getByLabel(`${product.sizes[2]!.name} ${product.colors[1]!.name}: 0 dona`),
   ).toHaveText('—')
 })
+
+
+test('model yangi rangda keldi: variant kirim jadvalining o‘zida qo‘shiladi', async ({
+  page,
+  request,
+}) => {
+  const name = `Ko‘k kurtka ${Date.now()}`
+  const categories = await get(request, '/api/categories/')
+
+  // Do'konda shu model faqat ikki o'lchamda va bitta rangda bor
+  const created = await request.post(`${API}/api/products/`, {
+    headers: { Authorization: `Bearer ${admin.access}` },
+    data: {
+      category: categories[0].id,
+      name,
+      sale_price: '400000',
+      size_ids: [sizes[0]!.id, sizes[1]!.id],
+      color_ids: [colors[0]!.id],
+    },
+  })
+
+  expect(created.ok(), await created.text()).toBeTruthy()
+  expect((await created.json()).variants).toHaveLength(2)
+
+  const newSize = sizes[2]!.name
+  const newColor = colors[1]!.name
+
+  await openEditor(page)
+  await page.getByLabel('Tovar nomi').fill(name)
+  await page.getByRole('option', { name: new RegExp(name) }).click()
+
+  const grid = page.getByTestId('model-grid')
+
+  await expect(grid).toContainText(name)
+
+  // Yangi o'lcham × rang juftligi shu yerda yaratiladi
+  await grid.getByRole('button', { name: /O‘lcham yoki rang/ }).click()
+
+  await grid
+    .getByRole('group', { name: 'O‘lcham tanlash' })
+    .getByRole('button', { name: newSize, exact: true })
+    .click()
+
+  await grid
+    .getByRole('group', { name: 'Rang tanlash' })
+    .getByRole('button', { name: newColor, exact: true })
+    .click()
+
+  await grid.getByRole('button', { name: 'Qo‘shish' }).click()
+
+  // Yangi katak darhol fokusda — sonni yozish mumkin
+  const cell = grid.getByLabel(`${newSize} ${newColor}: nechta`)
+
+  await expect(cell).toBeFocused()
+  await page.keyboard.type('20')
+
+  await grid.getByLabel('Model tannarxi').fill('150000')
+  await grid.getByRole('button', { name: 'Tayyor' }).click()
+
+  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
+  await expect(page.getByTestId('purchase-summary')).toBeVisible()
+
+  // Faqat bitta yangi variant: qizil M, qizil L va ko'k XL yaratilmagan
+  const saved = await findProduct(request, name)
+
+  expect(saved.variants).toHaveLength(3)
+
+  const stock = Object.fromEntries(
+    saved.variants.map((variant: { label: string; stock_quantity: number }) => [
+      variant.label,
+      variant.stock_quantity,
+    ]),
+  )
+
+  expect(stock[`${newSize} / ${newColor}`]).toBe(20)
+  expect(Object.keys(stock).sort()).toEqual(
+    [
+      `${sizes[0]!.name} / ${colors[0]!.name}`,
+      `${sizes[1]!.name} / ${colors[0]!.name}`,
+      `${newSize} / ${newColor}`,
+    ].sort(),
+  )
+})
+
+test('bo‘sh katakdagi «+» aynan o‘sha juftlikni yaratadi', async ({ page, request }) => {
+  const name = `Bitta juftlik ${Date.now()}`
+  const categories = await get(request, '/api/categories/')
+
+  await request.post(`${API}/api/products/`, {
+    headers: { Authorization: `Bearer ${admin.access}` },
+    data: {
+      category: categories[0].id,
+      name,
+      sale_price: '200000',
+      size_ids: [sizes[0]!.id, sizes[1]!.id],
+      color_ids: [colors[0]!.id],
+    },
+  })
+
+  await openEditor(page)
+  await page.getByLabel('Tovar nomi').fill(name)
+  await page.getByRole('option', { name: new RegExp(name) }).click()
+
+  const grid = page.getByTestId('model-grid')
+
+  // Avval yangi rangni qo'shamiz — jadvalda bo'sh kataklar paydo bo'ladi
+  await grid.getByRole('button', { name: /O‘lcham yoki rang/ }).click()
+
+  await grid
+    .getByRole('group', { name: 'O‘lcham tanlash' })
+    .getByRole('button', { name: sizes[0]!.name, exact: true })
+    .click()
+
+  await grid
+    .getByRole('group', { name: 'Rang tanlash' })
+    .getByRole('button', { name: colors[1]!.name, exact: true })
+    .click()
+
+  await grid.getByRole('button', { name: 'Qo‘shish' }).click()
+  await expect(grid.getByLabel(`${sizes[0]!.name} ${colors[1]!.name}: nechta`)).toBeFocused()
+
+  // Endi bo'sh katak: ikkinchi o'lcham × ikkinchi rang
+  const empty = grid.getByRole('button', {
+    name: `${sizes[1]!.name} ${colors[1]!.name}: variantni qo‘shish`,
+  })
+
+  await expect(empty).toBeVisible()
+  await empty.click()
+
+  await expect(grid.getByLabel(`${sizes[1]!.name} ${colors[1]!.name}: nechta`)).toBeFocused()
+
+  const saved = await findProduct(request, name)
+
+  // 2 ta boshlang'ich + 2 ta qo'lda qo'shilgan = 4 (to'liq matritsa 6 bo'lardi)
+  expect(saved.variants).toHaveLength(4)
+})
+
+test('bitta o‘lcham va bitta rang: jadval bitta katakdan iborat', async ({ page }) => {
+  const name = `Bitta variant ${Date.now()}`
+
+  await openEditor(page)
+  await page.getByRole('button', { name: 'Yangi mahsulot' }).click()
+
+  const form = page.getByTestId('quick-product')
+
+  await expect(form).toContainText('Qaysi o‘lchamlar keldi?')
+  await expect(form).toContainText('Qaysi ranglar keldi?')
+  await expect(form).toContainText('Faqat kelganlarini belgilang')
+
+  await form.getByLabel('Mahsulot nomi').fill(name)
+  await form.getByLabel('Sotuv narxi').fill('250000')
+
+  await form
+    .getByRole('group', { name: 'O‘lchamlar' })
+    .getByRole('button', { name: sizes[0]!.name, exact: true })
+    .click()
+
+  await form
+    .getByRole('group', { name: 'Ranglar' })
+    .getByRole('button', { name: colors[0]!.name, exact: true })
+    .click()
+
+  await form.getByRole('button', { name: 'Saqlash va qabul qilish' }).click()
+  await expect(form.locator('.load-error')).toHaveCount(0)
+
+  const grid = page.getByTestId('model-grid')
+
+  await expect(grid.locator('.cell')).toHaveCount(1)
+  await expect(grid.getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`)).toBeFocused()
+
+  // Bitta katakka sonni yozib, darhol yakunlash mumkin
+  await page.keyboard.type('5')
+  await expect(grid).toContainText('5 dona')
+})

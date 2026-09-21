@@ -24,7 +24,7 @@ from apps.catalog.serializers import (
     SizeSerializer,
     VariantSerializer,
 )
-from apps.catalog.services import remove_product_image, reorder_images
+from apps.catalog.services import add_variant, remove_product_image, reorder_images
 from apps.core.permissions import IsAdmin, IsAdminOrReadOnly
 
 
@@ -79,6 +79,43 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=True)
 
         return queryset
+
+    @action(detail=True, methods=['post'], url_path='variants')
+    def add_variant(self, request, pk=None):
+        """Modelga bitta variant qo'shadi: `{"size": 3, "color": 5}`.
+
+        Kirim ekranidagi «+ O'lcham yoki rang» shu yerga murojaat qiladi:
+        model ko'k M va L bo'lib, qizil XL kelsa, faqat qizil XL
+        yaratiladi. To'liq matritsa mahsulot formasida qoladi.
+        """
+        product = self.get_object()
+
+        size = self._lookup(Size, request.data.get('size'), 'O‘lcham')
+        color = self._lookup(Color, request.data.get('color'), 'Rang')
+
+        if size is None and color is None:
+            raise ValidationError('O‘lcham yoki rang tanlang.')
+
+        existed = product.variants.filter(size=size, color=color).exists()
+        variant = add_variant(product, size=size, color=color)
+
+        return Response(
+            VariantSerializer(variant, context=self.get_serializer_context()).data,
+            status=200 if existed else 201,
+        )
+
+    @staticmethod
+    def _lookup(model, value, label):
+        """Bo'sh qiymat — «yo'q» degani (o'lchamsiz yoki rangsiz variant)."""
+        if value in (None, ''):
+            return None
+
+        found = model.objects.filter(pk=value).first()
+
+        if found is None:
+            raise NotFound(f'{label} topilmadi.')
+
+        return found
 
 
 class CatalogViewSet(viewsets.ReadOnlyModelViewSet):

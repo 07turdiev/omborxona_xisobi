@@ -133,6 +133,15 @@ export const catalogApi = {
     return data
   },
 
+  /**
+   * Modelga bitta variant qo'shadi — aynan shu o'lcham × rang juftligi.
+   * Juftlik bor bo'lsa, borini qaytaradi (server idempotent).
+   */
+  async addVariant(product: number, payload: { size: number | null; color: number | null }) {
+    const { data } = await api.post<Variant>(`/products/${product}/variants/`, payload)
+    return data
+  },
+
   async updateVariant(id: number, payload: Partial<Variant>) {
     const { data } = await api.patch<Variant>(`/variants/${id}/`, payload)
     return data

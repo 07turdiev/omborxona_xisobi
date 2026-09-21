@@ -356,8 +356,14 @@ async function onSave() {
           </div>
 
           <template v-if="!barcode">
+            <p class="field-hint variants-hint">
+              O‘lcham va rang — model <strong>qaysi ko‘rinishda kelgani</strong>.
+              Faqat kelganlarini belgilang. Keyin jadvalga sonini yozasiz.
+              Bittadan belgilansa, jadval bitta katakdan iborat bo‘ladi.
+            </p>
+
             <div class="field">
-              <span class="field-label">O‘lchamlar</span>
+              <span class="field-label">Qaysi o‘lchamlar keldi?</span>
 
               <div class="chips" role="group" aria-label="O‘lchamlar">
                 <button
@@ -375,7 +381,7 @@ async function onSave() {
             </div>
 
             <div class="field">
-              <span class="field-label">Ranglar</span>
+              <span class="field-label">Qaysi ranglar keldi?</span>
 
               <div class="swatches" role="group" aria-label="Ranglar">
                 <button
@@ -393,8 +399,9 @@ async function onSave() {
               </div>
 
               <small class="field-hint">
-                Har o‘lcham × rang juftligi uchun variant va shtrix-kod yaratiladi —
-                keyin katakchaga dona yozasiz.
+                Har o‘lcham × rang juftligi uchun alohida shtrix-kod chiqadi.
+                Keyinroq yangi o‘lcham yoki rang kelsa, uni kirim jadvalining
+                o‘zida qo‘shasiz — qolgan juftliklar yaratilmaydi.
               </small>
             </div>
           </template>
@@ -610,6 +617,11 @@ async function onSave() {
 
 .barcode-note {
   margin-bottom: 12px;
+}
+
+.variants-hint {
+  margin-bottom: 10px;
+  line-height: 1.6;
 }
 
 .chips,

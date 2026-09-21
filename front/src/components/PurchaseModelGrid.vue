@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
+import { catalogApi } from '@/api/catalog'
+import { errorMessage } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { formatMoney, formatSum, suggestPrice } from '@/utils/money'
 import {
@@ -11,8 +13,10 @@ import {
   lineCost,
   modelTotal,
   modelUnits,
+  orderAxis,
   type DraftModel,
 } from '@/utils/receiving'
+import type { Color, Size } from '@/types'
 
 /**
  * Modelni qabul qilish katakchasi: ustunlar — o'lcham, qatorlar — rang.
@@ -23,6 +27,11 @@ import {
  *
  * Tannarx modelga bitta: bir kirimda bir model odatda bir narxda
  * keladi. Kerak bo'lsa alohida qatorga boshqa narx yoziladi.
+ *
+ * Model yangi o'lchamda yoki rangda kelishi mumkin (ko'k M va L edi,
+ * qizil XL keldi). Shuning uchun katakchadan chiqmasdan variant
+ * qo'shiladi: bo'sh katakdagi «+» yoki «O'lcham yoki rang» tugmasi.
+ * Faqat o'sha juftlik yaratiladi — matritsa emas.
  */
 
 const props = defineProps<{ model: DraftModel }>()
@@ -37,8 +46,29 @@ const model = ref<DraftModel>(cloneModel(props.model))
 const overridesOpen = ref(Object.keys(props.model.overrides).length > 0)
 const root = ref<HTMLElement | null>(null)
 
-const sizes = computed(() => gridSizes(model.value.variants))
-const colors = computed(() => gridColors(model.value.variants))
+/** Do'kondagi hamma o'lcham va rang — yangi juftlik tanlash uchun */
+const shopSizes = ref<Size[]>([])
+const shopColors = ref<Color[]>([])
+
+const pickerOpen = ref(false)
+const pickedSize = ref<number | null>(null)
+const pickedColor = ref<number | null>(null)
+const adding = ref(false)
+const error = ref('')
+
+const sizes = computed(() => orderAxis(gridSizes(model.value.variants), shopSizes.value))
+const colors = computed(() => orderAxis(gridColors(model.value.variants), shopColors.value))
+
+/** Modelda o'lcham (yoki rang) ishlatilsa, yangi juftlikda ham kerak */
+const needsSize = computed(() => sizes.value.some((size) => size.id !== null))
+const needsColor = computed(() => colors.value.some((color) => color.id !== null))
+
+const canAdd = computed(() => {
+  if (needsSize.value && pickedSize.value === null) return false
+  if (needsColor.value && pickedColor.value === null) return false
+
+  return pickedSize.value !== null || pickedColor.value !== null
+})
 
 const units = computed(() => modelUnits(model.value))
 const total = computed(() => modelTotal(model.value))
@@ -97,6 +127,68 @@ function onSave() {
   emit('save', model.value)
 }
 
+/** Yangi katakka fokus: qo'shilgan zahoti son yoziladi */
+async function focusCell(variantId: number) {
+  await nextTick()
+
+  const cell = root.value?.querySelector<HTMLInputElement>(`[data-variant="${variantId}"]`)
+
+  cell?.focus()
+  cell?.select()
+}
+
+/**
+ * Shu o'lcham × rang juftligi uchun bitta variant yaratadi.
+ *
+ * Server idempotent: juftlik bo'lsa, borini qaytaradi. Shuning uchun
+ * ikki marta bosilsa ham ikkinchi shtrix-kod chiqmaydi.
+ */
+async function addVariant(size: number | null, color: number | null) {
+  if (adding.value) return
+
+  adding.value = true
+  error.value = ''
+
+  try {
+    const variant = await catalogApi.addVariant(model.value.product, { size, color })
+
+    if (!model.value.variants.some((item) => item.id === variant.id)) {
+      model.value.variants.push(variant)
+    }
+
+    pickerOpen.value = false
+    pickedSize.value = null
+    pickedColor.value = null
+
+    await focusCell(variant.id)
+  } catch (err) {
+    error.value = errorMessage(err, 'Variant qo‘shib bo‘lmadi.')
+  } finally {
+    adding.value = false
+  }
+}
+
+function addPicked() {
+  if (!canAdd.value) return
+
+  void addVariant(pickedSize.value, pickedColor.value)
+}
+
+async function openPicker() {
+  pickerOpen.value = !pickerOpen.value
+
+  if (!pickerOpen.value || shopSizes.value.length || shopColors.value.length) return
+
+  try {
+    ;[shopSizes.value, shopColors.value] = await Promise.all([
+      catalogApi.sizes(),
+      catalogApi.colors(),
+    ])
+  } catch (err) {
+    error.value = errorMessage(err, 'O‘lcham va ranglarni yuklab bo‘lmadi.')
+  }
+}
+
 // Katakcha ochilishi bilan birinchi katakka fokus: qo'l klaviaturada
 // qoladi, sichqoncha kerak emas
 onMounted(async () => {
@@ -106,6 +198,16 @@ onMounted(async () => {
 
   first?.focus()
   first?.select()
+
+  // Ustunlar do'kondagi tartibda (S–M–L–XL) tursin
+  try {
+    ;[shopSizes.value, shopColors.value] = await Promise.all([
+      catalogApi.sizes(),
+      catalogApi.colors(),
+    ])
+  } catch {
+    // Tartib — qulaylik; ro'yxat kelmasa, variantlar tartibida qoladi
+  }
 })
 </script>
 
@@ -179,6 +281,7 @@ onMounted(async () => {
                 type="number"
                 min="0"
                 inputmode="numeric"
+                :data-variant="gridCell(model.variants, size.id, color.id)!.id"
                 :aria-label="`${size.name} ${color.name}: nechta`"
                 :value="quantity(gridCell(model.variants, size.id, color.id)!.id)"
                 @input="
@@ -190,12 +293,94 @@ onMounted(async () => {
                 @keydown.enter.prevent="onSave"
               />
 
-              <span v-else class="cell-missing">—</span>
+              <!-- Bunday juftlik hali yo'q: bir bosishda yaratiladi -->
+              <button
+                v-else
+                class="cell-add"
+                type="button"
+                :disabled="adding"
+                :title="`${size.name} ${color.name} qo‘shish`"
+                :aria-label="`${size.name} ${color.name}: variantni qo‘shish`"
+                @click="addVariant(size.id, color.id)"
+              >
+                +
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <div class="add-variant">
+      <button
+        class="button button-outline"
+        type="button"
+        :aria-expanded="pickerOpen"
+        @click="openPicker"
+      >
+        <svg><use href="#i-plus" /></svg>
+        <span>O‘lcham yoki rang</span>
+      </button>
+
+      <span class="add-hint">Model yangi o‘lchamda yoki rangda kelgan bo‘lsa</span>
+    </div>
+
+    <div v-if="pickerOpen" class="variant-picker">
+      <div v-if="shopSizes.length" class="picker-row">
+        <span class="picker-label">O‘lcham</span>
+
+        <div class="picker-chips" role="group" aria-label="O‘lcham tanlash">
+          <button
+            v-for="size in shopSizes"
+            :key="size.id"
+            class="size-chip"
+            :class="{ active: pickedSize === size.id }"
+            type="button"
+            :aria-pressed="pickedSize === size.id"
+            @click="pickedSize = pickedSize === size.id ? null : size.id"
+          >
+            {{ size.name }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="shopColors.length" class="picker-row">
+        <span class="picker-label">Rang</span>
+
+        <div class="picker-chips" role="group" aria-label="Rang tanlash">
+          <button
+            v-for="color in shopColors"
+            :key="color.id"
+            class="swatch"
+            :class="{ active: pickedColor === color.id }"
+            type="button"
+            :aria-pressed="pickedColor === color.id"
+            :aria-label="color.name"
+            @click="pickedColor = pickedColor === color.id ? null : color.id"
+          >
+            <span class="swatch-dot" :style="{ background: color.hex_code }" />
+            <small>{{ color.name }}</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="picker-actions">
+        <button class="button button-outline" type="button" @click="pickerOpen = false">
+          Bekor qilish
+        </button>
+
+        <button
+          class="button button-gradient"
+          type="button"
+          :disabled="!canAdd || adding"
+          @click="addPicked"
+        >
+          {{ adding ? 'Qo‘shilmoqda…' : 'Qo‘shish' }}
+        </button>
+      </div>
+    </div>
+
+    <p v-if="error" class="load-error">{{ error }}</p>
 
     <div class="model-foot">
       <button
@@ -340,11 +525,125 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
-.cell-missing {
-  display: block;
+/* Bunday juftlik hali yo'q — bosilsa yaratiladi */
+.cell-add {
   width: 62px;
-  color: var(--gray-4);
-  text-align: center;
+  height: 40px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--gray-5);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.cell-add:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* --- Yangi o'lcham yoki rang --- */
+
+.add-variant {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.add-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.variant-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-soft);
+}
+
+.picker-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.picker-label {
+  width: 64px;
+  padding-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.size-chip {
+  min-width: 44px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.size-chip.active {
+  border-color: var(--gray-9);
+  background: var(--gray-9);
+  color: #fff;
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 58px;
+  padding: 2px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.swatch-dot {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+}
+
+.swatch.active .swatch-dot {
+  box-shadow:
+    0 0 0 2px var(--surface-soft),
+    0 0 0 4px var(--accent);
+}
+
+.swatch small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.swatch.active small {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .model-foot {

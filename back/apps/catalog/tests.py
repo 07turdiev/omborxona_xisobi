@@ -10,8 +10,13 @@ from django.test import TestCase, override_settings
 from PIL import Image
 
 from apps.catalog.images import MAX_UPLOAD_BYTES
-from apps.catalog.models import Color, Product, ProductImage, Variant
-from apps.catalog.services import ean13_check_digit, next_internal_barcode, unique_slug
+from apps.catalog.models import Color, Product, ProductImage, Size, Variant
+from apps.catalog.services import (
+    add_variant,
+    ean13_check_digit,
+    next_internal_barcode,
+    unique_slug,
+)
 from apps.core.factories import (
     api_client,
     create_admin,
@@ -648,3 +653,110 @@ class CatalogSearchTests(TestCase):
 
         self.assertNotIn('effective_mxik_code', cashier_card)
         self.assertIn('effective_mxik_code', admin_card)
+
+
+class AddVariantTests(TestCase):
+    """Kirimda kelgan yangi o'lcham × rang juftligi.
+
+    Do'konda ko'k M va L bo'lgan kurtka qizil XL bo'lib kelsa, faqat
+    qizil XL qo'shilishi kerak. Matritsa (mahsulot formasi) bu yerda
+    yaramaydi: u qizil M, qizil L va ko'k XL ni ham yaratib yuboradi —
+    do'konda bunday tovar yo'q, lekin ular qoldiqda va yorliqlarda
+    paydo bo'lardi.
+    """
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.client_admin = api_client(self.admin)
+
+        self.product = create_product(sizes=('M', 'L'), colors=('Ko‘k',))
+        self.blue = Color.objects.get(name='Ko‘k')
+        self.large = Size.objects.get(name='L')
+
+        self.xl = Size.objects.create(name='XL', position=9)
+        self.red = Color.objects.create(name='Qizil', hex_code='#c02626')
+
+    def pairs(self):
+        return {
+            (variant.size_id, variant.color_id) for variant in self.product.variants.all()
+        }
+
+    def test_creates_only_the_asked_pair(self):
+        before = self.pairs()
+
+        variant = add_variant(self.product, size=self.xl, color=self.red)
+
+        self.assertEqual(self.pairs() - before, {(self.xl.pk, self.red.pk)})
+        self.assertEqual(self.product.variants.count(), 3)
+
+        # Qizil M, qizil L va ko'k XL yaratilmadi
+        self.assertFalse(
+            self.product.variants.filter(size=self.large, color=self.red).exists()
+        )
+        self.assertFalse(
+            self.product.variants.filter(size=self.xl, color=self.blue).exists()
+        )
+
+        self.assertTrue(is_valid_ean13(variant.barcode), variant.barcode)
+        self.assertEqual(Variant.objects.filter(barcode=variant.barcode).count(), 1)
+        self.assertTrue(variant.sku)
+
+    def test_is_idempotent(self):
+        first = add_variant(self.product, size=self.xl, color=self.red)
+        second = add_variant(self.product, size=self.xl, color=self.red)
+
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(self.product.variants.count(), 3)
+
+    def test_api_creates_once(self):
+        response = self.client_admin.post(
+            f'/api/products/{self.product.pk}/variants/',
+            {'size': self.xl.pk, 'color': self.red.pk},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        body = response.json()
+
+        self.assertEqual(body['size_name'], 'XL')
+        self.assertEqual(body['color_name'], 'Qizil')
+        self.assertEqual(body['stock_quantity'], 0)
+        self.assertTrue(is_valid_ean13(body['barcode']), body['barcode'])
+
+        # Ikkinchi marta bosilsa — o'sha variant, yangisi emas
+        again = self.client_admin.post(
+            f'/api/products/{self.product.pk}/variants/',
+            {'size': self.xl.pk, 'color': self.red.pk},
+            format='json',
+        )
+
+        self.assertEqual(again.status_code, 200, again.content)
+        self.assertEqual(again.json()['id'], body['id'])
+        self.assertEqual(self.product.variants.count(), 3)
+
+    def test_api_needs_size_or_color(self):
+        response = self.client_admin.post(
+            f'/api/products/{self.product.pk}/variants/', {}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)
+
+    def test_api_rejects_unknown_size(self):
+        response = self.client_admin.post(
+            f'/api/products/{self.product.pk}/variants/',
+            {'size': 9999, 'color': self.red.pk},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 404, response.content)
+
+    def test_cashier_cannot_add_variants(self):
+        response = api_client(create_cashier()).post(
+            f'/api/products/{self.product.pk}/variants/',
+            {'size': self.xl.pk, 'color': self.red.pk},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 403, response.content)
+        self.assertEqual(self.product.variants.count(), 2)

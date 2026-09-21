@@ -166,14 +166,23 @@ Ish tartibi:
    "Bahorgi kurtka". Uning ichida o'lchamlar va ranglar bo'ladi.
 
 2. **Modelni toping.** Agar u do'konda birinchi marta bo'lsa —
-   «Yangi mahsulot»: nomi, brendi, kategoriyasi, o'lchamlari va ranglari
-   yoziladi (rasm ixtiyoriy, keyin ham qo'shiladi). Avval kelgan bo'lsa —
-   nomini yozib ro'yxatdan tanlang yoki ekran tepasidagi oxirgi modellar
-   qatoridan bosing.
+   «Yangi mahsulot»: nomi, brendi, kategoriyasi va **qaysi o'lcham,
+   qaysi ranglarda kelgani** belgilanadi (rasm ixtiyoriy, keyin ham
+   qo'shiladi). Bitta o'lcham va bitta rang belgilansa, jadval bitta
+   katakdan iborat bo'ladi. Avval kelgan bo'lsa — nomini yozib
+   ro'yxatdan tanlang yoki ekran tepasidagi oxirgi modellar qatoridan
+   bosing.
 
 3. **Katakchani to'ldiring.** Ustunlar — o'lchamlar, qatorlar — ranglar.
    Har katakka nechta kelganini yozasiz, Tab bilan keyingisiga o'tasiz.
    Bo'sh katak — o'sha o'lchamdan kelmagan degani.
+
+   Model yangi o'lchamda yoki rangda kelgan bo'lsa (ko'k M va L edi,
+   qizil XL keldi), «O'lcham yoki rang» tugmasi bilan shu yerda
+   qo'shiladi — mahsulot sahifasiga o'tish shart emas. Punktir katakdagi
+   «+» ham xuddi shunday ishlaydi. **Faqat o'sha juftlik** yaratiladi:
+   qizil M, qizil L va ko'k XL paydo bo'lmaydi (mahsulot formasidagi
+   to'liq matritsa esa avvalgidek ishlaydi).
 
 4. **Tannarx va ustama.** Tannarx modelga bitta yoziladi va hamma
    qatorga tushadi; bitta qatorniki boshqacha bo'lsa, «Alohida tannarx»

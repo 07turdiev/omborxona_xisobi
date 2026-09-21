@@ -179,6 +179,23 @@ export function gridColors(variants: Variant[]): GridAxis[] {
   return axis(variants, 'color')
 }
 
+/**
+ * O'qni do'kondagi tartibga soladi: o'lchamlar S–M–L–XL bo'lib chiqsin.
+ *
+ * Variantlar yaratilgan tartibda keladi, kirimda qo'shilgani esa
+ * oxiriga tushadi — XL M dan oldin turib qolmasin.
+ */
+export function orderAxis(axis: GridAxis[], reference: { id: number }[]): GridAxis[] {
+  const order = new Map(reference.map((item, index) => [item.id, index]))
+
+  return [...axis].sort((a, b) => {
+    const left = a.id === null ? -1 : (order.get(a.id) ?? Number.MAX_SAFE_INTEGER)
+    const right = b.id === null ? -1 : (order.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+
+    return left - right
+  })
+}
+
 export function gridCell(
   variants: Variant[],
   size: number | null,

@@ -13,6 +13,7 @@ import {
   modelFromLines,
   modelTotal,
   modelUnits,
+  orderAxis,
 } from './receiving'
 import type { Product, PurchaseLine, Variant } from '@/types'
 
@@ -82,6 +83,38 @@ describe('katakcha o‘qlari', () => {
     expect(gridColors(variants).map((color) => color.name)).toEqual(['Oq', 'Qora'])
     expect(gridCell(variants, 11, 21)?.id).toBe(QORA_M.id)
     expect(gridCell(variants, 99, 21)).toBeUndefined()
+  })
+})
+
+describe('o‘qlarni tartiblash', () => {
+  const shopSizes = [{ id: 10 }, { id: 11 }, { id: 12 }]
+
+  it('do‘kondagi tartibda turadi', () => {
+    const axis = [
+      { id: 12, name: 'L' },
+      { id: 10, name: 'S' },
+      { id: 11, name: 'M' },
+    ]
+
+    expect(orderAxis(axis, shopSizes).map((item) => item.name)).toEqual(['S', 'M', 'L'])
+  })
+
+  it('ro‘yxatda yo‘q o‘q oxirida qoladi', () => {
+    const axis = [
+      { id: 99, name: 'Maxsus' },
+      { id: 10, name: 'S' },
+    ]
+
+    expect(orderAxis(axis, shopSizes).map((item) => item.name)).toEqual(['S', 'Maxsus'])
+  })
+
+  it('o‘lchamsiz (bo‘sh) ustun birinchi', () => {
+    const axis = [
+      { id: 10, name: 'S' },
+      { id: null, name: '—' },
+    ]
+
+    expect(orderAxis(axis, shopSizes).map((item) => item.name)).toEqual(['—', 'S'])
   })
 })
 
