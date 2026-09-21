@@ -482,7 +482,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           @click="onComplete"
         >
           {{ saving ? 'Saqlanmoqda…' : 'Yakunlash' }}
-          <span class="key light">F2</span>
+          <span class="key on-gold">F2</span>
         </button>
       </div>
 
@@ -516,7 +516,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           type="button"
           @click="closeChange"
         >
-          Yopish <span class="key light">Esc</span>
+          Yopish <span class="key on-gold">Esc</span>
         </button>
       </div>
     </div>
@@ -544,7 +544,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   min-height: 0;
   padding: 10px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 
@@ -694,7 +694,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   overflow-y: auto;
   padding: 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 
@@ -788,9 +788,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   font-size: 11px;
 }
 
-.key.light {
-  border-color: rgb(255 255 255 / 45%);
-  color: rgb(255 255 255 / 85%);
+/* Oltin tugma ustida: yozuvi ham to'q jigarrang */
+.key.on-gold {
+  border-color: rgb(58 42 18 / 30%);
+  background: rgb(255 255 255 / 32%);
+  color: var(--gradient-text);
 }
 
 .returns-link {
@@ -819,7 +821,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgb(15 23 42 / 55%);
+  background: rgb(35 27 20 / 55%);
 }
 
 .change-card {
@@ -828,7 +830,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   align-items: center;
   gap: 6px;
   padding: 32px 48px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
   text-align: center;
 }
@@ -893,6 +895,41 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   .step {
     width: 44px;
     height: 44px;
+  }
+}
+
+/* Telefonda qat'iy kengliklar sig'maydi: to'rt ustun 344px ni
+   egallab, tovar nomiga joy qolmasdi va nom bir harfdan
+   tushardi. Shu kenglikda ustunlarni brauzer o'zi taqsimlaydi. */
+@media (max-width: 640px) {
+  .cart-table {
+    table-layout: auto;
+  }
+
+  .cart-table th:nth-child(2),
+  .cart-table th:nth-child(3),
+  .cart-table th:nth-child(4),
+  .cart-table th:nth-child(5) {
+    width: auto;
+  }
+
+  .cart-table th,
+  .cart-table td {
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .step {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cart-number {
+    width: 38px;
+  }
+
+  .cart-number.discount {
+    width: 42px;
   }
 }
 </style>

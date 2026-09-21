@@ -28,6 +28,12 @@ onMounted(async () => {
     <p v-else-if="loading" class="empty-state">Yuklanmoqda…</p>
 
     <template v-else-if="data">
+      <!-- Ingichka bezak lenta: raqamlar baribir birinchi ekranda qoladi -->
+      <header class="shop-banner">
+        <p class="banner-name">Madlen sen</p>
+        <p class="banner-sub">Ayollar kiyimlari do‘koni</p>
+      </header>
+
       <h3 class="block-title">Bugun</h3>
 
       <div class="kpi-row">
@@ -89,6 +95,38 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* Do'kon lentasi — balandligi 72px: 1366x768 ekranda ikkala
+   raqamlar qatori ham birinchi ekranda qoladi */
+.shop-banner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 72px;
+  margin-bottom: 14px;
+  padding: 0 22px;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background:
+    linear-gradient(90deg, rgb(28 22 18 / 88%) 25%, rgb(28 22 18 / 45%)),
+    url("../assets/boutique.webp") center 38% / cover no-repeat,
+    #2b221b;
+  color: #f7ecd8;
+}
+
+.banner-name {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.banner-sub {
+  margin-top: 3px;
+  color: #d8c6a6;
+  font-size: 10px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+}
+
 .block-title {
   margin: 0 0 8px;
   font-size: 14px;
@@ -105,10 +143,11 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .kpi-card span {

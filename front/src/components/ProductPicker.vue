@@ -356,7 +356,7 @@ function take(variant: Variant | undefined) {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgb(15 23 42 / 45%);
+  background: rgb(35 27 20 / 45%);
 }
 
 .variant-card {
@@ -367,7 +367,7 @@ function take(variant: Variant | undefined) {
   max-width: 520px;
   max-height: 80vh;
   padding: 16px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 

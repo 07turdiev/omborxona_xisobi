@@ -1,400 +1,270 @@
 /* =========================================================
-   STORE FLOW — MAIN STYLE
-   ========================================================= */
+   KIRISH SAHIFASI
 
+   Do'kon dizayni: butun ekran bo'ylab butik fotosi, ustida
+   shaffof shisha forma. Ilovaning o'zi (app.css) yorug' va
+   sokin, kirish sahifasi esa do'konning yuzi.
 
-/* =========================================================
-   VARIABLES
-   ========================================================= */
-
-:root {
-
-    /* Kirish sahifasi ham asosiy interfeys bilan bir xil tilda
-       gapirishi kerak — qiymatlar `app.css` dagi Mantine
-       shkalasidan olingan. */
-
-    --primary: #4c6ef5;
-    --primary-hover: #4263eb;
-    --primary-soft: #edf2ff;
-
-    --accent: #5c7cfa;
-
-    --bg: #f8f9fa;
-    --panel: #ffffff;
-
-    --text: #212529;
-    --text-secondary: #495057;
-    --text-muted: #868e96;
-
-    --border: #e9ecef;
-    --border-focus: #4c6ef5;
-
-    --input-bg: #ffffff;
-
-    --danger: #e03131;
-    --danger-soft: #fff5f5;
-
-    --success: #2f9e44;
-    --success-soft: #ebfbee;
-
-    --warning: #f08c00;
-
-    --shadow-sm:
-        0 1px 3px rgba(0, 0, 0, .05),
-        0 1px 2px rgba(0, 0, 0, .1);
-
-    --shadow-md:
-        0 1px 3px rgba(0, 0, 0, .05),
-        0 20px 25px -5px rgba(0, 0, 0, .05),
-        0 10px 10px -5px rgba(0, 0, 0, .04);
-
-    --shadow-lg:
-        0 1px 3px rgba(0, 0, 0, .05),
-        0 20px 25px -5px rgba(0, 0, 0, .05),
-        0 10px 10px -5px rgba(0, 0, 0, .04);
-
-    --radius-sm: 2px;
-    --radius-md: 4px;
-    --radius-lg: 4px;
-
-    --transition: .12s ease;
-
-}
-
-
-/* =========================================================
-   RESET
-   ========================================================= */
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-
-html {
-    min-height: 100%;
-}
-
-
-body {
-    min-height: 100vh;
-    font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Roboto,
-        Helvetica,
-        Arial,
-        sans-serif,
-        "Apple Color Emoji",
-        "Segoe UI Emoji";
-
-    background: var(--bg);
-    color: var(--text);
-
-    transition:
-        background var(--transition),
-        color var(--transition);
-
-    overflow-x: hidden;
-}
-
-
-button,
-input {
-    font: inherit;
-}
-
-
-button {
-    border: none;
-}
-
-
-input,
-button,
-a {
-    outline: none;
-}
-
-
-svg {
-    display: block;
-}
-
-
-/* =========================================================
-   LOGIN PAGE
+   Bu fayl faqat `LoginView.vue` bilan yuklanadi, lekin
+   yuklangach sahifada qoladi. Shuning uchun o'zgaruvchilar
+   `:root` da emas, `.login-page` ichida: aks holda ular
+   kirgandan keyin ham butun ilovaning ranglarini bosib
+   turardi (ilgari shunday edi).
    ========================================================= */
 
 .login-page {
 
-    width: 100%;
+    /* Shisha panel: fotoning to'q joyida ham, yorug' joyida
+       ham matn o'qilsin uchun ikki qatlam */
+    --glass:
+        linear-gradient(
+            135deg,
+            rgb(69 53 40 / 42%),
+            rgb(28 22 18 / 62%)
+        );
+
+    --glass-line: rgb(219 193 147 / 34%);
+
+    --ink-light: #faf2e0;
+    --ink-soft: #ded2bb;
+    --ink-muted: #bdb29b;
+
+    --gold-soft: #d8b678;
+
     min-height: 100vh;
 
-    position: relative;
+    /* Suratni ko'rsatishdan oldin sahifa qog'oz rangida turadi */
+    background:
+        linear-gradient(
+            90deg,
+            rgb(14 11 8 / 78%),
+            rgb(21 16 11 / 42%)
+        ),
+        url("./boutique.webp") center / cover no-repeat,
+        #2b221b;
 
+    color:
+        var(--ink-light);
+
+    /* To'q fonda yupqa serif harflar rangli hoshiya bilan chiqadi */
+    -webkit-font-smoothing: antialiased;
 }
 
 
 /* =========================================================
-   BACKGROUND
+   JOYLASHUV
 
-   Prototipda sahifa orqasida to'r va uchta rangli "yorug'lik
-   dog'i" bor edi. Ular olib tashlandi: kirish sahifasi ish
-   boshlanadigan joy, reklama sahifasi emas. Belgilash
-   `LoginView.vue` da qoldirilmadi — bu qoidalar ham bo'sh
-   turmasin uchun o'chirildi.
-   ========================================================= */
-
-
-/* =========================================================
-   LAYOUT
+   Karta chap tomonda: fotoning o'ng chetida kiyimlar turadi,
+   ularni yopib qo'ymaydi.
    ========================================================= */
 
 .login-layout {
-
-    position: relative;
-    z-index: 2;
-
-    width: 100%;
     min-height: 100vh;
-
-    display: grid;
-
-    grid-template-columns:
-        minmax(420px, 1.08fr)
-        minmax(500px, .92fr);
-
-}
-
-
-/* =========================================================
-   LEFT SHOWCASE
-   ========================================================= */
-
-.login-showcase {
-
-    position: relative;
-
-    padding: 48px 64px;
-
-    /* Yagona neytral to'q rang — gradient, yorug'lik dog'lari va
-       bezak halqalar olib tashlandi. */
-    background: #212529;
-
-    color: #ffffff;
-
-    overflow: hidden;
-
-}
-
-
-
-/* =========================================================
-   BRAND
-
-   Do'kon nomi logotipning o'zida yozilgan, shuning uchun uning
-   yonida matn takrorlanmaydi. Logotip o'lchami komponentning
-   o'zida beriladi (LoginView.vue, AppSidebar.vue).
-   ========================================================= */
-
-.showcase-content {
-
-    min-height:
-        calc(100vh - 96px);
 
     display: flex;
-    flex-direction: column;
-
-}
-
-
-
-
-/* =========================================================
-   RIGHT LOGIN PANEL
-   ========================================================= */
-
-.login-panel {
-
-    position: relative;
-
-    min-height: 100vh;
+    align-items: center;
 
     padding:
-        50px 70px 32px;
+        40px max(5vw, 24px);
+}
 
-    display: flex;
-    flex-direction: column;
 
-    align-items: center;
-    justify-content: center;
+.login-card {
+    position: relative;
+    overflow: hidden;
+
+    width:
+        min(430px, 100%);
+
+    padding:
+        38px 36px 34px;
+
+    border-radius: 25px;
 
     background:
-        color-mix(
-            in srgb,
-            var(--panel) 92%,
-            transparent
-        );
+        var(--glass);
 
     backdrop-filter:
-        blur(22px);
+        blur(17px) saturate(115%);
 
-    transition:
-        background var(--transition);
+    -webkit-backdrop-filter:
+        blur(17px) saturate(115%);
 
+    border:
+        1px solid
+        var(--glass-line);
+
+    box-shadow:
+        inset 0 1px rgb(255 255 255 / 20%),
+        0 24px 70px rgb(0 0 0 / 38%);
+}
+
+
+/* Magnoliya shoxi — dizayndagi bezak, juda past ko'rinishda */
+.login-card::before {
+    content: "";
+
+    position: absolute;
+
+    right: -70px;
+    bottom: -60px;
+
+    width: 210px;
+    height: 220px;
+
+    background:
+        url("./magnolia.webp") center / contain no-repeat;
+
+    /* Bezak matn ostida sezilib turadi, o'qishga xalaqit bermaydi */
+    opacity: .08;
+
+    pointer-events: none;
 }
 
 
 /* =========================================================
-   LOGIN BOX
+   LOGOTIP
+
+   Animatsiya kirishni kutdirmaydi: forma birinchi kadrdan
+   ishlaydi, logotip esa bir marta — sessiyada bir marta va
+   harakat kamaytirilgan bo'lsa umuman — jonlanadi.
    ========================================================= */
 
-.login-box {
+.login-logo {
+    display: block;
 
-    width: 100%;
-    max-width: 430px;
+    width:
+        min(260px, 74%);
 
+    height: auto;
+
+    margin-bottom: 24px;
 }
 
 
-.mobile-brand {
-
-    display: none;
-
+.login-logo.enter {
+    animation:
+        logo-enter .85s cubic-bezier(.2, .7, .2, 1);
 }
 
 
-.login-heading {
+@keyframes logo-enter {
+    from {
+        opacity: 0;
 
-    margin-bottom: 34px;
+        transform:
+            translateY(10px) scale(.97);
 
+        filter: blur(5px);
+    }
+
+    to {
+        opacity: 1;
+
+        transform: none;
+
+        filter: none;
+    }
 }
 
 
+@media (prefers-reduced-motion: reduce) {
 
-.login-heading h2 {
-
-    font-size: 22px;
-
-    font-weight: 700;
-
-    letter-spacing: -1.15px;
-
-    margin-bottom: 8px;
+    .login-logo.enter {
+        animation: none;
+    }
 
 }
-
 
 
 /* =========================================================
-   MESSAGE
+   SARLAVHA
+   ========================================================= */
+
+.login-heading {
+    margin-bottom: 26px;
+}
+
+
+.login-heading h1 {
+    font-family:
+        var(--font-display);
+
+    font-size: 34px;
+    font-weight: 500;
+
+    line-height: 1.15;
+    letter-spacing: -.5px;
+}
+
+
+.login-heading p {
+    margin-top: 6px;
+
+    color:
+        var(--ink-muted);
+
+    font-size: 12px;
+
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   XATO XABARI
    ========================================================= */
 
 .login-message {
-
-    display: none;
-
+    display: flex;
     align-items: center;
 
     gap: 8px;
 
-    padding: 12px 12px;
+    margin-bottom: 18px;
 
-    margin-bottom: 16px;
+    padding: 11px 12px;
 
-    border-radius: var(--radius-md);
+    border-radius: 10px;
 
     background:
-        var(--danger-soft);
+        rgb(120 32 32 / 42%);
 
     border:
         1px solid
-        color-mix(
-            in srgb,
-            var(--danger) 18%,
-            transparent
-        );
+        rgb(255 173 173 / 38%);
 
-    color:
-        var(--danger);
+    color: #ffd9d9;
 
     font-size: 13px;
-
-    animation:
-        messageAppear .25s ease;
-
-}
-
-
-.login-message.show {
-
-    display: flex;
-
-}
-
-
-.login-message.success {
-
-    color:
-        var(--success);
-
-    background:
-        var(--success-soft);
-
-    border-color:
-        color-mix(
-            in srgb,
-            var(--success) 18%,
-            transparent
-        );
-
-}
-
-
-.message-icon {
-
-    flex:
-        0 0 auto;
-
 }
 
 
 .message-icon svg {
-
     width: 17px;
     height: 17px;
 
     fill: none;
-
     stroke: currentColor;
-
     stroke-width: 1.8;
 
     stroke-linecap: round;
     stroke-linejoin: round;
-
 }
 
 
 .login-message > span {
-
     flex: 1;
 
     line-height: 1.5;
-
 }
 
 
 .login-message button {
-
     width: 22px;
     height: 22px;
 
-    border-radius: var(--radius-md);
+    border-radius: 6px;
 
     background: transparent;
 
@@ -402,116 +272,51 @@ svg {
 
     cursor: pointer;
 
-    opacity: .6;
-
     font-size: 18px;
-
 }
 
 
 .login-message button:hover {
-
-    opacity: 1;
-
     background:
-        rgba(0,0,0,.04);
-
-}
-
-
-@keyframes messageAppear {
-
-    from {
-        opacity: 0;
-        transform:
-            translateY(-4px);
-    }
-
-    to {
-        opacity: 1;
-        transform:
-            translateY(0);
-    }
-
+        rgb(255 255 255 / 12%);
 }
 
 
 /* =========================================================
-   FORM
+   FORMA
    ========================================================= */
 
-.login-form {
-
-    width: 100%;
-
-}
-
-
 .form-group {
-
-    margin-bottom: 20px;
-
+    margin-bottom: 18px;
 }
 
 
 .form-group label {
-
     display: inline-block;
 
-    margin-bottom: 8px;
+    margin-bottom: 7px;
 
     color:
-        var(--text);
+        var(--ink-soft);
 
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
 
-}
-
-
-.label-row {
-
-    display: flex;
-
-    justify-content: space-between;
-    align-items: center;
-
-}
-
-
-.caps-warning {
-
-    display: none;
-
-    margin-bottom: 8px;
-
-    color: var(--warning);
-
-    font-size: 15px;
-    font-weight: 600;
-
-}
-
-
-.caps-warning.show {
-    display: inline-block;
+    letter-spacing: .3px;
 }
 
 
 .input-wrapper {
-
     position: relative;
 
     width: 100%;
-
 }
 
 
 .input-icon {
-
     position: absolute;
 
-    left: 15px;
+    left: 14px;
     top: 50%;
 
     transform:
@@ -520,149 +325,84 @@ svg {
     pointer-events: none;
 
     color:
-        var(--text-muted);
-
-    transition:
-        color var(--transition);
-
+        var(--ink-muted);
 }
 
 
 .input-icon svg {
-
     width: 18px;
     height: 18px;
 
     fill: none;
-
     stroke: currentColor;
-
     stroke-width: 1.7;
 
     stroke-linecap: round;
     stroke-linejoin: round;
-
 }
 
 
 .input-wrapper input {
-
     width: 100%;
-    height: 52px;
+    height: 49px;
 
     padding:
-        0 48px 0 45px;
+        0 46px 0 44px;
 
-    border-radius: var(--radius-md);
+    border-radius: 9px;
 
     border:
         1px solid
-        var(--border);
+        rgb(212 185 139 / 32%);
 
     background:
-        var(--input-bg);
+        rgb(27 21 18 / 42%);
 
-    color:
-        var(--text);
+    color: #fff2dc;
 
     font-size: 14px;
 
     transition:
-        all var(--transition);
-
-    box-shadow:
-        var(--shadow-sm);
-
+        border-color .12s ease,
+        box-shadow .12s ease;
 }
 
 
 .input-wrapper input::placeholder {
-
     color:
-        var(--text-muted);
-
-}
-
-
-.input-wrapper input:hover {
-
-    border-color:
-        color-mix(
-            in srgb,
-            var(--text-muted) 55%,
-            var(--border)
-        );
-
+        rgb(189 178 155 / 75%);
 }
 
 
 .input-wrapper input:focus {
-
     border-color:
-        var(--border-focus);
+        var(--gold-soft);
 
     box-shadow:
-        0 0 0 4px
-        var(--primary-soft);
-
+        0 0 0 3px
+        rgb(216 182 120 / 18%);
 }
 
 
-.input-wrapper:focus-within
-.input-icon {
-
+.input-wrapper:focus-within .input-icon {
     color:
-        var(--primary);
-
-}
-
-
-.input-wrapper.error input {
-
-    border-color:
-        var(--danger);
-
-    box-shadow:
-        0 0 0 4px
-        color-mix(
-            in srgb,
-            var(--danger) 8%,
-            transparent
-        );
-
-}
-
-
-.field-error {
-
-    display: block;
-
-    min-height: 0;
-
-    margin-top: 6px;
-
-    color:
-        var(--danger);
-
-    font-size: 15px;
-
+        var(--gold-soft);
 }
 
 
 .password-toggle {
-
     position: absolute;
 
-    right: 9px;
+    right: 8px;
     top: 50%;
 
     transform:
         translateY(-50%);
 
-    width: 35px;
-    height: 35px;
+    width: 34px;
+    height: 34px;
 
-    border-radius: var(--radius-md);
+    border-radius: 8px;
 
     display: grid;
     place-items: center;
@@ -672,105 +412,79 @@ svg {
     background: transparent;
 
     color:
-        var(--text-muted);
-
-    transition:
-        all var(--transition);
-
+        var(--ink-muted);
 }
 
 
 .password-toggle:hover {
-
     color:
-        var(--text);
+        var(--ink-light);
 
     background:
-        var(--primary-soft);
-
+        rgb(216 182 120 / 16%);
 }
 
 
 .password-toggle svg {
-
-    grid-area: 1 / 1;
-
     width: 18px;
     height: 18px;
 
     fill: none;
-
     stroke: currentColor;
-
     stroke-width: 1.7;
 
     stroke-linecap: round;
     stroke-linejoin: round;
-
-}
-
-
-.eye-closed {
-    display: none;
-}
-
-
-.password-toggle.visible
-.eye-open {
-    display: none;
-}
-
-
-.password-toggle.visible
-.eye-closed {
-    display: block;
 }
 
 
 /* =========================================================
-   LOGIN BUTTON
+   KIRISH TUGMASI
+
+   Oltin gradient och rang — yozuvi to'q jigarrang bo'lgani
+   uchun o'qiladi (5.3:1).
    ========================================================= */
 
 .login-button {
-
     width: 100%;
-    height: 40px;
+    height: 48px;
 
-    border-radius: var(--radius-md);
+    margin-top: 6px;
+
+    border-radius: 9px;
+
+    border:
+        1px solid #e4c28b;
 
     background:
-        var(--primary);
+        linear-gradient(115deg, #e9c990, #c49a58);
 
-    color: #ffffff;
+    color: #38260e;
 
     cursor: pointer;
 
+    box-shadow:
+        inset 0 1px rgb(255 255 255 / 45%),
+        0 8px 20px rgb(107 79 36 / 28%);
+
     transition:
-        background-color var(--transition);
-
-    overflow: hidden;
-
+        filter .12s ease;
 }
 
 
-.login-button:hover {
-
-    background:
-        var(--primary-hover);
-
+.login-button:hover:not(:disabled) {
+    filter: brightness(1.04);
 }
 
 
-.login-button:active {
-
-    transform:
-        translateY(0);
-
+.login-button:disabled {
+    cursor: not-allowed;
+    opacity: .75;
 }
 
 
-.button-content {
-
+.button-content,
+.button-loading {
     height: 100%;
 
     display: flex;
@@ -782,98 +496,44 @@ svg {
 
     font-size: 14px;
     font-weight: 600;
-
 }
 
 
 .button-content svg {
-
     width: 18px;
     height: 18px;
 
     fill: none;
-
     stroke: currentColor;
-
     stroke-width: 1.8;
 
     stroke-linecap: round;
     stroke-linejoin: round;
 
     transition:
-        transform var(--transition);
-
+        transform .12s ease;
 }
 
 
-.login-button:hover
-.button-content svg {
-
+.login-button:hover .button-content svg {
     transform:
         translateX(3px);
-
-}
-
-
-.button-loading {
-
-    display: none;
-
-    height: 100%;
-
-    align-items: center;
-    justify-content: center;
-
-    gap: 8px;
-
-    font-size: 14px;
-    font-weight: 600;
-
-}
-
-
-.login-button.loading
-.button-content {
-
-    display: none;
-
-}
-
-
-.login-button.loading
-.button-loading {
-
-    display: flex;
-
-}
-
-
-.login-button:disabled {
-
-    cursor: not-allowed;
-
-    opacity: .8;
-
 }
 
 
 .spinner {
-
     width: 17px;
     height: 17px;
 
     border-radius: 50%;
 
     border:
-        2px solid
-        rgba(255,255,255,.28);
+        2px solid rgb(56 38 14 / 30%);
 
-    border-top-color:
-        #ffffff;
+    border-top-color: #38260e;
 
     animation:
         spin .7s linear infinite;
-
 }
 
 
@@ -887,153 +547,68 @@ svg {
 }
 
 
+/* Klaviatura fokusi to'q fonda ham ko'rinsin */
+.login-page :focus-visible {
+    outline:
+        2px solid
+        var(--gold-soft);
+
+    outline-offset: 2px;
+}
 
 
 /* =========================================================
-   RESPONSIVE
+   KICHIK EKRAN
    ========================================================= */
 
-@media
-(max-width: 1050px) {
+@media (max-width: 900px) {
 
     .login-layout {
-
-        grid-template-columns:
-            .9fr 1.1fr;
-
-    }
-
-    .login-showcase {
+        justify-content: center;
 
         padding:
-            42px 40px;
-
+            32px 20px;
     }
 
-    .login-panel {
+    .login-card {
+        width: 100%;
 
         padding:
-            50px 50px 32px;
+            32px 24px 28px;
+    }
 
+    .login-logo {
+        width:
+            min(220px, 70%);
+    }
+
+    .login-heading h1 {
+        font-size: 29px;
     }
 
 }
 
 
-@media
-(max-width: 850px) {
+/* Past ekranda (noutbuk, aylantirilgan telefon) siqiladi */
+@media (max-height: 660px) {
 
-    .login-layout {
+    .login-logo {
+        width:
+            min(200px, 60%);
 
-        display: block;
-
+        margin-bottom: 16px;
     }
 
-    .login-showcase {
-
-        display: none;
-
+    .login-heading {
+        margin-bottom: 18px;
     }
 
-    .login-panel {
-
-        min-height: 100vh;
-
-        padding:
-            70px 24px 60px;
-
+    .login-heading h1 {
+        font-size: 26px;
     }
 
-    .login-box {
-
-        max-width: 440px;
-
-    }
-
-    .mobile-brand {
-
-        display: flex;
-
-        align-items: center;
-
-        gap: 12px;
-
-        margin-bottom: 32px;
-
-    }
-
-}
-
-
-@media
-(max-width: 520px) {
-
-    .login-panel {
-
-        justify-content:
-            flex-start;
-
-        padding:
-            36px 20px 70px;
-
-    }
-
-    .mobile-brand {
-
-        margin-bottom: 28px;
-
-    }
-
-    .login-heading h2 {
-
-        font-size: 20px;
-
-    }
-
-    .form-options {
-
-        align-items:
-            flex-start;
-
-        flex-direction:
-            column;
-
-        gap: 12px;
-
-    }
-
-    .security-label {
-
-        margin-left: 28px;
-
-    }
-
-}
-
-
-@media
-(max-height: 720px)
-and (min-width: 851px) {
-
-    .login-showcase {
-
-        padding-top: 32px;
-        padding-bottom: 32px;
-
-    }
-
-    .showcase-content {
-
-        min-height:
-            calc(100vh - 60px);
-
-    }
-
-    .login-panel {
-
-        padding-top: 35px;
-        padding-bottom: 35px;
-
+    .form-group {
+        margin-bottom: 14px;
     }
 
 }

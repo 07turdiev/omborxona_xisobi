@@ -611,14 +611,18 @@ function when(value: string) {
   font-size: 13px;
 }
 
+/* Mahsulot nomi — sahifaning sarlavhasi, shuning uchun serifda */
 .info-name {
   margin: 0;
-  font-size: 22px;
-  line-height: 1.25;
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .info-price {
   margin: 0;
+  color: var(--accent);
   font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -750,7 +754,7 @@ function when(value: string) {
   margin: 0;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
 }
 
 .variant-box dt,
@@ -868,14 +872,14 @@ function when(value: string) {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgb(15 23 42 / 45%);
+  background: rgb(35 27 20 / 45%);
 }
 
 .overlay-card {
   width: 100%;
   max-width: 420px;
   padding: 20px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 

@@ -129,7 +129,7 @@ function go(target: number) {
 .gallery-main {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface-soft);
   outline: none;
 }
@@ -220,7 +220,7 @@ function go(target: number) {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface-soft);
   color: var(--text-muted);
   font-size: 13px;

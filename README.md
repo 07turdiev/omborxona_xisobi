@@ -101,10 +101,21 @@ cd agent && npm test                                  # 85 ta
 
 ### Interfeys testlari — alohida bazada
 
-Playwright haqiqiy brauzerda ilovani tekshiradi: navigatsiya va tuzilma,
-birlashtirilgan mahsulotlar sahifasi, telefon o'lchami, chop etish
-(sahifalar soni va o'lchami chiqqan PDF dan o'lchanadi) va chop etish
-agenti.
+Playwright haqiqiy brauzerda ilovani tekshiradi (48 ta): navigatsiya va
+tuzilma, birlashtirilgan mahsulotlar sahifasi, kassa, telefon o'lchami,
+chop etish (sahifalar soni va o'lchami chiqqan PDF dan o'lchanadi) va
+chop etish agenti.
+
+`tests/screens.spec.ts` yettita asosiy ekranni ikki o'lchamda ochadi
+(1366x768 va 390x844) va ikki narsani tekshiradi: sahifa yon tomonga
+surilmaydi va konsolda xato yo'q. O'zgaruvchi berilsa, o'sha yurishda
+hujjat uchun rasm ham oladi:
+
+```bash
+cd front && SCREENSHOTS=after npm run test:ui tests/screens.spec.ts
+```
+
+Rasmlar `docs/screenshots/<nom>/` ichiga tushadi.
 
 Bu testlar ilovaga haqiqiy so'rovlar yuboradi — mahsulot, kirim va sotuv
 yaratadi. Shuning uchun ular **o'z bazasida** ishlaydi: `npm run test:ui`

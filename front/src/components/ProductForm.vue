@@ -258,7 +258,7 @@ async function onSave() {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgb(15 23 42 / 45%);
+  background: rgb(35 27 20 / 45%);
 }
 
 .overlay-card {
@@ -267,7 +267,7 @@ async function onSave() {
   max-height: 90vh;
   overflow-y: auto;
   padding: 20px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 

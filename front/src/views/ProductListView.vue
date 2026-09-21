@@ -75,12 +75,12 @@ const withoutMxik = computed(() =>
   auth.isAdmin ? cards.value.filter((card) => !card.effective_mxik_code).length : 0,
 )
 
-/** Telefondagi "Filtr" tugmasida nechta filtr yoqilgani ko'rinadi */
+/**
+ * Telefondagi "Filtr" tugmasida nechta filtr yoqilgani ko'rinadi.
+ * Kategoriya sanalmaydi — u chiplarda, ro'yxatning o'zida ko'rinib turadi.
+ */
 const activeFilters = computed(
-  () =>
-    [category.value !== '', inStock.value, lowStock.value, ordering.value !== 'newest'].filter(
-      Boolean,
-    ).length,
+  () => [inStock.value, lowStock.value, ordering.value !== 'newest'].filter(Boolean).length,
 )
 
 /** Tez yozilganda eskirgan javob yangisining ustiga yozilmasin */
@@ -218,13 +218,6 @@ onActivated(() => {
       </button>
 
       <div id="product-filters" class="catalog-filters" :class="{ open: filtersOpen }">
-        <select v-model="category" aria-label="Kategoriya">
-          <option value="">Barcha kategoriya</option>
-          <option v-for="item in categories" :key="item.id" :value="String(item.id)">
-            {{ item.name }}
-          </option>
-        </select>
-
         <select v-model="ordering" aria-label="Tartib">
           <option v-for="item in ORDERINGS" :key="item.value" :value="item.value">
             {{ item.label }}
@@ -270,6 +263,29 @@ onActivated(() => {
     </div>
 
     <p v-if="error" class="load-error">{{ error }}</p>
+
+    <!-- Kategoriya chiplari: bo'lim bir bosishda almashadi -->
+    <div v-if="categories.length" class="category-chips" role="group" aria-label="Kategoriya">
+      <button
+        type="button"
+        :class="{ selected: !category }"
+        :aria-pressed="!category"
+        @click="category = ''"
+      >
+        Hammasi
+      </button>
+
+      <button
+        v-for="item in categories"
+        :key="item.id"
+        type="button"
+        :class="{ selected: category === String(item.id) }"
+        :aria-pressed="category === String(item.id)"
+        @click="category = String(item.id)"
+      >
+        {{ item.name }}
+      </button>
+    </div>
 
     <p class="catalog-count" aria-live="polite">
       {{ loading ? 'Yuklanmoqda…' : `${count} ta mahsulot` }}
@@ -535,8 +551,48 @@ onActivated(() => {
   font-weight: 600;
 }
 
+/* --- Kategoriya chiplari --- */
+
+.category-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 2px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.category-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.category-chips button {
+  flex: none;
+  padding: 7px 15px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.category-chips button:hover {
+  background: var(--surface-hover);
+}
+
+.category-chips button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
 .catalog-count {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -587,8 +643,8 @@ onActivated(() => {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
 }
 
 .product-card {
@@ -596,18 +652,18 @@ onActivated(() => {
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
   color: inherit;
   text-decoration: none;
   transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .product-card:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-large);
 }
 
 .product-card:focus-visible {
@@ -620,7 +676,8 @@ onActivated(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-soft);
+  overflow: hidden;
+  background: var(--gray-1);
 }
 
 .card-image img {
@@ -628,6 +685,11 @@ onActivated(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s;
+}
+
+.product-card:hover .card-image img {
+  transform: scale(1.04);
 }
 
 .card-placeholder {
@@ -641,8 +703,8 @@ onActivated(() => {
 .card-body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 10px;
+  gap: 4px;
+  padding: 14px 15px 15px;
 }
 
 .card-name {
@@ -650,16 +712,21 @@ onActivated(() => {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   line-height: 1.3;
 }
 
 .card-category {
+  order: -1;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
 }
 
 .card-price {
+  color: var(--accent);
   font-size: 15px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;

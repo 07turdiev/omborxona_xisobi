@@ -5,94 +5,120 @@
 /* ---------------------------------------------------------
    Ranglar va shakl
 
-   Qiymatlar Mantine shkalasidan olingan: kulrang 0-9,
-   indigo 0-9 va holat ranglari.
+   Do'konning buyurtma qilingan dizayni: qog'oz rangli fon,
+   iliq kulranglar va bitta oltin urg'u. Kulrang shkala sovuq
+   ko'kdan sepiyaga o'tkazildi — oltin sovuq kulrang yonida
+   kir ko'rinadi.
 
-   Ranglar aralashtirilmaydi — rang faqat **ma'no** tashiganda
-   ishlatiladi: faol menyu, asosiy tugma, holat belgisi.
-   Qolgani kulrang. Shu sababli ekranda nima muhimligi
-   darhol ko'rinadi.
+   Rang faqat **ma'no** tashiganda ishlatiladi: faol menyu,
+   asosiy tugma, holat belgisi. Qolgani kulrang.
+
+   Kontrast: matn ranglari oq va qog'oz fonda WCAG AA
+   (4.5:1) dan o'tadi. Bezak oltini (--gold) faqat chiziq,
+   belgi va yirik sarlavha uchun — u matn rangi emas.
    --------------------------------------------------------- */
 
 :root {
-    /* Kulrang shkala — Mantine gray[0..9] */
-    --gray-0: #f8f9fa;
-    --gray-1: #f1f3f5;
-    --gray-2: #e9ecef;
-    --gray-3: #dee2e6;
-    --gray-4: #ced4da;
-    --gray-5: #adb5bd;
-    --gray-6: #868e96;
-    --gray-7: #495057;
-    --gray-8: #343a40;
-    --gray-9: #212529;
+    /* Iliq kulrang shkala — qog'oz va sepiya tuslari */
+    --gray-0: #faf8f4;
+    --gray-1: #f3efe7;
+    --gray-2: #e8e1d6;
+    --gray-3: #dcd3c4;
+    --gray-4: #c4bbab;
+    --gray-5: #a49a8a;
+    --gray-6: #8a8175;
+    --gray-7: #5a534b;
+    --gray-8: #423c35;
+    --gray-9: #2c2925;
 
-    --bg: var(--gray-0);
-    --surface: #ffffff;
-    --surface-soft: var(--gray-0);
-    --surface-hover: var(--gray-1);
+    --bg: #f7f4ef;
+    --surface: #fffdfa;
+    --surface-soft: #f7f3ec;
+    --surface-hover: #f3ede2;
 
     /* Chap panel ham ochiq rangda: kassa kun bo'yi ochiq turadi,
        yorug' xonada och fon kam charchatadi. */
-    --sidebar: #ffffff;
-    --sidebar-2: var(--gray-0);
-    --sidebar-text: var(--gray-7);
-    --sidebar-muted: var(--gray-6);
-    --sidebar-hover: var(--gray-1);
-    --sidebar-border: var(--gray-2);
+    --sidebar: #fdfbf7;
+    --sidebar-2: #faf6ef;
+    --sidebar-text: #6f675e;
+    --sidebar-muted: #736c63;
+    --sidebar-hover: #f4eee2;
+    --sidebar-border: #e6ddd0;
 
     --text: var(--gray-9);
     --text-secondary: var(--gray-7);
-    --text-muted: var(--gray-6);
 
-    --border: var(--gray-2);
-    --border-strong: var(--gray-3);
+    /* Dizayndagi #938c83 qog'oz fonda 3:1 — kichik matn uchun
+       yetmaydi, shuning uchun bir pog'ona to'qroq (4.7:1) */
+    --text-muted: #736c63;
 
-    /* Asosiy rang — indigo */
-    --accent: #4c6ef5;
-    --accent-hover: #4263eb;
-    --accent-strong: #3b5bdb;
-    --accent-soft: #edf2ff;
-    --accent-soft-2: #dbe4ff;
+    --border: #e8e1d6;
+    --border-strong: #dcd3c4;
+
+    /* Asosiy rang — oltin. Bu tus ikki tomonlama ishlaydi:
+       och fonda matn bo'lib o'qiladi (5.1:1) va o'zi fon
+       bo'lganda ustidagi oq matn o'qiladi (5.2:1). */
+    --accent: #8a6636;
+    --accent-hover: #75552b;
+    --accent-strong: #5f4522;
+    --accent-soft: #f6efe3;
+    --accent-soft-2: #ecdfc9;
     --accent-text: #ffffff;
 
-    /* Holat ranglari — faqat status uchun */
-    --blue: #228be6;
-    --blue-soft: #e7f5ff;
+    /* Bezak oltini: faol menyu chizig'i, ramka, urg'u */
+    --gold: #9b743f;
 
-    --teal: #0ca678;
-    --teal-soft: #e6fcf5;
+    /* Asosiy tugma. Oltin gradient och bo'lgani uchun ustidagi
+       matn to'q jigarrang — oq bo'lsa 2.7:1 bo'lib qolardi. */
+    --gradient: linear-gradient(115deg, #e3c290, #c09553);
+    --gradient-hover: linear-gradient(115deg, #dcbb83, #bb8f48);
+    --gradient-text: #3a2a12;
+    --gradient-border: #c9a469;
 
-    --orange: #e8590c;
-    --orange-soft: #fff4e6;
+    /* Holat ranglari — faqat status uchun. Har biri o'zining
+       och foni ustida AA dan o'tadigan darajada to'q. */
+    --blue: #166ab6;
+    --blue-soft: #ecf3f9;
 
-    --green: #2f9e44;
-    --green-soft: #ebfbee;
+    --teal: #0b7a5a;
+    --teal-soft: #e7f5f0;
 
-    --red: #e03131;
-    --red-soft: #fff5f5;
+    --orange: #b34a09;
+    --orange-soft: #fdf1e4;
 
-    --yellow: #f08c00;
-    --yellow-soft: #fff9db;
+    --green: #2b7a3b;
+    --green-soft: #eaf6ec;
 
-    /* Soyalar — Mantine xs va md. Prototipdagi
-       `0 12px 35px` kabi qalin soyalar olib tashlandi:
-       ish quroli emas, taqdimot slaydi ko'rinishini berardi. */
+    --red: #c02626;
+    --red-soft: #fdf0ee;
+
+    --yellow: #8a5d00;
+    --yellow-soft: #fdf4e0;
+
+    /* Soyalar — iliq va yumshoq, dizayndagidek: karta fondan
+       ko'tarilib turadi, lekin chegarasi ko'rinmaydi. */
     --shadow:
-        0 1px 3px rgba(0, 0, 0, .05),
-        0 1px 2px rgba(0, 0, 0, .1);
+        0 1px 2px rgba(79, 56, 39, .05),
+        0 6px 24px rgba(79, 56, 39, .05);
 
     --shadow-large:
-        0 1px 3px rgba(0, 0, 0, .05),
-        0 20px 25px -5px rgba(0, 0, 0, .05),
-        0 10px 10px -5px rgba(0, 0, 0, .04);
+        0 2px 6px rgba(79, 56, 39, .06),
+        0 15px 40px rgba(79, 56, 39, .14);
 
     --sidebar-width: 252px;
 
-    /* InvenTree `radius: 'xs'` dan foydalanadi — deyarli
-       to'g'ri burchak. Prototipdagi 15px juda yumshoq edi. */
-    --radius: 4px;
-    --radius-small: 2px;
+    /* Tugma va maydon yumshoq burchakli, karta esa dizayndagi
+       17px — ikkisi bitta o'lchamda bo'lsa yo tugma dumaloq,
+       yo karta burchakli bo'lib qolardi. */
+    --radius: 8px;
+    --radius-small: 5px;
+    --radius-card: 17px;
+
+    /* Serif faqat sarlavha uchun. Raqam, narx, jadval va kassa
+       sans-serif va tabular raqamlarda qoladi — serif raqamlari
+       turli kenglikda bo'lib, ustunni "titratadi". Shrift
+       tizimniki: internetdan hech narsa yuklanmaydi. */
+    --font-display: "Bodoni MT", Didot, Georgia, "Times New Roman", serif;
 
     --transition: .12s ease;
 
@@ -263,7 +289,7 @@ svg {
     appearance: none;
 
     background-image:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23868e96' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8175' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 
     background-repeat: no-repeat;
     background-position: right 8px center;
@@ -538,14 +564,18 @@ svg {
 }
 
 
-/* Faol bo'lim — InvenTree'da tanlangan yorliq asosiy rangning
-   ochiq pog'onasi bilan belgilanadi, gradient bilan emas. */
+/* Faol bo'lim: och oltin zamin va chap chetida oltin chiziq —
+   ro'yxatning qayerida turganingiz bir qarashda ko'rinadi. */
 .menu-item.active {
     color:
-        var(--accent);
+        var(--accent-strong);
 
     background:
-        var(--accent-soft);
+        linear-gradient(90deg, #f1e7d6, #faf6ee);
+
+    box-shadow:
+        inset 2px 0
+        var(--gold);
 
     font-weight: 500;
 }
@@ -727,8 +757,12 @@ svg {
         1px solid
         var(--border);
 
+    /* Yarim shaffof qog'oz: ostidagi ro'yxat surilganda
+       sarlavha panelining orqasidan sezilib turadi */
     background:
-        var(--surface);
+        rgb(255 253 249 / 92%);
+
+    backdrop-filter: blur(10px);
 }
 
 
@@ -749,9 +783,14 @@ svg {
 }
 
 
+/* Sahifa sarlavhasi — yagona joy, sarlavha serifda yoziladi */
 .page-heading h1 {
-    font-size: 18px;
-    font-weight: 600;
+    font-family:
+        var(--font-display);
+
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.2;
     letter-spacing: -.2px;
 }
 
@@ -1067,17 +1106,26 @@ svg {
 }
 
 
-/* Asosiy amal. Sinf nomi tarixiy — gradient endi yo'q. */
+/* Asosiy amal — oltin gradient. Matni to'q jigarrang: oltin
+   och rang, oq yozuv unda o'qilmaydi. */
 .button-gradient,
 .warehouse-gradient,
 .sales-gradient,
 .counterparty-gradient,
 .users-gradient {
     color:
-        var(--accent-text);
+        var(--gradient-text);
 
     background:
-        var(--accent);
+        var(--gradient);
+
+    border:
+        1px solid
+        var(--gradient-border);
+
+    box-shadow:
+        inset 0 1px rgb(255 255 255 / 45%),
+        0 4px 10px rgba(138, 102, 54, .18);
 }
 
 
@@ -1087,7 +1135,7 @@ svg {
 .counterparty-gradient:hover:not(:disabled),
 .users-gradient:hover:not(:disabled) {
     background:
-        var(--accent-hover);
+        var(--gradient-hover);
 }
 
 
@@ -1190,10 +1238,10 @@ svg {
     min-width: 0;
 
     padding:
-        16px;
+        18px;
 
     border-radius:
-        var(--radius);
+        var(--radius-card);
 
     background:
         var(--surface);
@@ -1201,6 +1249,9 @@ svg {
     border:
         1px solid
         var(--border);
+
+    box-shadow:
+        var(--shadow);
 }
 
 
@@ -1403,7 +1454,7 @@ svg {
     overflow: hidden;
 
     border-radius:
-        var(--radius);
+        var(--radius-card);
 
     background:
         var(--surface);
@@ -1411,6 +1462,9 @@ svg {
     border:
         1px solid
         var(--border);
+
+    box-shadow:
+        var(--shadow);
 }
 
 
@@ -1682,10 +1736,10 @@ svg {
     align-self: start;
 
     padding:
-        16px;
+        18px;
 
     border-radius:
-        var(--radius);
+        var(--radius-card);
 
     color:
         var(--text);
@@ -1718,10 +1772,10 @@ svg {
 
 .settings-card {
     padding:
-        16px;
+        18px;
 
     border-radius:
-        var(--radius);
+        var(--radius-card);
 
     background:
         var(--surface);
@@ -1729,6 +1783,9 @@ svg {
     border:
         1px solid
         var(--border);
+
+    box-shadow:
+        var(--shadow);
 }
 
 
@@ -2225,8 +2282,8 @@ svg {
 
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: 0 10px 24px rgb(15 23 42 / 12%%);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-large);
 
     opacity: 0;
     visibility: hidden;

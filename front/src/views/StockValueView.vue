@@ -176,7 +176,7 @@ watch([category, lowOnly], load)
   gap: 4px;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   background: var(--surface);
 }
 

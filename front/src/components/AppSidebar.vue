@@ -4,7 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 
 import { ADMIN_MENU, CASHIER_MENU } from '@/navigation'
 import { useAuthStore } from '@/stores/auth'
-import logoUrl from '@/assets/logo.png'
+import logoUrl from '@/assets/logo.webp'
 
 defineProps<{ show: boolean }>()
 const emit = defineEmits<{ close: [] }>()

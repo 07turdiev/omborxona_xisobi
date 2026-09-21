@@ -152,7 +152,41 @@ Testlar orasida ikkitasi alohida e'tiborga loyiq:
 
 ---
 
-## 8. API hujjatlari
+## 8. Ko'rinish: ranglar, shrift va rasmlar
+
+Butun interfeysning ko'rinishi ikki faylda:
+
+| Fayl | Nima |
+|---|---|
+| `front/src/assets/app.css` | Ilova: ranglar (`:root`), yon panel, topbar, tugma, karta, jadval |
+| `front/src/assets/login.css` | Faqat kirish sahifasi — to'q fon va shisha forma |
+
+Qoidalar:
+
+- **Rang faqat ma'no uchun.** Fon qog'oz rangida (`--bg`), matn to'q
+  jigarrang (`--text`), urg'u — bitta oltin (`--accent`). Yangi rang
+  qo'shishdan oldin tayyor `--` o'zgaruvchilarni qarang.
+- **Kontrast.** Matn ranglari o'z foni ustida WCAG AA (4.5:1) dan
+  o'tadi. Oltin gradientli tugmaning yozuvi shuning uchun oq emas, to'q
+  jigarrang (`--gradient-text`): oq yozuv 2.7:1 bo'lib qolardi.
+- **Serif faqat sarlavha uchun** (`--font-display`): sahifa sarlavhasi,
+  mahsulot nomi, kirish sahifasi. Raqam, narx, jadval, forma va kassa —
+  sans-serif va `font-variant-numeric: tabular-nums`, aks holda ustundagi
+  raqamlar turli kenglikda bo'lib "titraydi".
+- **Shrift tizimniki.** Internetdan hech qanday shrift yuklanmaydi —
+  do'konda internet uzilsa ham interfeys o'zgarmaydi.
+- **Rasmlar** `front/src/assets/` ichida, WebP formatida va ko'rsatiladigan
+  o'lchamdan ikki barobar katta (Retina uchun): `logo.webp` (560 px),
+  `boutique.webp` (1536 px, kirish foni va boshqaruv panelidagi lenta),
+  `magnolia.webp` (480 px, bezak). Mahsulotning rasmi bo'lmasa neytral
+  belgi ko'rsatiladi — boshqa tovarning surati kassirni chalg'itadi.
+- **Chop etish uslublariga tegilmaydi** (`main.css`, `ReceiptPrint.vue`,
+  `LabelPrint.vue`): chek va yorliq oq qog'ozda qora rangda chiqadi,
+  o'lchamlari testlar bilan qulflangan.
+
+---
+
+## 9. API hujjatlari
 
 | Manzil | Nima |
 |---|---|

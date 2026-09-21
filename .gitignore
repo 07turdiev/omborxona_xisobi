@@ -123,3 +123,9 @@ store/
 
 # Yangi prototip manbasi (PHP) — baza paroli va foydalanuvchilar dump bor, repoga kirmaydi
 new/
+
+# Buyurtma qilingan vizual dizayn (Madlen-sen). Undan olingan narsa —
+# ranglar, uslublar va uchta rasm — front/src/assets/ ga ko'chirilgan,
+# ya'ni ilova bu papkasiz to'liq ishlaydi. Manbaning o'zi 5 MB lik
+# alohida statik ilova, repoda ikkinchi index.html bo'lib chalkashtiradi.
+design/
