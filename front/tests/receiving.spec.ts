@@ -1,423 +1,209 @@
 /**
- * Kirim ekrani: tovar shtrix-kodsiz keladi.
+ * Tovar qabul qilish — uch qadam.
  *
- * Do'konga kelgan model yo umuman yangi bo'ladi, yo yorlig'i yo'q.
- * Shuning uchun kirim ekranida: nom bo'yicha qidiruv, o'sha yerda
- * yangi mahsulot yaratish va o'lcham × rang katakchasi bo'lishi kerak.
- *
- * Ilgari ekran faqat skanerlangan kodni qabul qilardi — yangi model
- * uchun administrator Mahsulotlar sahifasida modelni yaratib, keyin
- * har variantning 13 xonali kodini qo'lda terib chiqardi.
+ * Do'konga keladigan tovarda shtrix-kod bo'lmaydi: yorliqni do'konning
+ * o'zi chiqaradi. Shuning uchun ekran "qanday tovar keldi" degan
+ * savoldan boshlanadi, keyin "nechtadan", oxirida yorliq.
  */
 
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
-import { API, createTestProduct, login, openApp, type Session, type TestProduct } from './data'
+import { API, login, openApp, type Session } from './data'
 
-// Kirim kompyuteri — kassa bilan bir xil ekran
+// Do'kondagi kompyuter
 test.use({ viewport: { width: 1366, height: 768 } })
 
 let admin: Session
-let product: TestProduct
 let sizes: { id: number; name: string }[]
 let colors: { id: number; name: string }[]
+let categories: { id: number; name: string }[]
 
 test.beforeAll(async ({ request }) => {
   admin = await login(request)
-  product = await createTestProduct(request, admin)
 
   sizes = await get(request, '/api/sizes/')
   colors = await get(request, '/api/colors/')
+  categories = await get(request, '/api/categories/')
 })
 
-async function get(request: APIRequestContext, path: string) {
-  const response = await request.get(`${API}${path}`, {
-    headers: { Authorization: `Bearer ${admin.access}` },
-  })
+function headers() {
+  return { Authorization: `Bearer ${admin.access}` }
+}
 
-  return response.json()
+async function get(request: APIRequestContext, path: string) {
+  return (await request.get(`${API}${path}`, { headers: headers() })).json()
 }
 
 /** Nomi bo'yicha mahsulot — qoldiq va narxni tekshirish uchun */
-async function findProduct(request: APIRequestContext, name: string) {
+async function findProducts(request: APIRequestContext, name: string) {
   const page = await get(request, `/api/products/?search=${encodeURIComponent(name)}`)
 
-  expect(page.results.length, `«${name}» topilmadi`).toBeGreaterThan(0)
-
-  return page.results[0]
+  return page.results as {
+    id: number
+    name: string
+    sale_price: string
+    images: unknown[]
+    variants: { id: number; label: string; stock_quantity: number }[]
+  }[]
 }
 
-/** Oxirgi yaratilgan hujjat (ro'yxat yangisidan boshlanadi) */
+async function findProduct(request: APIRequestContext, name: string) {
+  const [first] = await findProducts(request, name)
+
+  expect(first, `«${name}» topilmadi`).toBeTruthy()
+
+  return first!
+}
+
+/** Do'konda avval kelgan model (API orqali, ekrandan emas) */
+async function createModel(
+  request: APIRequestContext,
+  name: string,
+  sizeIds: number[],
+  colorIds: number[],
+) {
+  const response = await request.post(`${API}/api/products/`, {
+    headers: headers(),
+    data: {
+      category: categories[0]!.id,
+      name,
+      sale_price: '400000',
+      size_ids: sizeIds,
+      color_ids: colorIds,
+    },
+  })
+
+  expect(response.ok(), await response.text()).toBeTruthy()
+
+  return (await response.json()) as { id: number; name: string }
+}
+
+/** Oxirgi hujjat (ro'yxat yangisidan boshlanadi) */
 async function lastPurchase(request: APIRequestContext) {
   const page = await get(request, '/api/purchases/')
 
   return page.results[0]
 }
 
-/** Kirim formasi sahifada doim ochiq — tugma bosish shart emas */
-async function openEditor(page: Page) {
-  await openApp(page, admin, '/purchases')
-  await page.getByRole('heading', { name: 'Kirim hujjati' }).waitFor()
+function panel(page: Page) {
+  return page.getByTestId('quick-product')
 }
 
-test('yangi model kirim ekranida yaratiladi va qoldiqqa tushadi', async ({ page, request }) => {
-  const name = `Kirim kurtkasi ${Date.now()}`
+function grid(page: Page) {
+  return page.getByTestId('model-grid')
+}
 
-  await openEditor(page)
-  await page.getByRole('button', { name: 'Yangi mahsulot' }).click()
+/** Menyudagi «Tovar qabul qilish» bandi bilan chalkashmasligi uchun */
+function confirmButton(page: Page) {
+  return page.getByTestId('step-quantities').getByRole('button', { name: 'Qabul qilish' })
+}
 
-  const form = page.getByTestId('quick-product')
+/** 1-qadam: yangi tovarni kiritadi va 2-qadamga o'tadi */
+async function fillNewProduct(
+  page: Page,
+  name: string,
+  options: { sizes?: string[]; colors?: string[]; cost?: string; markup?: string } = {},
+) {
+  const form = panel(page)
 
   await form.getByLabel('Mahsulot nomi').fill(name)
-  await form.getByLabel('Sotuv narxi').fill('500000')
 
-  // Ikki o'lcham × bitta rang — to'rtta emas, ikkita variant
-  await form
-    .getByRole('group', { name: 'O‘lchamlar' })
-    .getByRole('button', { name: sizes[0]!.name, exact: true })
-    .click()
+  if (options.cost) await form.getByLabel('Tannarx').fill(options.cost)
+  if (options.markup) await form.getByLabel('Ustama foizi').fill(options.markup)
 
-  await form
-    .getByRole('group', { name: 'O‘lchamlar' })
-    .getByRole('button', { name: sizes[1]!.name, exact: true })
-    .click()
+  for (const size of options.sizes ?? []) {
+    await form
+      .getByRole('group', { name: 'O‘lchamlar' })
+      .getByRole('button', { name: size, exact: true })
+      .click()
+  }
 
-  await form
-    .getByRole('group', { name: 'Ranglar' })
-    .getByRole('button', { name: colors[0]!.name, exact: true })
-    .click()
+  for (const color of options.colors ?? []) {
+    await form
+      .getByRole('group', { name: 'Ranglar' })
+      .getByRole('button', { name: color, exact: true })
+      .click()
+  }
 
-  await form.getByRole('button', { name: 'Saqlash va qabul qilish' }).click()
+  await form.getByRole('button', { name: 'Davom etish' }).click()
   await expect(form.locator('.load-error')).toHaveCount(0)
+}
 
-  // Saqlangan zahoti katakcha ochiladi — sahifadan chiqilmaydi
-  const grid = page.getByTestId('model-grid')
+test('yangi tovar: kiritiladi, soni yoziladi, yorliq chiqadi', async ({ page, request }) => {
+  const name = `Kirim kurtkasi ${Date.now()}`
+  const [first, second] = [sizes[0]!.name, sizes[1]!.name]
+  const color = colors[0]!.name
 
-  await expect(grid).toBeVisible()
-  await expect(grid).toContainText(name)
+  await openApp(page, admin, '/purchases')
 
-  await grid.getByLabel('Model tannarxi').fill('200000')
-  await grid.getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`).fill('3')
-  await grid.getByLabel(`${sizes[1]!.name} ${colors[0]!.name}: nechta`).fill('2')
+  // 1-qadam
+  await expect(page.getByTestId('receiving-steps')).toContainText('Qanday tovar')
+  await fillNewProduct(page, name, {
+    sizes: [first, second],
+    colors: [color],
+    cost: '200000',
+    markup: '60',
+  })
 
-  await expect(grid).toContainText('5 dona')
+  // 2-qadam: tannarx birinchi qadamdan ko'chadi
+  await expect(page.getByTestId('step-quantities')).toBeVisible()
+  await expect(grid(page).getByLabel('Model tannarxi')).toHaveValue('200000')
 
-  await grid.getByRole('button', { name: 'Tayyor' }).click()
+  await grid(page).getByLabel(`${first} ${color}: nechta`).fill('3')
+  await grid(page).getByLabel(`${second} ${color}: nechta`).fill('2')
 
-  await expect(page.locator('.models-table')).toContainText(name)
+  await expect(page.getByTestId('step-quantities')).toContainText('5 dona')
 
-  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
+  await confirmButton(page).click()
 
-  // Xulosa: model, dona, tannarx va yorliqlar soni
+  // 3-qadam: yorliqlar
   const summary = page.getByTestId('purchase-summary')
 
   await expect(summary).toBeVisible()
   await expect(summary).toContainText('1 000 000')
   await expect(summary.getByTestId('label-count')).toHaveText('5')
 
-  // Qo'shimcha yorliq: yirtilganini almashtirish uchun
   await summary.getByLabel('Qo‘shimcha yorliq').fill('2')
   await expect(summary.getByTestId('label-count')).toHaveText('7')
 
-  // Matritsa to'liq yaratilgan va qoldiq oshgan
+  // Qoldiq oshdi, matritsa faqat kelgan juftliklardan iborat
   const saved = await findProduct(request, name)
 
   expect(saved.variants).toHaveLength(2)
 
   const stock = Object.fromEntries(
-    saved.variants.map((variant: { label: string; stock_quantity: number }) => [
-      variant.label,
-      variant.stock_quantity,
-    ]),
+    saved.variants.map((variant) => [variant.label, variant.stock_quantity]),
   )
 
-  expect(stock[`${sizes[0]!.name} / ${colors[0]!.name}`]).toBe(3)
-  expect(stock[`${sizes[1]!.name} / ${colors[0]!.name}`]).toBe(2)
+  expect(stock[`${first} / ${color}`]).toBe(3)
+  expect(stock[`${second} / ${color}`]).toBe(2)
 })
 
-test('nom bo‘yicha qidiruv: model ro‘yxatdan tanlanadi', async ({ page }) => {
-  await openEditor(page)
-
-  const field = page.getByLabel('Tovar nomi')
-
-  await field.fill(product.name)
-
-  // Sichqoncha bilan: ro'yxatdagi birinchi model
-  const option = page.getByRole('option', { name: new RegExp(product.name) })
-
-  await expect(option).toBeVisible()
-  await option.click()
-
-  const grid = page.getByTestId('model-grid')
-
-  await expect(grid).toContainText(product.name)
-
-  await grid.getByLabel('Model tannarxi').fill('100000')
-  await grid.getByLabel(`${product.sizes[0]!.name} ${product.colors[0]!.name}: nechta`).fill('4')
-  await grid.getByRole('button', { name: 'Tayyor' }).click()
-
-  const row = page.locator('.models-table tbody tr', { hasText: product.name })
-
-  await expect(row).toContainText('4')
-  await expect(row).toContainText('400 000')
-})
-
-test('klaviatura bilan: o‘q, Enter, Tab — sichqonchasiz ishlaydi', async ({ page }) => {
-  await openEditor(page)
-
-  const field = page.getByLabel('Tovar nomi')
-
-  await field.fill(product.name)
-  await expect(page.getByRole('option', { name: new RegExp(product.name) })).toBeVisible()
-
-  // Pastga o'q ro'yxatda yuradi, Enter tanlaydi
-  await field.press('ArrowDown')
-  await field.press('Enter')
-
-  const grid = page.getByTestId('model-grid')
-
-  await expect(grid).toBeVisible()
-
-  // Fokus birinchi katakda — qo'l klaviaturada qoladi
-  const first = grid.getByLabel(`${product.sizes[0]!.name} ${product.colors[0]!.name}: nechta`)
-
-  await expect(first).toBeFocused()
-
-  await page.keyboard.type('2')
-  await page.keyboard.press('Tab')
-
-  const second = grid.getByLabel(`${product.sizes[1]!.name} ${product.colors[0]!.name}: nechta`)
-
-  await expect(second, 'Tab keyingi katakka o‘tmadi').toBeFocused()
-
-  await page.keyboard.type('3')
-
-  // Enter katakchani yopadi — modeli ro'yxatga tushadi
-  await page.keyboard.press('Enter')
-
-  await expect(grid).toBeHidden()
-  await expect(page.locator('.models-table tbody tr', { hasText: product.name })).toContainText('5')
-
-  // 1366×768: ekran yon tomonga surilmaydi
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  )
-
-  expect(overflow, 'kirim ekrani sig‘maydi').toBeLessThanOrEqual(1)
-})
-
-test('bitta tannarx hamma qatorga tushadi, alohidasi ustun turadi', async ({ page, request }) => {
-  await openEditor(page)
-
-  await page.getByLabel('Tovar nomi').fill(product.name)
-  await page.getByRole('option', { name: new RegExp(product.name) }).click()
-
-  const grid = page.getByTestId('model-grid')
-  const first = `${product.sizes[0]!.name} ${product.colors[0]!.name}`
-  const second = `${product.sizes[1]!.name} ${product.colors[0]!.name}`
-
-  await grid.getByLabel('Model tannarxi').fill('200000')
-  await grid.getByLabel(`${first}: nechta`).fill('2')
-  await grid.getByLabel(`${second}: nechta`).fill('1')
-
-  // Bitta qatorning narxi boshqacha. Qator nomi variant yorlig'i:
-  // «M / Oq» ko'rinishida
-  await grid.getByRole('button', { name: 'Alohida tannarx' }).click()
-  await grid
-    .getByLabel(`${product.sizes[1]!.name} / ${product.colors[0]!.name}: tannarx`)
-    .fill('250000')
-
-  await expect(grid).toContainText('650 000')
-
-  await grid.getByRole('button', { name: 'Tayyor' }).click()
-  await page.getByRole('button', { name: 'Qoralama', exact: true }).click()
-
-  await expect(page.locator('.notice')).toContainText('qoralama')
-
-  const saved = await lastPurchase(request)
-  const costs = Object.fromEntries(
-    saved.lines.map((line: { variant_label: string; unit_cost: string }) => [
-      line.variant_label,
-      line.unit_cost,
-    ]),
-  )
-
-  // Hujjatdagi qator nomi — variant yorlig'i («M / Oq»)
-  expect(costs[`${product.sizes[0]!.name} / ${product.colors[0]!.name}`]).toBe('200000.00')
-  expect(costs[`${product.sizes[1]!.name} / ${product.colors[0]!.name}`]).toBe('250000.00')
-  expect(saved.total).toBe('650000.00')
-})
-
-test('ustama sotuv narxini taklif qiladi, narx faqat tasdiqlanganda saqlanadi', async ({
-  page,
-  request,
-}) => {
-  const before = await findProduct(request, product.name)
-
-  await openEditor(page)
-
-  await page.getByLabel('Tovar nomi').fill(product.name)
-  await page.getByRole('option', { name: new RegExp(product.name) }).click()
-
-  const grid = page.getByTestId('model-grid')
-
-  await grid.getByLabel('Model tannarxi').fill('33333')
-  await grid.getByLabel('Ustama foizi').fill('60')
-
-  // 33 333 + 60 % = 53 332,80 → qadam 1 000 bo'lgani uchun 54 000
-  await expect(grid.getByLabel('Yangi sotuv narxi')).toHaveValue(/54.000/)
-
-  await grid.getByLabel(`${product.sizes[0]!.name} ${product.colors[0]!.name}: nechta`).fill('1')
-  await grid.getByRole('button', { name: 'Tayyor' }).click()
-
-  await page.getByRole('button', { name: 'Qoralama', exact: true }).click()
-  await expect(page.locator('.notice')).toContainText('qoralama')
-
-  // Qoralama — do'konda hali eski narx
-  const draft = await findProduct(request, product.name)
-
-  expect(draft.sale_price).toBe(before.sale_price)
-
-  // Qoralamani chipdan qaytarib yuklaymiz va tasdiqlaymiz. Chip aynan
-  // shu hujjatniki: boshqa testlar ham qoralama qoldiradi.
-  const saved = await lastPurchase(request)
-
-  await page.getByRole('button', { name: new RegExp(`${saved.number} qoralamasi`) }).click()
-  await expect(page.locator('.draft-note')).toContainText(saved.number)
-
-  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
-  await expect(page.getByTestId('purchase-summary')).toBeVisible()
-
-  const confirmed = await findProduct(request, product.name)
-
-  expect(confirmed.sale_price).toBe('54000.00')
-})
-
-test('noma’lum shtrix-kod: shu kod bilan yangi mahsulot yaratiladi', async ({ page, request }) => {
-  const code = `21${Date.now().toString().slice(-11)}`
-  const name = `Skanerlangan sumka ${Date.now()}`
-
-  await openEditor(page)
-
-  const field = page.getByLabel('Tovar nomi')
-
-  await field.fill(code)
-  await field.press('Enter')
-
-  const unknown = page.getByTestId('unknown-barcode')
-
-  await expect(unknown).toContainText(code)
-  await unknown.getByRole('button', { name: 'Shu kod bilan yangi mahsulot' }).click()
-
-  const form = page.getByTestId('quick-product')
-
-  await expect(form).toContainText(code)
-
-  await form.getByLabel('Mahsulot nomi').fill(name)
-  await form.getByLabel('Sotuv narxi').fill('150000')
-  await form.getByRole('button', { name: 'Saqlash va qabul qilish' }).click()
-  await expect(form.locator('.load-error')).toHaveCount(0)
-
-  // O'lchamsiz mahsulot — bitta katak, dona darhol bittaga qo'yiladi
-  const grid = page.getByTestId('model-grid')
-
-  await expect(grid).toContainText(name)
-
-  await grid.getByLabel('Model tannarxi').fill('90000')
-  await grid.getByRole('button', { name: 'Tayyor' }).click()
-  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
-
-  await expect(page.getByTestId('purchase-summary')).toBeVisible()
-
-  // Endi shu kod skanerlansa, tovar topiladi
-  const found = await get(request, `/api/variants/by-barcode/?code=${code}`)
-
-  expect(found.product_name).toBe(name)
-  expect(found.stock_quantity).toBe(1)
-})
-
-test('qoralama davom ettiriladi: qatorlar katakchaga qaytadi', async ({ page }) => {
-  await openEditor(page)
-
-  await page.getByLabel('Tovar nomi').fill(product.name)
-  await page.getByRole('option', { name: new RegExp(product.name) }).click()
-
-  const grid = page.getByTestId('model-grid')
-  const cell = `${product.sizes[0]!.name} ${product.colors[0]!.name}: nechta`
-
-  await grid.getByLabel('Model tannarxi').fill('120000')
-  await grid.getByLabel(cell).fill('6')
-  await grid.getByRole('button', { name: 'Tayyor' }).click()
-  await page.getByRole('button', { name: 'Qoralama', exact: true }).click()
-
-  const notice = page.locator('.notice')
-
-  await expect(notice).toContainText('qoralama')
-
-  const number = (await notice.textContent())?.match(/KIR-[\d-]+/)?.[0] ?? ''
-
-  expect(number, 'qoralama raqami ko‘rinmadi').not.toBe('')
-
-  // Qoralamalar kartasidagi chip bosilsa — forma qayta to'ladi.
-  // Chip aynan shu hujjatniki: boshqa testlar ham qoralama qoldiradi.
-  const chip = page.getByRole('button', { name: new RegExp(`${number} qoralamasi`) })
-
-  await expect(chip).toBeVisible()
-  await chip.click()
-
-  await expect(page.locator('.draft-note')).toContainText(number)
-  await expect(page.locator('.models-table tbody tr', { hasText: product.name })).toContainText('6')
-
-  await page.locator('.models-table').getByRole('button', { name: 'Tahrirlash' }).click()
-
-  await expect(page.getByTestId('model-grid').getByLabel(cell)).toHaveValue('6')
-})
-
-test('tasdiqlangan kirimda bitta qatorning yorlig‘i qayta chiqadi', async ({ page }) => {
-  // Chop etish oynasi testni to'xtatib qo'ymasin
-  await page.addInitScript(() => {
-    window.print = () => {}
-  })
+test('bitta o‘lcham va bitta rang: jadval bitta katakdan iborat', async ({ page }) => {
+  const name = `Bitta variant ${Date.now()}`
 
   await openApp(page, admin, '/purchases')
-  await page.locator('tbody tr', { hasText: product.purchase.number }).click()
 
-  const opened = page.getByTestId('opened-purchase')
+  const form = panel(page)
 
-  // To'liq ro'yxat "Batafsil" ostida — shtrix-kod va qator yorlig'i
-  await opened.getByRole('button', { name: 'Batafsil' }).click()
+  await expect(form).toContainText('Qaysi o‘lchamlar keldi?')
+  await expect(form).toContainText('Qaysi ranglar keldi?')
 
-  const first = opened.locator('.table-scroll tbody tr').first()
+  await fillNewProduct(page, name, { sizes: [sizes[0]!.name], colors: [colors[0]!.name] })
 
-  await expect(first).toBeVisible()
-  await first.getByRole('button', { name: /yorliqni qayta chop etish/ }).click()
+  await expect(grid(page).locator('.cell')).toHaveCount(1)
+  await expect(grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`)).toBeFocused()
 
-  // Faqat o'sha qatorning donasi chiqadi (2 dona), butun hujjat emas
-  await expect(page.locator('.print-sheet .label')).toHaveCount(2)
+  await page.keyboard.type('5')
+  await expect(page.getByTestId('step-quantities')).toContainText('5 dona')
 })
 
-
-test('tezkor qator: oxirgi modeldan katakcha ochiladi', async ({ page }) => {
-  await openEditor(page)
-
-  const chip = page.getByTestId('model-strip').locator('.model-chip').first()
-
-  await expect(chip).toBeVisible()
-
-  const name = (await chip.locator('strong').textContent())?.trim() ?? ''
-
-  await chip.click()
-
-  await expect(page.getByTestId('model-grid')).toContainText(name)
-})
-
-test('yangi mahsulot rasmsiz ham saqlanadi', async ({ page, request }) => {
+test('rasmsiz saqlanadi, narx ustamadan taklif qilinadi', async ({ page, request }) => {
   const name = `Rasmsiz ko‘ylak ${Date.now()}`
 
-  await openEditor(page)
-  await page.getByRole('button', { name: 'Yangi mahsulot' }).click()
+  await openApp(page, admin, '/purchases')
 
-  const form = page.getByTestId('quick-product')
+  const form = panel(page)
 
   // Rasm maydoni bo'sh turadi — u majburiy emas
   await expect(form.locator('.drop-empty')).toBeVisible()
@@ -429,15 +215,9 @@ test('yangi mahsulot rasmsiz ham saqlanadi', async ({ page, request }) => {
   // 100 000 + 50 % = 150 000
   await expect(form.getByLabel('Sotuv narxi')).toHaveValue(/150.000/)
 
-  await form.getByRole('button', { name: 'Saqlash va qabul qilish' }).click()
-  await expect(form.locator('.load-error')).toHaveCount(0)
+  await form.getByRole('button', { name: 'Davom etish' }).click()
 
-  const grid = page.getByTestId('model-grid')
-
-  await expect(grid).toContainText(name)
-
-  // Tannarx oynadan katakchaga ko'chadi — qayta yozish shart emas
-  await expect(grid.getByLabel('Model tannarxi')).toHaveValue('100000')
+  await expect(grid(page)).toContainText(name)
 
   const saved = await findProduct(request, name)
 
@@ -445,195 +225,305 @@ test('yangi mahsulot rasmsiz ham saqlanadi', async ({ page, request }) => {
   expect(saved.images).toHaveLength(0)
 })
 
-test('ochilgan hujjatda qatorlar model bo‘yicha katakchada', async ({ page }) => {
+test('shu nomli tovar bor: yangisi yaratilmaydi', async ({ page, request }) => {
+  const name = `Takror kurtka ${Date.now()}`
+
+  await createModel(request, name, [sizes[0]!.id], [colors[0]!.id])
+
   await openApp(page, admin, '/purchases')
-  await page.locator('tbody tr', { hasText: product.purchase.number }).click()
+  await panel(page).getByLabel('Mahsulot nomi').fill(name)
 
-  const opened = page.getByTestId('opened-purchase')
-  const model = opened.locator('.doc-model', { hasText: product.name })
+  const warning = panel(page).locator('.same-product')
 
-  await expect(model).toBeVisible()
-  await expect(model).toContainText('8 dona')
+  await expect(warning).toContainText(name)
+  await warning.getByRole('button', { name: 'Shu tovar yana keldi' }).click()
 
-  // Kelgan katak — soni bilan, kelmagani — chiziqcha
-  await expect(
-    model.getByLabel(`${product.sizes[0]!.name} ${product.colors[0]!.name}: 2 dona`),
-  ).toHaveText('2')
+  await expect(grid(page)).toContainText(name)
 
-  await expect(
-    model.getByLabel(`${product.sizes[2]!.name} ${product.colors[1]!.name}: 0 dona`),
-  ).toHaveText('—')
+  // Bazada baribir bitta tovar
+  expect(await findProducts(request, name)).toHaveLength(1)
 })
 
+test('tovar sahifasidagi «Yana keldi» qabul qilishga olib boradi', async ({ page, request }) => {
+  const name = `Yana kelgan shim ${Date.now()}`
+  const model = await createModel(request, name, [sizes[0]!.id], [colors[0]!.id])
 
-test('model yangi rangda keldi: variant kirim jadvalining o‘zida qo‘shiladi', async ({
-  page,
-  request,
-}) => {
+  await openApp(page, admin, `/products/${model.id}`)
+  await page.getByRole('link', { name: 'Yana keldi' }).click()
+
+  await expect(page).toHaveURL(new RegExp(`/purchases\\?model=${model.id}`))
+  await expect(grid(page)).toContainText(name)
+})
+
+test('model yangi rangda keldi: variant shu yerda qo‘shiladi', async ({ page, request }) => {
   const name = `Ko‘k kurtka ${Date.now()}`
-  const categories = await get(request, '/api/categories/')
-
-  // Do'konda shu model faqat ikki o'lchamda va bitta rangda bor
-  const created = await request.post(`${API}/api/products/`, {
-    headers: { Authorization: `Bearer ${admin.access}` },
-    data: {
-      category: categories[0].id,
-      name,
-      sale_price: '400000',
-      size_ids: [sizes[0]!.id, sizes[1]!.id],
-      color_ids: [colors[0]!.id],
-    },
-  })
-
-  expect(created.ok(), await created.text()).toBeTruthy()
-  expect((await created.json()).variants).toHaveLength(2)
+  const model = await createModel(request, name, [sizes[0]!.id, sizes[1]!.id], [colors[0]!.id])
 
   const newSize = sizes[2]!.name
   const newColor = colors[1]!.name
 
-  await openEditor(page)
-  await page.getByLabel('Tovar nomi').fill(name)
-  await page.getByRole('option', { name: new RegExp(name) }).click()
+  await openApp(page, admin, `/purchases?model=${model.id}`)
+  await expect(grid(page)).toContainText(name)
 
-  const grid = page.getByTestId('model-grid')
+  await grid(page).getByRole('button', { name: /O‘lcham yoki rang/ }).click()
 
-  await expect(grid).toContainText(name)
-
-  // Yangi o'lcham × rang juftligi shu yerda yaratiladi
-  await grid.getByRole('button', { name: /O‘lcham yoki rang/ }).click()
-
-  await grid
+  await grid(page)
     .getByRole('group', { name: 'O‘lcham tanlash' })
     .getByRole('button', { name: newSize, exact: true })
     .click()
 
-  await grid
+  await grid(page)
     .getByRole('group', { name: 'Rang tanlash' })
     .getByRole('button', { name: newColor, exact: true })
     .click()
 
-  await grid.getByRole('button', { name: 'Qo‘shish' }).click()
+  await grid(page).getByRole('button', { name: 'Qo‘shish' }).click()
 
-  // Yangi katak darhol fokusda — sonni yozish mumkin
-  const cell = grid.getByLabel(`${newSize} ${newColor}: nechta`)
-
-  await expect(cell).toBeFocused()
+  // Yangi katak darhol fokusda
+  await expect(grid(page).getByLabel(`${newSize} ${newColor}: nechta`)).toBeFocused()
   await page.keyboard.type('20')
 
-  await grid.getByLabel('Model tannarxi').fill('150000')
-  await grid.getByRole('button', { name: 'Tayyor' }).click()
+  await grid(page).getByLabel('Model tannarxi').fill('150000')
+  await confirmButton(page).click()
 
-  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
   await expect(page.getByTestId('purchase-summary')).toBeVisible()
 
-  // Faqat bitta yangi variant: qizil M, qizil L va ko'k XL yaratilmagan
+  // Faqat bitta yangi variant — qizil M, qizil L va ko'k XL yaratilmagan
   const saved = await findProduct(request, name)
 
   expect(saved.variants).toHaveLength(3)
 
   const stock = Object.fromEntries(
-    saved.variants.map((variant: { label: string; stock_quantity: number }) => [
-      variant.label,
-      variant.stock_quantity,
-    ]),
+    saved.variants.map((variant) => [variant.label, variant.stock_quantity]),
   )
 
   expect(stock[`${newSize} / ${newColor}`]).toBe(20)
-  expect(Object.keys(stock).sort()).toEqual(
-    [
-      `${sizes[0]!.name} / ${colors[0]!.name}`,
-      `${sizes[1]!.name} / ${colors[0]!.name}`,
-      `${newSize} / ${newColor}`,
-    ].sort(),
-  )
 })
 
 test('bo‘sh katakdagi «+» aynan o‘sha juftlikni yaratadi', async ({ page, request }) => {
   const name = `Bitta juftlik ${Date.now()}`
-  const categories = await get(request, '/api/categories/')
+  const model = await createModel(request, name, [sizes[0]!.id, sizes[1]!.id], [colors[0]!.id])
 
-  await request.post(`${API}/api/products/`, {
-    headers: { Authorization: `Bearer ${admin.access}` },
-    data: {
-      category: categories[0].id,
-      name,
-      sale_price: '200000',
-      size_ids: [sizes[0]!.id, sizes[1]!.id],
-      color_ids: [colors[0]!.id],
-    },
-  })
+  await openApp(page, admin, `/purchases?model=${model.id}`)
 
-  await openEditor(page)
-  await page.getByLabel('Tovar nomi').fill(name)
-  await page.getByRole('option', { name: new RegExp(name) }).click()
+  // Ikkinchi rangni bitta juftlik bilan qo'shamiz
+  await grid(page).getByRole('button', { name: /O‘lcham yoki rang/ }).click()
 
-  const grid = page.getByTestId('model-grid')
-
-  // Avval yangi rangni qo'shamiz — jadvalda bo'sh kataklar paydo bo'ladi
-  await grid.getByRole('button', { name: /O‘lcham yoki rang/ }).click()
-
-  await grid
+  await grid(page)
     .getByRole('group', { name: 'O‘lcham tanlash' })
     .getByRole('button', { name: sizes[0]!.name, exact: true })
     .click()
 
-  await grid
+  await grid(page)
     .getByRole('group', { name: 'Rang tanlash' })
     .getByRole('button', { name: colors[1]!.name, exact: true })
     .click()
 
-  await grid.getByRole('button', { name: 'Qo‘shish' }).click()
-  await expect(grid.getByLabel(`${sizes[0]!.name} ${colors[1]!.name}: nechta`)).toBeFocused()
+  await grid(page).getByRole('button', { name: 'Qo‘shish' }).click()
+  await expect(grid(page).getByLabel(`${sizes[0]!.name} ${colors[1]!.name}: nechta`)).toBeFocused()
 
   // Endi bo'sh katak: ikkinchi o'lcham × ikkinchi rang
-  const empty = grid.getByRole('button', {
+  const empty = grid(page).getByRole('button', {
     name: `${sizes[1]!.name} ${colors[1]!.name}: variantni qo‘shish`,
   })
 
   await expect(empty).toBeVisible()
   await empty.click()
 
-  await expect(grid.getByLabel(`${sizes[1]!.name} ${colors[1]!.name}: nechta`)).toBeFocused()
+  await expect(grid(page).getByLabel(`${sizes[1]!.name} ${colors[1]!.name}: nechta`)).toBeFocused()
 
-  const saved = await findProduct(request, name)
-
-  // 2 ta boshlang'ich + 2 ta qo'lda qo'shilgan = 4 (to'liq matritsa 6 bo'lardi)
-  expect(saved.variants).toHaveLength(4)
+  // 2 ta boshlang'ich + 2 ta qo'lda qo'shilgan (to'liq matritsa 4 emas, 6 bo'lardi)
+  expect((await findProduct(request, name)).variants).toHaveLength(4)
 })
 
-test('bitta o‘lcham va bitta rang: jadval bitta katakdan iborat', async ({ page }) => {
-  const name = `Bitta variant ${Date.now()}`
+test('bitta tannarx hamma qatorga tushadi, alohidasi ustun turadi', async ({ page, request }) => {
+  const name = `Tannarx sinovi ${Date.now()}`
+  const model = await createModel(request, name, [sizes[0]!.id, sizes[1]!.id], [colors[0]!.id])
 
-  await openEditor(page)
-  await page.getByRole('button', { name: 'Yangi mahsulot' }).click()
+  const first = `${sizes[0]!.name} ${colors[0]!.name}`
+  const second = `${sizes[1]!.name} ${colors[0]!.name}`
 
-  const form = page.getByTestId('quick-product')
+  await openApp(page, admin, `/purchases?model=${model.id}`)
 
-  await expect(form).toContainText('Qaysi o‘lchamlar keldi?')
-  await expect(form).toContainText('Qaysi ranglar keldi?')
+  await grid(page).getByLabel('Model tannarxi').fill('200000')
+  await grid(page).getByLabel(`${first}: nechta`).fill('2')
+  await grid(page).getByLabel(`${second}: nechta`).fill('1')
 
-  await form.getByLabel('Mahsulot nomi').fill(name)
-  await form.getByLabel('Sotuv narxi').fill('250000')
+  // Bitta qatorning narxi boshqacha. Qator nomi variant yorlig'i: «M / Oq»
+  await grid(page).getByRole('button', { name: 'Alohida tannarx' }).click()
+  await grid(page)
+    .getByLabel(`${sizes[1]!.name} / ${colors[0]!.name}: tannarx`)
+    .fill('250000')
 
-  await form
-    .getByRole('group', { name: 'O‘lchamlar' })
-    .getByRole('button', { name: sizes[0]!.name, exact: true })
-    .click()
+  await expect(page.getByTestId('step-quantities')).toContainText('650 000')
 
-  await form
-    .getByRole('group', { name: 'Ranglar' })
-    .getByRole('button', { name: colors[0]!.name, exact: true })
-    .click()
+  await page.getByRole('button', { name: 'Keyinroq tugataman' }).click()
+  await expect(page.locator('.notice')).toContainText('saqlandi')
 
-  await form.getByRole('button', { name: 'Saqlash va qabul qilish' }).click()
-  await expect(form.locator('.load-error')).toHaveCount(0)
+  const saved = await lastPurchase(request)
+  const costs = Object.fromEntries(
+    saved.lines.map((line: { variant_label: string; unit_cost: string }) => [
+      line.variant_label,
+      line.unit_cost,
+    ]),
+  )
 
-  const grid = page.getByTestId('model-grid')
+  expect(costs[`${sizes[0]!.name} / ${colors[0]!.name}`]).toBe('200000.00')
+  expect(costs[`${sizes[1]!.name} / ${colors[0]!.name}`]).toBe('250000.00')
+  expect(saved.total).toBe('650000.00')
+})
 
-  await expect(grid.locator('.cell')).toHaveCount(1)
-  await expect(grid.getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`)).toBeFocused()
+test('ustama narxni taklif qiladi, narx faqat qabul qilinganda saqlanadi', async ({
+  page,
+  request,
+}) => {
+  const name = `Narx sinovi ${Date.now()}`
+  const model = await createModel(request, name, [sizes[0]!.id], [colors[0]!.id])
+  const before = await findProduct(request, name)
 
-  // Bitta katakka sonni yozib, darhol yakunlash mumkin
-  await page.keyboard.type('5')
-  await expect(grid).toContainText('5 dona')
+  await openApp(page, admin, `/purchases?model=${model.id}`)
+
+  await grid(page).getByLabel('Model tannarxi').fill('33333')
+  await grid(page).getByLabel('Ustama foizi').fill('60')
+
+  // 33 333 + 60 % = 53 332,80 → qadam 1 000 bo'lgani uchun 54 000
+  await expect(grid(page).getByLabel('Yangi sotuv narxi')).toHaveValue(/54.000/)
+
+  await grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`).fill('1')
+
+  await page.getByRole('button', { name: 'Keyinroq tugataman' }).click()
+  await expect(page.locator('.notice')).toContainText('saqlandi')
+
+  // Tugallanmagan — do'konda hali eski narx
+  expect((await findProduct(request, name)).sale_price).toBe(before.sale_price)
+
+  // Chipdan davom ettirib, qabul qilamiz
+  const saved = await lastPurchase(request)
+
+  await page.getByRole('button', { name: new RegExp(`${saved.number} qoralamasi`) }).click()
+  await expect(page.locator('.draft-note')).toContainText(saved.number)
+
+  await confirmButton(page).click()
+  await expect(page.getByTestId('purchase-summary')).toBeVisible()
+
+  expect((await findProduct(request, name)).sale_price).toBe('54000.00')
+})
+
+test('tugallanmagan qabul chipdan davom etadi', async ({ page, request }) => {
+  const name = `Tugallanmagan ${Date.now()}`
+  const model = await createModel(request, name, [sizes[0]!.id], [colors[0]!.id])
+  const cell = `${sizes[0]!.name} ${colors[0]!.name}: nechta`
+
+  await openApp(page, admin, `/purchases?model=${model.id}`)
+
+  await grid(page).getByLabel('Model tannarxi').fill('120000')
+  await grid(page).getByLabel(cell).fill('6')
+
+  await page.getByRole('button', { name: 'Keyinroq tugataman' }).click()
+  await expect(page.locator('.notice')).toContainText('saqlandi')
+
+  const saved = await lastPurchase(request)
+
+  await page.getByRole('button', { name: new RegExp(`${saved.number} qoralamasi`) }).click()
+
+  await expect(page.locator('.draft-note')).toContainText(saved.number)
+  await expect(grid(page).getByLabel(cell)).toHaveValue('6')
+})
+
+test('klaviatura: Tab katakdan katakka o‘tadi', async ({ page, request }) => {
+  const name = `Klaviatura ${Date.now()}`
+  const model = await createModel(
+    request,
+    name,
+    [sizes[0]!.id, sizes[1]!.id],
+    [colors[0]!.id],
+  )
+
+  await openApp(page, admin, `/purchases?model=${model.id}`)
+
+  const first = grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`)
+
+  await expect(first).toBeFocused()
+  await page.keyboard.type('2')
+  await page.keyboard.press('Tab')
+
+  await expect(
+    grid(page).getByLabel(`${sizes[1]!.name} ${colors[0]!.name}: nechta`),
+    'Tab keyingi katakka o‘tmadi',
+  ).toBeFocused()
+
+  await page.keyboard.type('3')
+  await expect(page.getByTestId('step-quantities')).toContainText('5 dona')
+})
+
+test('ochilgan hujjatda qatorlar model bo‘yicha katakchada', async ({ page, request }) => {
+  const name = `Hujjat ${Date.now()}`
+  const model = await createModel(
+    request,
+    name,
+    [sizes[0]!.id, sizes[1]!.id],
+    [colors[0]!.id, colors[1]!.id],
+  )
+
+  await openApp(page, admin, `/purchases?model=${model.id}`)
+
+  await grid(page).getByLabel('Model tannarxi').fill('100000')
+
+  // To'rt juftlikning uchtasi keldi — to'rtinchisi hujjatda bo'sh qoladi
+  await grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`).fill('4')
+  await grid(page).getByLabel(`${sizes[1]!.name} ${colors[0]!.name}: nechta`).fill('2')
+  await grid(page).getByLabel(`${sizes[0]!.name} ${colors[1]!.name}: nechta`).fill('1')
+
+  await confirmButton(page).click()
+  await expect(page.getByTestId('purchase-summary')).toBeVisible()
+
+  const saved = await lastPurchase(request)
+
+  await page.locator('tbody tr', { hasText: saved.number }).click()
+
+  const opened = page.getByTestId('opened-purchase')
+  const group = opened.locator('.doc-model', { hasText: name })
+
+  await expect(group).toContainText('7 dona')
+  await expect(
+    group.getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: 4 dona`),
+  ).toHaveText('4')
+
+  // Kelmagan juftlik bo'sh qoladi
+  await expect(
+    group.getByLabel(`${sizes[1]!.name} ${colors[1]!.name}: 0 dona`),
+  ).toHaveText('—')
+})
+
+test('tugallangan hujjatda bitta qatorning yorlig‘i qayta chiqadi', async ({ page, request }) => {
+  // Chop etish oynasi testni to'xtatib qo'ymasin
+  await page.addInitScript(() => {
+    window.print = () => {}
+  })
+
+  const name = `Yorliq ${Date.now()}`
+  const model = await createModel(request, name, [sizes[0]!.id], [colors[0]!.id])
+
+  await openApp(page, admin, `/purchases?model=${model.id}`)
+
+  await grid(page).getByLabel('Model tannarxi').fill('100000')
+  await grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`).fill('2')
+
+  await confirmButton(page).click()
+  await expect(page.getByTestId('purchase-summary')).toBeVisible()
+
+  const saved = await lastPurchase(request)
+
+  await page.locator('tbody tr', { hasText: saved.number }).click()
+
+  const opened = page.getByTestId('opened-purchase')
+
+  await opened.getByRole('button', { name: 'Batafsil' }).click()
+
+  const row = opened.locator('.table-scroll tbody tr').first()
+
+  await row.getByRole('button', { name: /yorliqni qayta chop etish/ }).click()
+
+  // Faqat o'sha qatorning donasi chiqadi
+  await expect(page.locator('.print-sheet .label')).toHaveCount(2)
 })

@@ -101,11 +101,11 @@ cd agent && npm test                                  # 85 ta
 
 ### Interfeys testlari — alohida bazada
 
-Playwright haqiqiy brauzerda ilovani tekshiradi (63 ta): navigatsiya va
-tuzilma, birlashtirilgan mahsulotlar sahifasi, kassa, kirim (nom bo'yicha
-qidiruv, o'lcham × rang katakchasi, yangi o'lcham/rang qo'shish, yangi
-mahsulot oynasi, qoralamalar), telefon o'lchami, chop etish (sahifalar
-soni va o'lchami chiqqan PDF dan o'lchanadi) va chop etish agenti.
+Playwright haqiqiy brauzerda ilovani tekshiradi (62 ta): navigatsiya va
+tuzilma, tovarlar sahifasi, sotish, tovar qabul qilish (uch qadam: yangi
+tovar, o'lcham × rang katakchasi, yorliq), telefon o'lchami, chop etish
+(sahifalar soni va o'lchami chiqqan PDF dan o'lchanadi) va chop etish
+agenti.
 
 `tests/screens.spec.ts` yettita asosiy ekranni ikki o'lchamda ochadi
 (1366x768 va 390x844) va ikki narsani tekshiradi: sahifa yon tomonga

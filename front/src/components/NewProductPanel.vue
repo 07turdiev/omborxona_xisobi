@@ -8,24 +8,24 @@ import { formatMoney, normalizeMoneyInput, suggestPrice } from '@/utils/money'
 import type { Category, Color, Product, Size } from '@/types'
 
 /**
- * Kirim ekranidagi "Yangi mahsulot" oynasi.
+ * Qabul qilishning 1-qadami: yangi tovar.
  *
- * Tovar do'konga birinchi marta kelganda uni shu yerda yaratish kerak:
- * ilgari administrator Mahsulotlar sahifasiga o'tib, modelni yaratib,
- * keyin kirimga qaytardi.
+ * Do'konga keladigan tovarda shtrix-kod bo'lmaydi — yorliqni do'konning
+ * o'zi chiqaradi. Shuning uchun qabul qilish shu yerdan boshlanadi:
+ * tovar tizimga kiritiladi, keyin har o'lcham × rang uchun shtrix-kod
+ * avtomatik yaratiladi.
  *
- * Chap tomonda rasmlar, o'ng tomonda ma'lumot. Rasm **majburiy emas**:
- * qutini ochib, tovarni tezda kiritish kerak bo'ladi, suratni keyin
- * mahsulot sahifasida qo'shish mumkin.
+ * Chap tomonda rasmlar (majburiy emas), o'ng tomonda ma'lumot.
  *
- * `barcode` berilgan bo'lsa (noma'lum kod skanerlangan), mahsulot bitta
- * variantli bo'ladi va o'sha kod shu variantga yoziladi.
+ * Nom yozilganda shu nomli tovar bor-yo'qligi tekshiriladi: bir tovar
+ * ikki marta yaratilsa, qoldiq ikkiga bo'linib ketardi.
  */
 
 const props = defineProps<{ barcode?: string }>()
 
 const emit = defineEmits<{
   created: [product: Product, prices: { cost: string; markup: string }]
+  existing: [product: Product]
   close: []
 }>()
 
@@ -64,6 +64,38 @@ const form = ref({
 })
 
 const step = computed(() => auth.shop?.price_rounding_step ?? 1000)
+
+/** Shu nomli tovar allaqachon bor bo'lsa — takror yaratilmasin */
+const similar = ref<Product | null>(null)
+
+let nameTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(
+  () => form.value.name,
+  (name) => {
+    clearTimeout(nameTimer)
+    similar.value = null
+
+    const text = name.trim()
+
+    if (text.length < 3) return
+
+    nameTimer = setTimeout(async () => {
+      try {
+        const page = await catalogApi.products({ search: text })
+
+        similar.value =
+          page.results.find(
+            (product) => product.name.toLowerCase() === text.toLowerCase(),
+          ) ??
+          page.results[0] ??
+          null
+      } catch {
+        // Tekshiruv — qulaylik; ishlamasa yaratishga xalaqit bermaydi
+      }
+    }, 400)
+  },
+)
 
 // Tannarx va ustama sotuv narxini taklif qiladi — kirimdagi katakcha
 // bilan bir xil qoida
@@ -191,23 +223,17 @@ async function onSave() {
 </script>
 
 <template>
-  <div class="overlay" @click.self="emit('close')">
-    <div
-      class="dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Yangi mahsulot"
-      data-testid="quick-product"
-    >
-      <header class="dialog-head">
-        <h2>Yangi mahsulot</h2>
+  <div class="new-product" data-testid="quick-product">
+    <!-- Shu nomli tovar bor: qoldiq ikkiga bo'linib ketmasin -->
+    <p v-if="similar" class="notice same-product">
+      <span>«{{ similar.name }}» do‘konda bor.</span>
 
-        <button class="icon-button" type="button" aria-label="Yopish" @click="emit('close')">
-          <svg><use href="#i-close" /></svg>
-        </button>
-      </header>
+      <button class="button button-outline" type="button" @click="emit('existing', similar)">
+        Shu tovar yana keldi
+      </button>
+    </p>
 
-      <div class="dialog-body">
+    <div class="panel-body">
         <!-- Rasmlar: majburiy emas -->
         <aside class="photo-panel">
           <span class="eyebrow">MAHSULOT RASMLARI</span>
@@ -390,70 +416,33 @@ async function onSave() {
         </section>
       </div>
 
-      <footer class="dialog-foot">
-        <button class="button button-outline" type="button" @click="emit('close')">
-          Bekor qilish
-        </button>
-
-        <button
-          class="button button-gradient"
-          type="button"
-          :disabled="saving || uploading || !ready"
-          @click="onSave"
-        >
-          {{ uploading ? 'Rasm yuklanmoqda…' : saving ? 'Saqlanmoqda…' : 'Saqlash va qabul qilish' }}
-        </button>
-      </footer>
-    </div>
+    <footer class="panel-foot">
+      <button
+        class="button button-gradient next"
+        type="button"
+        :disabled="saving || uploading || !ready || !form.name.trim()"
+        @click="onSave"
+      >
+        {{ uploading ? 'Rasm yuklanmoqda…' : saving ? 'Saqlanmoqda…' : 'Davom etish' }}
+      </button>
+    </footer>
   </div>
 </template>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  /* Yon paneldan ham baland (u 60): oyna keng, chetlari panel ostida
-     qolib ketmasin */
-  z-index: 70;
+.same-product {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgb(35 27 20 / 45%);
-}
-
-.dialog {
-  display: flex;
-  flex-direction: column;
-  width: min(1040px, 96vw);
-  max-height: 90vh;
-  overflow: hidden;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-large);
-}
-
-.dialog-head {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(120deg, #f7efe2, #fffdf9);
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
-.dialog-head h2 {
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 500;
-}
-
-.dialog-body {
+.panel-body {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: 22px;
-  padding: 20px 24px;
-  overflow-y: auto;
 }
 
 .eyebrow {
@@ -666,17 +655,22 @@ async function onSave() {
 
 /* --- Pastki qator --- */
 
-.dialog-foot {
+.panel-foot {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 14px 24px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
-  background: var(--surface-soft);
+}
+
+.next {
+  min-height: 48px;
+  padding: 0 28px;
+  font-size: 16px;
 }
 
 @media (max-width: 900px) {
-  .dialog-body {
+  .panel-body {
     grid-template-columns: minmax(0, 1fr);
   }
 

@@ -24,33 +24,33 @@ export interface Tab {
 }
 
 export const ADMIN_MENU: MenuItem[] = [
-  { to: '/dashboard', icon: 'i-dashboard', label: 'Boshqaruv paneli', sections: ['dashboard'] },
+  { to: '/dashboard', icon: 'i-dashboard', label: 'Bosh sahifa', sections: ['dashboard'] },
   // Qaytarish alohida band emas — kassadan va cheklardan ochiladi
-  { to: '/', icon: 'i-sale', label: 'Kassa', sections: ['pos', 'returns'] },
-  { to: '/products', icon: 'i-catalog', label: 'Mahsulotlar', sections: ['products'] },
-  { to: '/purchases', icon: 'i-import', label: 'Kirim', sections: ['purchases'] },
-  { to: '/stock-counts', icon: 'i-warehouse', label: 'Inventarizatsiya', sections: ['counts'] },
-  { to: '/reports', icon: 'i-report', label: 'Hisobotlar', sections: ['reports'] },
+  { to: '/', icon: 'i-sale', label: 'Sotish', sections: ['pos', 'returns'] },
+  { to: '/products', icon: 'i-catalog', label: 'Tovarlar', sections: ['products'] },
+  { to: '/purchases', icon: 'i-import', label: 'Tovar qabul qilish', sections: ['purchases'] },
+  { to: '/stock-counts', icon: 'i-warehouse', label: 'Sanoq', sections: ['counts'] },
+  { to: '/reports', icon: 'i-report', label: 'Hisobot', sections: ['reports'] },
   { to: '/settings', icon: 'i-settings', label: 'Sozlamalar', sections: ['settings'] },
 ]
 
 export const CASHIER_MENU: MenuItem[] = [
-  { to: '/', icon: 'i-sale', label: 'Kassa', sections: ['pos'] },
+  { to: '/', icon: 'i-sale', label: 'Sotish', sections: ['pos'] },
   { to: '/returns', icon: 'i-import', label: 'Qaytarish', sections: ['returns'] },
-  { to: '/products', icon: 'i-catalog', label: 'Mahsulotlar', sections: ['products'] },
+  { to: '/products', icon: 'i-catalog', label: 'Tovarlar', sections: ['products'] },
 ]
 
 export const SECTION_TABS: Record<string, Tab[]> = {
   products: [
-    { to: '/products', label: 'Mahsulotlar' },
+    { to: '/products', label: 'Tovarlar' },
     { to: '/products/attributes', label: 'Kategoriya, o‘lcham, rang', admin: true },
   ],
   purchases: [
-    { to: '/purchases', label: 'Hujjatlar' },
+    { to: '/purchases', label: 'Qabul qilish' },
     { to: '/suppliers', label: 'Ta’minotchilar' },
   ],
   counts: [
-    { to: '/stock-counts', label: 'Sanoqlar' },
+    { to: '/stock-counts', label: 'Sanoq' },
     { to: '/write-offs', label: 'Hisobdan chiqarish' },
   ],
   reports: [

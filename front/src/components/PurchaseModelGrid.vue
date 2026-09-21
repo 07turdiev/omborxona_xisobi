@@ -6,7 +6,6 @@ import { errorMessage } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { formatMoney, formatSum, suggestPrice } from '@/utils/money'
 import {
-  cloneModel,
   gridCell,
   gridColors,
   gridSizes,
@@ -36,12 +35,15 @@ import type { Color, Size } from '@/types'
 
 const props = defineProps<{ model: DraftModel }>()
 
-const emit = defineEmits<{ save: [model: DraftModel]; close: [] }>()
+const emit = defineEmits<{ remove: [] }>()
 
 const auth = useAuthStore()
 
-/** Ota komponentning holatini bevosita o'zgartirmaymiz — nusxa ustida ishlaymiz */
-const model = ref<DraftModel>(cloneModel(props.model))
+/**
+ * Katakcha ota komponentning modelini bevosita to'ldiradi: kiritilgan
+ * son darhol pastdagi «Jami» ga tushadi, «Tayyor» bosish shart emas.
+ */
+const model = computed(() => props.model)
 
 const overridesOpen = ref(Object.keys(props.model.overrides).length > 0)
 const root = ref<HTMLElement | null>(null)
@@ -121,10 +123,6 @@ function setQuantity(variantId: number, raw: string) {
 function setOverride(variantId: number, raw: string) {
   if (!raw.trim()) delete model.value.overrides[variantId]
   else model.value.overrides[variantId] = raw
-}
-
-function onSave() {
-  emit('save', model.value)
 }
 
 /** Yangi katakka fokus: qo'shilgan zahoti son yoziladi */
@@ -222,8 +220,13 @@ onMounted(async () => {
         </small>
       </div>
 
-      <button class="icon-button" type="button" aria-label="Yopish" @click="emit('close')">
-        <svg><use href="#i-close" /></svg>
+      <button
+        class="icon-button delete"
+        type="button"
+        :aria-label="`${model.name}: ro‘yxatdan olib tashlash`"
+        @click="emit('remove')"
+      >
+        <svg><use href="#i-trash" /></svg>
       </button>
     </div>
 
@@ -285,7 +288,6 @@ onMounted(async () => {
                     ($event.target as HTMLInputElement).value,
                   )
                 "
-                @keydown.enter.prevent="onSave"
               />
 
               <!-- Bunday juftlik hali yo'q: bir bosishda yaratiladi -->
@@ -387,14 +389,6 @@ onMounted(async () => {
       </button>
 
       <strong class="model-total">{{ units }} dona · {{ formatSum(total) }}</strong>
-
-      <div class="model-actions">
-        <button class="button button-outline" type="button" @click="emit('close')">
-          Bekor qilish
-        </button>
-
-        <button class="button button-gradient" type="button" @click="onSave">Tayyor</button>
-      </div>
     </div>
 
     <!-- Alohida tannarx: faqat to'ldirilgan katakchalar ko'rinadi -->
@@ -645,14 +639,9 @@ onMounted(async () => {
 }
 
 .model-total {
+  margin-left: auto;
   font-size: 16px;
   font-variant-numeric: tabular-nums;
-}
-
-.model-actions {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
 }
 
 .overrides {

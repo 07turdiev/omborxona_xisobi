@@ -294,6 +294,13 @@ function when(value: string) {
           <p class="info-price">{{ formatSum(variant?.price ?? product.sale_price) }}</p>
 
           <div v-if="auth.isAdmin" class="admin-actions">
+            <!-- Shu tovar yana kelgan bo'lsa: qabul qilish ekrani darhol
+                 shu modelning katakchasi bilan ochiladi -->
+            <RouterLink class="button button-gradient" :to="`/purchases?model=${product.id}`">
+              <svg><use href="#i-import" /></svg>
+              <span>Yana keldi</span>
+            </RouterLink>
+
             <button class="button button-outline" type="button" @click="formOpen = true">
               Tahrirlash
             </button>

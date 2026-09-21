@@ -27,9 +27,9 @@ test('ta’minotchisiz kirimda qarz yo‘q, qatorda "Bekor" tugmasi ham yo‘q',
 
   await expect(row).toBeVisible()
 
-  // Ta'minotchi hujjat raqami ostida, qarz esa summa ostida — faqat
-  // ta'minotchili va to'lanmagan hujjatda
-  await expect(row).toContainText('Ta’minotchisiz')
+  // Kim keltirgani hujjat raqami ostida, qarz esa summa ostida — faqat
+  // keltirgani ko'rsatilgan va to'lanmagan hujjatda
+  await expect(row).toContainText('Ko‘rsatilmagan')
   await expect(row).not.toContainText('Qarz:')
 
   await expect(row.getByRole('button', { name: 'Bekor' })).toHaveCount(0)

@@ -33,9 +33,9 @@ const routes: RouteRecordRaw[] = [
     name: 'pos',
     component: PosView,
     meta: {
-      title: 'Kassa',
+      title: 'Sotish',
       section: 'pos',
-      description: 'Tovarni skanerlab sotasiz va chek chiqarasiz',
+      description: 'Tovarni sotasiz va chek chiqarasiz',
     },
   },
   {
@@ -55,9 +55,9 @@ const routes: RouteRecordRaw[] = [
     name: 'products',
     component: () => import('@/views/ProductListView.vue'),
     meta: {
-      title: 'Mahsulotlar',
+      title: 'Tovarlar',
       section: 'products',
-      description: 'Do‘kondagi hamma tovar: narxi, rasmi va har o‘lchamdagi qoldig‘i',
+      description: 'Do‘kondagi hamma tovar: narxi, qoldig‘i va yorlig‘i',
     },
   },
   {
@@ -65,7 +65,7 @@ const routes: RouteRecordRaw[] = [
     name: 'product-attributes',
     component: () => import('@/views/ProductAttributesView.vue'),
     meta: {
-      title: 'Mahsulotlar',
+      title: 'Tovarlar',
       section: 'products',
       admin: true,
       description: 'Mahsulotlarni tartiblash uchun ro‘yxatlar va soliq (MXIK) kodlari',
@@ -76,7 +76,7 @@ const routes: RouteRecordRaw[] = [
     name: 'product',
     component: () => import('@/views/ProductPageView.vue'),
     meta: {
-      title: 'Mahsulotlar',
+      title: 'Tovarlar',
       section: 'products',
       hideTabs: true,
       description: 'Tovarning rasmlari, har rang va o‘lchamdagi qoldig‘i va shtrix-kodi',
@@ -92,10 +92,10 @@ const routes: RouteRecordRaw[] = [
     name: 'dashboard',
     component: () => import('@/views/DashboardView.vue'),
     meta: {
-      title: 'Boshqaruv paneli',
+      title: 'Bosh sahifa',
       section: 'dashboard',
       admin: true,
-      description: 'Bugungi va shu oygi savdo, foyda va tugayotgan tovarlar bir qarashda',
+      description: 'Nima qilmoqchisiz? Bugungi savdo ham shu yerda',
     },
   },
 
@@ -105,10 +105,10 @@ const routes: RouteRecordRaw[] = [
     name: 'purchases',
     component: () => import('@/views/PurchasesView.vue'),
     meta: {
-      title: 'Kirim',
+      title: 'Tovar qabul qilish',
       section: 'purchases',
       admin: true,
-      description: 'Do‘konga kelgan tovarlarni qabul qilish va yorliq chop etish',
+      description: 'Yangi kelgan tovarni kiritasiz va yorlig‘ini chop etasiz',
     },
   },
   {
@@ -116,7 +116,7 @@ const routes: RouteRecordRaw[] = [
     name: 'suppliers',
     component: () => import('@/views/SuppliersView.vue'),
     meta: {
-      title: 'Kirim',
+      title: 'Tovar qabul qilish',
       section: 'purchases',
       admin: true,
       description: 'Tovar keltiruvchilar va ular bilan hisob-kitob',
@@ -129,7 +129,7 @@ const routes: RouteRecordRaw[] = [
     name: 'stock-counts',
     component: () => import('@/views/StockCountView.vue'),
     meta: {
-      title: 'Inventarizatsiya',
+      title: 'Sanoq',
       section: 'counts',
       admin: true,
       description: 'Javondagi tovarni sanab, tizimdagi son bilan solishtirasiz',
@@ -140,7 +140,7 @@ const routes: RouteRecordRaw[] = [
     name: 'write-offs',
     component: () => import('@/views/WriteOffsView.vue'),
     meta: {
-      title: 'Inventarizatsiya',
+      title: 'Sanoq',
       section: 'counts',
       admin: true,
       description: 'Buzilgan, yo‘qolgan yoki yaroqsiz tovarni qoldiqdan chiqarish',
@@ -153,7 +153,7 @@ const routes: RouteRecordRaw[] = [
     name: 'reports',
     component: () => import('@/views/ReportsView.vue'),
     meta: {
-      title: 'Hisobotlar',
+      title: 'Hisobot',
       section: 'reports',
       admin: true,
       description: 'Tanlangan davr uchun tushum, tannarx va foyda',
@@ -164,7 +164,7 @@ const routes: RouteRecordRaw[] = [
     name: 'stock-value',
     component: () => import('@/views/StockValueView.vue'),
     meta: {
-      title: 'Hisobotlar',
+      title: 'Hisobot',
       section: 'reports',
       admin: true,
       description: 'Ombordagi tovar tannarxda va sotuv narxida qancha turadi',
@@ -175,7 +175,7 @@ const routes: RouteRecordRaw[] = [
     name: 'expenses',
     component: () => import('@/views/ExpensesView.vue'),
     meta: {
-      title: 'Hisobotlar',
+      title: 'Hisobot',
       section: 'reports',
       admin: true,
       description: 'Ijara, ish haqi va boshqa xarajatlar — sof foydani hisoblash uchun',
@@ -187,7 +187,7 @@ const routes: RouteRecordRaw[] = [
     name: 'receipts',
     component: () => import('@/views/ReceiptsView.vue'),
     meta: {
-      title: 'Hisobotlar',
+      title: 'Hisobot',
       section: 'reports',
       description: 'Sotilgan cheklar: topish, qayta chop etish, qaytarishga o‘tish',
     },

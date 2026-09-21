@@ -34,6 +34,33 @@ onMounted(async () => {
         <p class="banner-sub">Ayollar kiyimlari do‘koni</p>
       </header>
 
+      <!-- Xodim ishni shu yerdan boshlaydi: nima qilmoqchi bo'lsa, shu -->
+      <nav class="actions" aria-label="Asosiy amallar">
+        <RouterLink class="action" to="/">
+          <span class="action-icon"><svg><use href="#i-sale" /></svg></span>
+          <strong>Tovar sotish</strong>
+          <small>Kassa: sotib, chek chiqarasiz</small>
+        </RouterLink>
+
+        <RouterLink class="action" to="/purchases">
+          <span class="action-icon"><svg><use href="#i-import" /></svg></span>
+          <strong>Tovar qabul qilish</strong>
+          <small>Yangi kelgan tovarni kiritib, yorlig‘ini chiqarasiz</small>
+        </RouterLink>
+
+        <RouterLink class="action" to="/products">
+          <span class="action-icon"><svg><use href="#i-catalog" /></svg></span>
+          <strong>Tovarlar va yorliqlar</strong>
+          <small>Qidirish, narxini ko‘rish, yorliqni qayta chop etish</small>
+        </RouterLink>
+
+        <RouterLink class="action" to="/stock-counts">
+          <span class="action-icon"><svg><use href="#i-warehouse" /></svg></span>
+          <strong>Sanoq</strong>
+          <small>Javondagi tovarni sanab, tizim bilan solishtirasiz</small>
+        </RouterLink>
+      </nav>
+
       <h3 class="block-title">Bugun</h3>
 
       <div class="kpi-row">
@@ -125,6 +152,67 @@ onMounted(async () => {
   font-size: 11px;
   letter-spacing: 2.4px;
   text-transform: uppercase;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.action:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-line, var(--accent));
+  box-shadow: var(--shadow-large);
+}
+
+.action-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 8px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.action-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.action strong {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.action small {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .block-title {

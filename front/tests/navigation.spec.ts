@@ -22,12 +22,12 @@ test('administrator menyusi: yettita band', async ({ page }) => {
   await openApp(page, admin, '/dashboard')
 
   await expect(page.locator('.sidebar-menu .menu-item')).toHaveText([
-    'Boshqaruv paneli',
-    'Kassa',
-    'Mahsulotlar',
-    'Kirim',
-    'Inventarizatsiya',
-    'Hisobotlar',
+    'Bosh sahifa',
+    'Sotish',
+    'Tovarlar',
+    'Tovar qabul qilish',
+    'Sanoq',
+    'Hisobot',
     'Sozlamalar',
   ])
 })
@@ -36,9 +36,9 @@ test('kassir menyusi: uchta band, yopiq sahifadan kassaga qaytariladi', async ({
   await openApp(page, cashier, '/')
 
   await expect(page.locator('.sidebar-menu .menu-item')).toHaveText([
-    'Kassa',
+    'Sotish',
     'Qaytarish',
-    'Mahsulotlar',
+    'Tovarlar',
   ])
 
   await page.goto('/purchases')
@@ -47,19 +47,19 @@ test('kassir menyusi: uchta band, yopiq sahifadan kassaga qaytariladi', async ({
 
 /** [manzil, sarlavha, belgilangan menyu bandi] */
 const PAGES: [string, string, string][] = [
-  ['/', 'Kassa', 'Kassa'],
-  ['/returns', 'Qaytarish', 'Kassa'],
-  ['/products', 'Mahsulotlar', 'Mahsulotlar'],
-  ['/products/attributes', 'Mahsulotlar', 'Mahsulotlar'],
-  ['/dashboard', 'Boshqaruv paneli', 'Boshqaruv paneli'],
-  ['/purchases', 'Kirim', 'Kirim'],
-  ['/suppliers', 'Kirim', 'Kirim'],
-  ['/stock-counts', 'Inventarizatsiya', 'Inventarizatsiya'],
-  ['/write-offs', 'Inventarizatsiya', 'Inventarizatsiya'],
-  ['/reports', 'Hisobotlar', 'Hisobotlar'],
-  ['/reports/stock', 'Hisobotlar', 'Hisobotlar'],
-  ['/expenses', 'Hisobotlar', 'Hisobotlar'],
-  ['/receipts', 'Hisobotlar', 'Hisobotlar'],
+  ['/', 'Sotish', 'Sotish'],
+  ['/returns', 'Qaytarish', 'Sotish'],
+  ['/products', 'Tovarlar', 'Tovarlar'],
+  ['/products/attributes', 'Tovarlar', 'Tovarlar'],
+  ['/dashboard', 'Bosh sahifa', 'Bosh sahifa'],
+  ['/purchases', 'Tovar qabul qilish', 'Tovar qabul qilish'],
+  ['/suppliers', 'Tovar qabul qilish', 'Tovar qabul qilish'],
+  ['/stock-counts', 'Sanoq', 'Sanoq'],
+  ['/write-offs', 'Sanoq', 'Sanoq'],
+  ['/reports', 'Hisobot', 'Hisobot'],
+  ['/reports/stock', 'Hisobot', 'Hisobot'],
+  ['/expenses', 'Hisobot', 'Hisobot'],
+  ['/receipts', 'Hisobot', 'Hisobot'],
   ['/settings', 'Sozlamalar', 'Sozlamalar'],
   ['/users', 'Sozlamalar', 'Sozlamalar'],
   ['/settings/devices', 'Sozlamalar', 'Sozlamalar'],
@@ -85,7 +85,7 @@ test('bo‘lim ichidagi tablar', async ({ page }, info) => {
 
   const tabs = page.locator('.page-tab')
 
-  await expect(tabs).toHaveText(['Hujjatlar', 'Ta’minotchilar'])
+  await expect(tabs).toHaveText(['Qabul qilish', 'Ta’minotchilar'])
   await expect(page.locator('.page-tab.active')).toHaveText('Ta’minotchilar')
   await page.screenshot({ path: info.outputPath('tablar.png') })
 
@@ -93,10 +93,10 @@ test('bo‘lim ichidagi tablar', async ({ page }, info) => {
   await expect(page).toHaveURL(/\/purchases$/)
 
   const groups: [string, string[]][] = [
-    ['/stock-counts', ['Sanoqlar', 'Hisobdan chiqarish']],
+    ['/stock-counts', ['Sanoq', 'Hisobdan chiqarish']],
     ['/reports', ['Savdo', 'Qoldiq qiymati', 'Xarajatlar', 'Cheklar']],
     ['/settings', ['Do‘kon', 'Xodimlar', 'Qurilmalar']],
-    ['/products', ['Mahsulotlar', 'Kategoriya, o‘lcham, rang']],
+    ['/products', ['Tovarlar', 'Kategoriya, o‘lcham, rang']],
   ]
 
   for (const [path, labels] of groups) {

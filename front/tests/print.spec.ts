@@ -221,7 +221,10 @@ test('kirim yorliqlari: 3 dona + 2 qo‘shimcha — 5 sahifa', async ({ page, re
   await chip.click()
 
   await expect(page.locator('.draft-note')).toContainText(purchase.number)
-  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
+  await page
+    .getByTestId('step-quantities')
+    .getByRole('button', { name: 'Qabul qilish' })
+    .click()
 
   const summary = page.getByTestId('purchase-summary')
 

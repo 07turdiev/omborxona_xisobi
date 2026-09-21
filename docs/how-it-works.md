@@ -165,15 +165,19 @@ Ish tartibi:
 1. **Qutini oching va modellarga ajrating.** Bir model — bir nom: masalan
    "Bahorgi kurtka". Uning ichida o'lchamlar va ranglar bo'ladi.
 
-2. **Modelni toping.** Agar u do'konda birinchi marta bo'lsa —
-   «Yangi mahsulot»: nomi, brendi, kategoriyasi va **qaysi o'lcham,
-   qaysi ranglarda kelgani** belgilanadi (rasm ixtiyoriy, keyin ham
-   qo'shiladi). Bitta o'lcham va bitta rang belgilansa, jadval bitta
-   katakdan iborat bo'ladi. Avval kelgan bo'lsa — nomini yozib
-   ro'yxatdan tanlang yoki ekran tepasidagi oxirgi modellar qatoridan
-   bosing.
+2. **Tovarni kiriting** (1-qadam). Nomi, brendi, kategoriyasi va
+   **qaysi o'lcham, qaysi ranglarda kelgani** belgilanadi; tannarx va
+   ustama shu yerda yoziladi, sotuv narxi o'zi hisoblanadi (rasm
+   ixtiyoriy). Bitta o'lcham va bitta rang belgilansa, jadval bitta
+   katakdan iborat bo'ladi.
 
-3. **Katakchani to'ldiring.** Ustunlar — o'lchamlar, qatorlar — ranglar.
+   Shu nomli tovar do'konda allaqachon bo'lsa, ekran ogohlantiradi va
+   «Shu tovar yana keldi» tugmasini beradi — bir tovar ikki marta
+   yaratilib, qoldiq ikkiga bo'linib ketmasin. Avval kelgan tovarni
+   Tovarlar sahifasidan ham ochib, «Yana keldi» tugmasi bilan shu
+   ekranga o'tish mumkin.
+
+3. **Katakchani to'ldiring** (2-qadam). Ustunlar — o'lchamlar, qatorlar — ranglar.
    Har katakka nechta kelganini yozasiz, Tab bilan keyingisiga o'tasiz.
    Bo'sh katak — o'sha o'lchamdan kelmagan degani.
 
@@ -189,24 +193,26 @@ Ish tartibi:
    ostida o'zgartiriladi. «Ustama %» yozilsa, sotuv narxi taklif
    qilinadi (4-bo'limga qarang) — uni qo'lda tuzatish mumkin.
 
-5. **Tasdiqlang.** Shunda tovar qoldiqqa tushadi, yangi narx mahsulotga
-   yoziladi va xulosa ko'rinadi: nechta model, nechta dona, tannarx jami
-   va nechta yorliq.
+   Kim keltirgani, to'langan summa va sana — «Qo'shimcha» ostida. Ular
+   majburiy emas: ko'pincha tovar shunchaki keladi va kiritiladi.
 
-6. **Yorliqlarni chop eting va yopishtiring.** Har dona uchun bitta
+5. **«Qabul qilish» tugmasini bosing.** Shunda tovar qoldiqqa tushadi,
+   yangi narx mahsulotga yoziladi va xulosa ko'rinadi: nechta tovar
+   turi, nechta dona, tannarx jami va nechta yorliq.
+
+6. **Yorliqlarni chop eting va yopishtiring** (3-qadam). Har dona uchun bitta
    yorliq chiqadi. «Qo'shimcha yorliq» — yopishtirishda yirtilganini
    almashtirish uchun; qo'shimchalar qatorlar bo'ylab navbat bilan
    taqsimlanadi. Keyin ham kerak bo'lsa, hujjatni ochib bitta modelning
    yoki bitta variantning yorlig'ini qayta chiqarish mumkin.
 
-Ishni yarmida to'xtatish kerak bo'lsa, «Qoralama» bosiladi: hujjat
-saqlanadi va forma ostidagi chipdan qaytarib ochiladi.
+Ishni yarmida to'xtatish kerak bo'lsa, «Keyinroq tugataman» bosiladi:
+hujjat saqlanadi va pastdagi «Tugallanmagan» chipidan qaytarib ochiladi.
 
-**Skaner qayerda kerak.** Kassada (sotuv), inventarizatsiyada (sanoq) va
-qaytarishda — u yerda tovarda yorliq bor. Kirimda skaner shart emas,
-lekin ishlaydi: yorlig'i bor tovar skanerlansa, katakchasi ochiladi va
-soni bittaga oshadi. Noma'lum kod skanerlansa, o'sha kod bilan yangi
-mahsulot yaratish taklif qilinadi.
+**Skaner qayerda kerak.** Sotishda, sanoqda va qaytarishda — u yerda
+tovarda do'kon yopishtirgan yorliq bor. Qabul qilishda skaner
+ishlatilmaydi: kelgan tovarda kod bo'lmaydi, kodni do'konning o'zi
+beradi.
 
 ---
 

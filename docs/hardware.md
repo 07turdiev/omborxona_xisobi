@@ -338,14 +338,14 @@ to'g'rilash kifoya.
 
 Qurilmalar sozlangach, haqiqiy oqimni tekshiring:
 
-1. **Mahsulotlar** → biror mahsulotda **Yorliqlar** → yorliqni bosib
+1. **Tovarlar** → biror tovarda **Yorliqlar** → yorliqni bosib
    chiqaring.
-2. **Kassa** ga o'ting va chiqqan yorliqni skanerlang — tovar savatga
+2. **Sotish** ga o'ting va chiqqan yorliqni skanerlang — tovar savatga
    tushsin.
 3. Sotuvni yakunlang — chek o'zi chop etilsin.
 4. **Qaytarish** bo'limini oching va **chekdagi shtrix-kodni**
    skanerlang — o'sha chek ochilishi kerak.
-5. **Inventarizatsiya → Yangi** → bir tovarni bir necha marta
+5. **Sanoq → Yangi** → bir tovarni bir necha marta
    skanerlang — har skan +1 qo'shilsin.
 
 Shu besh qadam o'tsa, qurilmalar to'liq ishlayapti.

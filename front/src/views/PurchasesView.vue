@@ -3,40 +3,36 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import LabelPrint from '@/components/LabelPrint.vue'
-import ProductCreateDialog from '@/components/ProductCreateDialog.vue'
-import ProductSearchField from '@/components/ProductSearchField.vue'
+import NewProductPanel from '@/components/NewProductPanel.vue'
 import PurchaseDocument from '@/components/PurchaseDocument.vue'
 import PurchaseModelGrid from '@/components/PurchaseModelGrid.vue'
-import RecentModelsStrip from '@/components/RecentModelsStrip.vue'
 import { catalogApi } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { purchasesApi } from '@/api/purchases'
 import { formatDayMonth, formatTime, todayIso } from '@/utils/date'
 import { formatMoney, formatSum, normalizeMoneyInput } from '@/utils/money'
 import {
-  cloneModel,
   draftLines,
   draftTotal,
   draftUnits,
   emptyModel,
   modelFromLines,
-  modelTotal,
-  modelUnits,
   type DraftModel,
 } from '@/utils/receiving'
 import type { LabelItem } from '@/api/agent'
 import type { Product, Purchase, PurchaseLine, Supplier } from '@/types'
 
 /**
- * Kirim: do'konga kelgan tovarni qabul qilish.
+ * Tovar qabul qilish — uch qadam.
  *
- * Tovar shtrix-kodsiz keladi — yorliqni do'konning o'zi chiqaradi.
- * Shuning uchun ekran skanerdan emas, **modeldan** boshlanadi: tepada
- * oxirgi qo'shilgan modellar, ostida nom bo'yicha qidiruv va "Yangi
- * mahsulot". Tanlangan model o'lcham × rang katakchasi bo'lib ochiladi.
+ *   1. Qanday tovar keldi. Do'konga keladigan tovarda shtrix-kod
+ *      bo'lmaydi, shuning uchun u shu yerda tizimga kiritiladi.
+ *   2. Nechtadan keldi — o'lcham × rang katakchasi va tannarx.
+ *   3. Yorliq — har dona uchun bitta, yopishtirish uchun.
  *
- * Hujjat forma sahifada doim ochiq turadi: yangi qoralama o'zidan
- * boshlanadi, saqlangani esa shu yerga yuklanadi.
+ * Ekranda bir vaqtda bitta qadam turadi: xodim "endi nima qilaman"
+ * degan savolga tushib qolmasin. Ta'minotchi, to'lov va sana kabi
+ * buxgalteriya maydonlari «Qo'shimcha» ostida yashirin.
  */
 
 const route = useRoute()
@@ -50,7 +46,10 @@ const saving = ref(false)
 const error = ref('')
 const notice = ref('')
 
-/** Hujjatning sarlavhasi. `id` — saqlangan qoralamani davom ettirish uchun. */
+/** 1 — qanday tovar, 2 — nechtadan, 3 — yorliq */
+const step = ref<1 | 2 | 3>(1)
+
+/** Hujjat sarlavhasi. `id` — saqlangan qoralamani davom ettirish uchun. */
 const draft = ref({
   id: null as number | null,
   number: '',
@@ -61,22 +60,12 @@ const draft = ref({
 })
 
 const models = ref<DraftModel[]>([])
+const extraOpen = ref(false)
 
-/** Ochiq katakcha — bitta model to'ldirilayotgan payt */
-const editing = ref<DraftModel | null>(null)
-
-const dialogOpen = ref(false)
-const dialogBarcode = ref('')
-
-/** Topilmagan kod: shu kod bilan yangi mahsulot taklif qilinadi */
-const unknownCode = ref('')
-
-/** Tasdiqlangandan keyingi xulosa va yorliqlar */
+/** Qabul qilingandan keyingi xulosa va yorliqlar */
 const summary = ref<{ purchase: Purchase; models: number; units: number } | null>(null)
 const extraLabels = ref(0)
 
-const search = ref<InstanceType<typeof ProductSearchField> | null>(null)
-const strip = ref<InstanceType<typeof RecentModelsStrip> | null>(null)
 const labels = ref<InstanceType<typeof LabelPrint> | null>(null)
 const labelItems = ref<LabelItem[]>([])
 
@@ -87,7 +76,7 @@ const labelCount = computed(
   () => (summary.value?.units ?? 0) + Math.max(0, Number(extraLabels.value) || 0),
 )
 
-/** Saqlangan qoralamalar — forma ostidagi chiplar */
+/** Tugallanmagan qabullar — pastdagi chiplar */
 const drafts = computed(() => purchases.value.filter((item) => item.status === 'draft'))
 
 function modelCount(purchase: Purchase): number {
@@ -104,13 +93,13 @@ async function load() {
     purchases.value = page.results
     suppliers.value = supplierPage.results
   } catch (err) {
-    error.value = errorMessage(err, 'Kirimlarni yuklab bo‘lmadi.')
+    error.value = errorMessage(err, 'Ro‘yxatni yuklab bo‘lmadi.')
   } finally {
     loading.value = false
   }
 }
 
-function resetDraft() {
+function reset() {
   draft.value = {
     id: null,
     number: '',
@@ -121,150 +110,59 @@ function resetDraft() {
   }
 
   models.value = []
-  editing.value = null
-  dialogOpen.value = false
-  dialogBarcode.value = ''
-  unknownCode.value = ''
+  extraOpen.value = false
+  step.value = 1
 }
 
-function clearDraft() {
-  resetDraft()
+function startOver() {
+  reset()
   summary.value = null
   notice.value = ''
-  search.value?.focus()
+  opened.value = null
 }
 
-/** Saqlangan qoralamani davom ettirish: qatorlar modelga yig'iladi. */
-async function editDraft(purchase: Purchase) {
-  error.value = ''
+// --- 1-qadam: qanday tovar keldi -------------------------------------------
 
-  try {
-    const full = await purchasesApi.get(purchase.id)
-
-    resetDraft()
-
-    draft.value = {
-      id: full.id,
-      number: full.number,
-      date: full.date,
-      supplier: full.supplier,
-      note: full.note,
-      amount_paid: Number(full.amount_paid) ? full.amount_paid : '',
-    }
-
-    const ids = [...new Set(full.lines.map((line) => line.product).filter(Boolean))] as number[]
-    const products = await Promise.all(ids.map((id) => catalogApi.product(id)))
-
-    models.value = products.map((product) =>
-      modelFromLines(
-        product,
-        full.lines.filter((line) => line.product === product.id),
-      ),
-    )
-
-    opened.value = null
-    summary.value = null
-    notice.value = `${full.number} qoralamasi ochildi.`
-  } catch (err) {
-    error.value = errorMessage(err, 'Qoralamani ochib bo‘lmadi.')
-  }
-}
-
-/** Ro'yxatdan yoki tezkor qatordan model tanlandi — katakcha ochiladi. */
-function onPick(product: Product) {
-  unknownCode.value = ''
-  summary.value = null
-
-  const existing = models.value.find((model) => model.product === product.id)
-
-  editing.value = existing ? cloneModel(existing) : emptyModel(product)
-}
-
-async function onPickId(id: number) {
-  error.value = ''
-
-  try {
-    onPick(await catalogApi.product(id))
-  } catch (err) {
-    error.value = errorMessage(err, 'Modelni ochib bo‘lmadi.')
-  }
-}
-
-/** Skanerlangan kod: variant topilsa, o'sha katakka bitta qo'shiladi. */
-async function onScan(code: string) {
-  error.value = ''
-  unknownCode.value = ''
-
-  try {
-    const variant = await catalogApi.byBarcode(code)
-    const product = await catalogApi.product(variant.product)
-
-    const found = models.value.find((item) => item.product === product.id)
-    const model = found ? cloneModel(found) : emptyModel(product)
-
-    model.quantities[variant.id] = (model.quantities[variant.id] ?? 0) + 1
-
-    summary.value = null
-    editing.value = model
-  } catch {
-    // Kod noma'lum — do'konga birinchi marta kelgan tovar bo'lishi mumkin
-    unknownCode.value = code
-    search.value?.focus()
-  }
-}
-
-function onModelSave(model: DraftModel) {
-  const index = models.value.findIndex((item) => item.product === model.product)
-
-  if (modelUnits(model) === 0) {
-    // Katakcha bo'sh qoldi — model ro'yxatda turmaydi
-    if (index !== -1) models.value.splice(index, 1)
-  } else if (index === -1) {
-    models.value.push(model)
-  } else {
-    models.value[index] = model
-  }
-
-  editing.value = null
-  search.value?.focus()
-}
-
-function onModelClose() {
-  editing.value = null
-  search.value?.focus()
-}
-
-function openDialog(barcode = '') {
-  dialogBarcode.value = barcode
-  dialogOpen.value = true
-  unknownCode.value = ''
-  editing.value = null
-}
-
-/** Yangi mahsulot yaratildi — darhol katakcha ochiladi. */
+/** Yangi tovar yaratildi — tannarxi bilan ikkinchi qadamga o'tadi. */
 function onCreated(product: Product, prices: { cost: string; markup: string }) {
-  dialogOpen.value = false
-  dialogBarcode.value = ''
-  summary.value = null
-
   const model = emptyModel(product)
 
   model.cost = prices.cost
   model.markup = prices.markup
 
-  // Bitta variantli mahsulot (skanerlangan kod) — dona darhol bittaga
+  // Bitta variantli tovarda dona darhol bittaga qo'yiladi
   if (model.variants.length === 1) model.quantities[model.variants[0]!.id] = 1
 
-  editing.value = model
-  notice.value = `«${product.name}» yaratildi — nechta kelganini yozing.`
-
-  void strip.value?.reload()
+  models.value.push(model)
+  summary.value = null
+  notice.value = ''
+  step.value = 2
 }
+
+/** Shu tovar avval ham kelgan — yangisi yaratilmaydi. */
+async function onExisting(product: Product) {
+  error.value = ''
+
+  try {
+    const full = await catalogApi.product(product.id)
+
+    if (!models.value.some((item) => item.product === full.id)) {
+      models.value.push(emptyModel(full))
+    }
+
+    summary.value = null
+    step.value = 2
+  } catch (err) {
+    error.value = errorMessage(err, 'Tovarni ochib bo‘lmadi.')
+  }
+}
+
+// --- 2-qadam: nechtadan keldi ----------------------------------------------
 
 function removeModel(product: number) {
   models.value = models.value.filter((model) => model.product !== product)
 
-  if (editing.value?.product === product) editing.value = null
+  if (!models.value.length) step.value = 1
 }
 
 function showSummary(purchase: Purchase) {
@@ -275,9 +173,10 @@ function showSummary(purchase: Purchase) {
   }
 
   extraLabels.value = 0
+  step.value = 3
 }
 
-async function onSave(confirmAfter: boolean) {
+async function save(confirmAfter: boolean) {
   const lines = draftLines(models.value)
 
   if (!lines.length || saving.value) return
@@ -303,34 +202,73 @@ async function onSave(confirmAfter: boolean) {
 
     if (confirmAfter) {
       purchase = await purchasesApi.confirm(purchase.id)
+      reset()
       showSummary(purchase)
     } else {
-      notice.value = `${purchase.number} qoralama sifatida saqlandi — keyin davom ettirasiz.`
+      notice.value = `${purchase.number} saqlandi — keyin davom ettirasiz.`
+      reset()
     }
 
-    resetDraft()
     await load()
   } catch (err) {
-    error.value = errorMessage(err, 'Kirimni saqlab bo‘lmadi.')
+    error.value = errorMessage(err, 'Saqlab bo‘lmadi.')
   } finally {
     saving.value = false
   }
 }
 
-/** Qatordagi hujjatni ochadi; qoralama esa formaga yuklanadi. */
+// --- Tugallanmagan va tugallangan hujjatlar --------------------------------
+
+/** Tugallanmagan qabulni davom ettirish: qatorlar katakchaga qaytadi. */
+async function continueDraft(purchase: Purchase) {
+  error.value = ''
+
+  try {
+    const full = await purchasesApi.get(purchase.id)
+
+    reset()
+
+    draft.value = {
+      id: full.id,
+      number: full.number,
+      date: full.date,
+      supplier: full.supplier,
+      note: full.note,
+      amount_paid: Number(full.amount_paid) ? full.amount_paid : '',
+    }
+
+    const ids = [...new Set(full.lines.map((line) => line.product).filter(Boolean))] as number[]
+    const products = await Promise.all(ids.map((id) => catalogApi.product(id)))
+
+    models.value = products.map((product) =>
+      modelFromLines(
+        product,
+        full.lines.filter((line) => line.product === product.id),
+      ),
+    )
+
+    opened.value = null
+    summary.value = null
+    step.value = 2
+    notice.value = `${full.number} davom ettirilmoqda.`
+  } catch (err) {
+    error.value = errorMessage(err, 'Ochib bo‘lmadi.')
+  }
+}
+
+/** Tugallangani ko'rish uchun ochiladi, tugallanmagani esa davom etadi. */
 async function open(purchase: Purchase) {
   error.value = ''
 
   if (purchase.status === 'draft') {
-    await editDraft(purchase)
+    await continueDraft(purchase)
     return
   }
 
   try {
     opened.value = await purchasesApi.get(purchase.id)
-    summary.value = null
   } catch (err) {
-    error.value = errorMessage(err, 'Kirimni ochib bo‘lmadi.')
+    error.value = errorMessage(err, 'Ochib bo‘lmadi.')
   }
 }
 
@@ -342,7 +280,6 @@ async function onCancel(purchase: Purchase) {
 
     notice.value = `${updated.number} bekor qilindi.`
     opened.value = updated
-    summary.value = null
     await load()
   } catch (err) {
     error.value = errorMessage(err, 'Bekor qilib bo‘lmadi — qoldiq yetarli emas.')
@@ -372,19 +309,34 @@ function itemsFor(lines: PurchaseLine[], extra = 0): LabelItem[] {
 }
 
 /** Yorliq chizilishini kutadi: shtrix-kod rasmi keyingi kadrda tayyor bo'ladi */
-function sendToPrinter(items: LabelItem[]) {
-  labelItems.value = items
+function printLines(lines: PurchaseLine[], extra = 0) {
+  labelItems.value = itemsFor(lines, extra)
 
   setTimeout(() => labels.value?.printLabels(), 50)
 }
 
-function printLines(lines: PurchaseLine[], extra = 0) {
-  sendToPrinter(itemsFor(lines, extra))
-}
-
-/** Mahsulotning qoldiq tarixidan kelingan bo'lsa (`?open=<id>`) — o'sha kirim ochiladi */
+/**
+ * Havoladan kelish:
+ *   `?model=<id>` — tovar sahifasidagi «Yana keldi»;
+ *   `?open=<id>`  — qoldiq tarixidagi hujjat havolasi.
+ */
 onMounted(async () => {
   await load()
+
+  const model = Number(route.query.model)
+
+  if (model) {
+    try {
+      const product = await catalogApi.product(model)
+
+      models.value = [emptyModel(product)]
+      step.value = 2
+    } catch (err) {
+      error.value = errorMessage(err, 'Tovarni ochib bo‘lmadi.')
+    }
+
+    return
+  }
 
   const id = Number(route.query.open)
 
@@ -393,178 +345,137 @@ onMounted(async () => {
   try {
     opened.value = await purchasesApi.get(id)
   } catch (err) {
-    error.value = errorMessage(err, 'Kirimni ochib bo‘lmadi.')
+    error.value = errorMessage(err, 'Hujjatni ochib bo‘lmadi.')
   }
 })
 </script>
 
 <template>
   <section class="app-section active receiving">
-    <!-- Sarlavha kartasi: ixcham, raqamlar birinchi ekranda qolsin -->
-    <header class="receiving-header">
-      <div>
-        <span class="eyebrow">YANGI KOLLEKSIYA</span>
-        <h2>Tovar qabul qilish</h2>
-        <p>
-          Kelgan tovarni model bo‘yicha kiriting: nomi, o‘lcham va rang bo‘yicha soni,
-          tannarx. Tasdiqlagach yorliq chiqadi.
-        </p>
-      </div>
+    <!-- Qadamlar: hozir qayerdaman. Sahifa nomi tepada turibdi,
+         shuning uchun bu yerda takrorlanmaydi. -->
+    <ol class="steps" data-testid="receiving-steps">
+      <li :class="{ active: step === 1, done: step > 1 }">
+        <span class="step-number">1</span>
+        <span class="step-name">Qanday tovar</span>
+      </li>
 
-      <button class="button button-gradient new-product" type="button" @click="openDialog()">
-        <svg><use href="#i-plus" /></svg>
-        <span>Yangi mahsulot</span>
-      </button>
-    </header>
+      <li :class="{ active: step === 2, done: step > 2 }">
+        <span class="step-number">2</span>
+        <span class="step-name">Nechtadan</span>
+      </li>
 
-    <!-- Oxirgi qo'shilgan modellar: bir bosishda katakcha ochiladi -->
-    <RecentModelsStrip ref="strip" @pick="onPickId" />
+      <li :class="{ active: step === 3 }">
+        <span class="step-number">3</span>
+        <span class="step-name">Yorliq</span>
+      </li>
+    </ol>
 
     <p v-if="error" class="load-error">{{ error }}</p>
     <p v-if="notice" class="notice">{{ notice }}</p>
 
-    <!-- Kirim hujjati: sahifada doim ochiq -->
-    <div v-if="!summary" class="table-card card-padded editor">
-      <h3 class="card-title">Kirim hujjati</h3>
+    <!-- 1-qadam -->
+    <div v-if="step === 1" class="table-card card-padded stage">
+      <h3 class="card-title">Qanday tovar keldi?</h3>
 
-      <div class="editor-head">
-        <div class="field">
-          <label>Ta’minotchi</label>
-          <select v-model="draft.supplier">
-            <option :value="null">Ta’minotchisiz (boshlang‘ich qoldiq)</option>
-            <option v-for="item in suppliers" :key="item.id" :value="item.id">{{ item.name }}</option>
-          </select>
-        </div>
+      <NewProductPanel @created="onCreated" @existing="onExisting" />
 
-        <div class="field">
-          <label>To‘langan summa</label>
-          <input v-model="draft.amount_paid" type="text" inputmode="decimal" placeholder="0" />
-        </div>
-
-        <div class="field">
-          <label>Izoh</label>
-          <input v-model="draft.note" type="text" />
-        </div>
-
-        <div class="field narrow">
-          <label>Sana</label>
-          <input v-model="draft.date" type="date" />
-        </div>
-      </div>
-
-      <p v-if="draft.id" class="field-hint draft-note">
-        {{ draft.number }} qoralamasi davom ettirilmoqda.
-      </p>
-
-      <ProductSearchField ref="search" @scan="onScan" @pick="onPick" />
-
-      <!-- Noma'lum kod: shu kod bilan mahsulot yaratish taklif qilinadi -->
-      <p v-if="unknownCode" class="notice unknown" data-testid="unknown-barcode">
-        <span>«{{ unknownCode }}» — bunday shtrix-kod do‘konda yo‘q.</span>
-
-        <button class="button button-outline" type="button" @click="openDialog(unknownCode)">
-          Shu kod bilan yangi mahsulot
+      <p v-if="models.length" class="back-line">
+        <button class="button button-outline" type="button" @click="step = 2">
+          ‹ Kiritilganlarga qaytish ({{ models.length }})
         </button>
       </p>
+    </div>
+
+    <!-- 2-qadam -->
+    <div v-else-if="step === 2" class="table-card card-padded stage" data-testid="step-quantities">
+      <h3 class="card-title">Nechtadan keldi?</h3>
+
+      <p v-if="draft.id" class="field-hint draft-note">{{ draft.number }}</p>
 
       <PurchaseModelGrid
-        v-if="editing"
-        :key="editing.product"
-        :model="editing"
-        @save="onModelSave"
-        @close="onModelClose"
+        v-for="model in models"
+        :key="model.product"
+        :model="model"
+        @remove="removeModel(model.product)"
       />
 
-      <!-- Bo'sh holat -->
-      <div v-if="!models.length" class="editor-empty">
-        <svg aria-hidden="true"><use href="#i-bag" /></svg>
-        <strong>Tovar qo‘shing</strong>
-        <span>Nomini yozing yoki yangi mahsulot qo‘shing</span>
+      <button class="button button-outline add-more" type="button" @click="step = 1">
+        <svg><use href="#i-plus" /></svg>
+        <span>Yana tovar qo‘shish</span>
+      </button>
+
+      <!-- Buxgalteriya maydonlari ko'rinib turmaydi: kerak bo'lsa ochiladi -->
+      <div class="extra">
+        <button
+          class="button button-outline"
+          type="button"
+          :aria-expanded="extraOpen"
+          @click="extraOpen = !extraOpen"
+        >
+          Qo‘shimcha
+        </button>
+
+        <div v-if="extraOpen" class="extra-fields">
+          <div class="field">
+            <label>Kim keltirdi</label>
+            <select v-model="draft.supplier">
+              <option :value="null">Ko‘rsatilmagan</option>
+              <option v-for="item in suppliers" :key="item.id" :value="item.id">
+                {{ item.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>To‘langan summa</label>
+            <input v-model="draft.amount_paid" type="text" inputmode="decimal" placeholder="0" />
+          </div>
+
+          <div class="field">
+            <label>Izoh</label>
+            <input v-model="draft.note" type="text" />
+          </div>
+
+          <div class="field">
+            <label>Sana</label>
+            <input v-model="draft.date" type="date" />
+          </div>
+        </div>
       </div>
 
-      <table v-else class="data-table models-table">
-        <thead>
-          <tr>
-            <th>Model</th>
-            <th class="num">Dona</th>
-            <th class="num">Tannarx</th>
-            <th class="num">Summa</th>
-            <th></th>
-          </tr>
-        </thead>
+      <footer class="stage-foot">
+        <strong>Jami: {{ units }} dona · {{ formatSum(total) }}</strong>
 
-        <tbody>
-          <tr v-for="model in models" :key="model.product">
-            <td>
-              <strong>{{ model.name }}</strong>
-              <small class="cell-sub">
-                {{ Object.keys(model.quantities).length }} ta o‘lcham/rang
-              </small>
-            </td>
-
-            <td class="num">{{ modelUnits(model) }}</td>
-            <td class="num">{{ formatMoney(model.cost || '0') }}</td>
-            <td class="num">{{ formatMoney(modelTotal(model)) }}</td>
-
-            <td class="num row-actions">
-              <button class="button button-outline" type="button" @click="editing = model">
-                Tahrirlash
-              </button>
-
-              <button
-                class="icon-button delete"
-                type="button"
-                :aria-label="`${model.name}: o‘chirish`"
-                @click="removeModel(model.product)"
-              >
-                <svg><use href="#i-trash" /></svg>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="editor-footer">
-        <strong>Jami: {{ formatSum(total) }}</strong>
-        <span v-if="units" class="editor-units">{{ units }} dona</span>
-
-        <div class="editor-actions">
+        <div class="stage-actions">
           <button
             class="button button-outline"
             type="button"
-            :disabled="saving || !models.length"
-            @click="onSave(false)"
+            :disabled="saving || !units"
+            @click="save(false)"
           >
-            Qoralama
+            Keyinroq tugataman
           </button>
-
-          <button class="button button-outline" type="button" @click="clearDraft">Tozalash</button>
 
           <button
-            class="button button-gradient"
+            class="button button-gradient big"
             type="button"
-            :disabled="saving || !models.length"
-            @click="onSave(true)"
+            :disabled="saving || !units"
+            @click="save(true)"
           >
-            {{ saving ? 'Saqlanmoqda…' : 'Tasdiqlash' }}
+            {{ saving ? 'Saqlanmoqda…' : 'Qabul qilish' }}
           </button>
         </div>
-      </div>
+      </footer>
     </div>
 
-    <!-- Tasdiqlangandan keyin forma o'rnida xulosa turadi -->
-    <div v-else class="table-card card-padded summary" data-testid="purchase-summary">
-      <div class="summary-head">
-        <h3 class="card-title">{{ summary.purchase.number }} tasdiqlandi — tovar omborga kirdi</h3>
+    <!-- 3-qadam -->
+    <div v-else class="table-card card-padded stage" data-testid="purchase-summary">
+      <h3 class="card-title">Qabul qilindi — endi yorliqlarni yopishtiring</h3>
 
-        <button class="icon-button" type="button" aria-label="Yopish" @click="clearDraft">
-          <svg><use href="#i-close" /></svg>
-        </button>
-      </div>
-
-      <ul class="summary-grid">
+      <ul v-if="summary" class="summary-grid">
         <li>
-          <span>Model</span>
+          <span>Tovar turi</span>
           <strong>{{ summary.models }}</strong>
         </li>
 
@@ -585,7 +496,7 @@ onMounted(async () => {
       </ul>
 
       <div class="summary-actions">
-        <label class="field extra">
+        <label class="field extra-labels">
           <span>Qo‘shimcha yorliq</span>
           <input
             v-model.number="extraLabels"
@@ -596,7 +507,8 @@ onMounted(async () => {
         </label>
 
         <button
-          class="button button-gradient"
+          v-if="summary"
+          class="button button-gradient big"
           type="button"
           @click="printLines(summary.purchase.lines, extraLabels)"
         >
@@ -604,8 +516,27 @@ onMounted(async () => {
           <span>Yorliqlarni chop etish ({{ labelCount }} ta)</span>
         </button>
 
-        <button class="button button-outline" type="button" @click="clearDraft">
-          Yangi kirim boshlash
+        <button class="button button-outline" type="button" @click="startOver">
+          Yana tovar qabul qilish
+        </button>
+      </div>
+    </div>
+
+    <!-- Tugallanmagan qabullar -->
+    <div v-if="drafts.length" class="table-card card-padded drafts">
+      <h3 class="card-title">Tugallanmagan</h3>
+
+      <div class="draft-chips">
+        <button
+          v-for="item in drafts"
+          :key="item.id"
+          class="draft-chip"
+          type="button"
+          :aria-label="`${item.number} qoralamasi: ${modelCount(item)} model`"
+          @click="continueDraft(item)"
+        >
+          {{ formatDayMonth(item.date) }}, {{ formatTime(item.created_at) }} ·
+          {{ modelCount(item) }} tovar
         </button>
       </div>
     </div>
@@ -615,14 +546,14 @@ onMounted(async () => {
       v-if="opened"
       :purchase="opened"
       @close="opened = null"
-      @edit="editDraft"
+      @edit="continueDraft"
       @print="printLines"
       @cancel="onCancel"
     />
 
-    <!-- Oxirgi kirimlar -->
+    <!-- Oxirgi qabul qilinganlar -->
     <div class="table-card card-padded history">
-      <h3 class="card-title">Oxirgi kirimlar</h3>
+      <h3 class="card-title">Oxirgi qabul qilinganlar</h3>
 
       <div class="table-scroll">
         <table class="data-table">
@@ -643,7 +574,7 @@ onMounted(async () => {
             </tr>
 
             <tr v-else-if="!purchases.length">
-              <td colspan="6" class="empty-state">Kirim hujjati yo‘q.</td>
+              <td colspan="6" class="empty-state">Hali tovar qabul qilinmagan.</td>
             </tr>
 
             <tr
@@ -656,7 +587,7 @@ onMounted(async () => {
             >
               <td>
                 <strong>{{ purchase.number }}</strong>
-                <small class="cell-sub">{{ purchase.supplier_name ?? 'Ta’minotchisiz' }}</small>
+                <small class="cell-sub">{{ purchase.supplier_name ?? 'Ko‘rsatilmagan' }}</small>
               </td>
 
               <td>
@@ -668,7 +599,7 @@ onMounted(async () => {
 
               <td class="num">
                 {{ formatMoney(purchase.total) }}
-                <!-- Qarz faqat ta'minotchili va to'lanmagan hujjatda -->
+                <!-- Qarz faqat keltirgani ko'rsatilgan va to'lanmagan hujjatda -->
                 <small v-if="Number(purchase.debt)" class="cell-sub">
                   Qarz: {{ formatMoney(purchase.debt) }}
                 </small>
@@ -703,199 +634,136 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Qoralamalar -->
-    <div v-if="drafts.length" class="table-card card-padded drafts">
-      <h3 class="card-title">Qoralamalar</h3>
-
-      <div class="draft-chips">
-        <button
-          v-for="item in drafts"
-          :key="item.id"
-          class="draft-chip"
-          type="button"
-          :aria-label="`${item.number} qoralamasi: ${modelCount(item)} model`"
-          @click="editDraft(item)"
-        >
-          {{ formatDayMonth(item.date) }}, {{ formatTime(item.created_at) }} ·
-          {{ modelCount(item) }} model
-        </button>
-      </div>
-    </div>
-
-    <ProductCreateDialog
-      v-if="dialogOpen"
-      :barcode="dialogBarcode || undefined"
-      @created="onCreated"
-      @close="dialogOpen = false"
-    />
-
     <LabelPrint ref="labels" :items="labelItems" />
   </section>
 </template>
 
 <style scoped>
-/* --- Sarlavha --- */
+/* --- Qadamlar --- */
 
-.receiving-header {
+.steps {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  gap: 8px;
   margin-bottom: 14px;
-  padding: 16px 22px;
-  border: 1px solid #ece2d2;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: linear-gradient(110deg, #f3e8d7, #fdfaf4 70%);
-}
-
-.eyebrow {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--accent);
-  font-size: 11px;
-  letter-spacing: 2px;
-}
-
-.receiving-header h2 {
-  font-family: var(--font-display);
-  font-size: 29px;
-  font-weight: 500;
-  line-height: 1.15;
-}
-
-.receiving-header p {
-  max-width: 62ch;
-  margin-top: 4px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.new-product {
-  flex: none;
-  min-height: 42px;
-  padding: 0 18px;
+  background: var(--surface);
+  color: var(--text-muted);
   font-size: 15px;
 }
 
-/* --- Hujjat formasi --- */
+.steps li.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.steps li.done {
+  color: var(--text-secondary);
+}
+
+.step-number {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--gray-1);
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.steps li.active .step-number {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.steps li.done .step-number {
+  background: var(--accent-soft-2);
+  color: var(--accent-strong);
+}
+
+/* --- Qadam mazmuni --- */
+
+.stage {
+  margin-bottom: 12px;
+}
 
 .card-title {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   font-family: var(--font-display);
   font-size: 23px;
   font-weight: 500;
 }
 
-.editor {
-  margin-bottom: 12px;
-}
-
-.editor-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.4fr) 150px;
-  gap: 10px;
-  margin-bottom: 12px;
+.back-line {
+  margin-top: 14px;
 }
 
 .draft-note {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-.unknown {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+.add-more {
+  margin: 4px 0 14px;
+}
+
+.extra {
+  margin-bottom: 14px;
+}
+
+.extra-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
   margin-top: 10px;
 }
 
-.editor-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 28px 16px 24px;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.editor-empty svg {
-  width: 30px;
-  height: 30px;
-  margin-bottom: 4px;
-  fill: none;
-  stroke: var(--gray-4);
-  stroke-width: 1.2;
-  stroke-linejoin: round;
-}
-
-.editor-empty strong {
-  color: var(--text-secondary);
-  font-size: 15px;
-}
-
-.editor-empty span {
-  font-size: 13px;
-}
-
-.models-table {
-  margin-top: 12px;
-}
-
-.editor-footer {
+.stage-foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
+  gap: 12px;
+  padding-top: 14px;
   border-top: 1px solid var(--border);
 }
 
-.editor-footer strong {
-  font-size: 20px;
+.stage-foot strong {
+  font-size: 19px;
   font-variant-numeric: tabular-nums;
 }
 
-.editor-units {
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.editor-actions {
+.stage-actions {
   display: flex;
   gap: 8px;
   margin-left: auto;
 }
 
-.row-actions .button {
-  margin-left: 6px;
+.big {
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
 }
 
 /* --- Xulosa --- */
-
-.summary {
-  margin-bottom: 12px;
-}
-
-.summary-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.summary-head .card-title {
-  margin-bottom: 0;
-}
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
-  margin: 12px 0 14px;
+  margin: 0 0 16px;
   padding: 0;
   list-style: none;
 }
@@ -904,7 +772,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-soft);
@@ -927,8 +795,8 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.summary-actions .field.extra {
-  width: 150px;
+.summary-actions .field.extra-labels {
+  width: 160px;
 }
 
 .summary-actions .field span {
@@ -936,19 +804,11 @@ onMounted(async () => {
   font-size: 13px;
 }
 
-/* --- Tarix va qoralamalar --- */
+/* --- Pastki bo'limlar --- */
 
-.history,
-.drafts {
+.drafts,
+.history {
   margin-bottom: 12px;
-}
-
-.clickable {
-  cursor: pointer;
-}
-
-.clickable.active td {
-  background: var(--accent-soft);
 }
 
 .draft-chips {
@@ -958,7 +818,7 @@ onMounted(async () => {
 }
 
 .draft-chip {
-  padding: 8px 14px;
+  padding: 10px 16px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: var(--surface);
@@ -973,24 +833,25 @@ onMounted(async () => {
   color: var(--text);
 }
 
-@media (max-width: 1000px) {
-  .editor-head {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  }
+.clickable {
+  cursor: pointer;
 }
 
-@media (max-width: 640px) {
-  .receiving-header {
-    flex-direction: column;
-    align-items: flex-start;
+.clickable.active td {
+  background: var(--accent-soft);
+}
+
+@media (max-width: 720px) {
+  .steps li:not(.active) .step-name {
+    display: none;
   }
 
-  .editor-actions {
+  .stage-actions {
     width: 100%;
     margin-left: 0;
   }
 
-  .editor-actions .button {
+  .stage-actions .button {
     flex: 1;
   }
 }
