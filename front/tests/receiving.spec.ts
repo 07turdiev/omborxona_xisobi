@@ -54,9 +54,10 @@ async function lastPurchase(request: APIRequestContext) {
   return page.results[0]
 }
 
+/** Kirim formasi sahifada doim ochiq — tugma bosish shart emas */
 async function openEditor(page: Page) {
   await openApp(page, admin, '/purchases')
-  await page.getByRole('button', { name: 'Yangi kirim' }).click()
+  await page.getByRole('heading', { name: 'Kirim hujjati' }).waitFor()
 }
 
 test('yangi model kirim ekranida yaratiladi va qoldiqqa tushadi', async ({ page, request }) => {
@@ -105,7 +106,7 @@ test('yangi model kirim ekranida yaratiladi va qoldiqqa tushadi', async ({ page,
 
   await expect(page.locator('.models-table')).toContainText(name)
 
-  await page.getByRole('button', { name: 'Saqlash va tasdiqlash' }).click()
+  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
 
   // Xulosa: model, dona, tannarx va yorliqlar soni
   const summary = page.getByTestId('purchase-summary')
@@ -137,7 +138,7 @@ test('yangi model kirim ekranida yaratiladi va qoldiqqa tushadi', async ({ page,
 test('nom bo‘yicha qidiruv: model ro‘yxatdan tanlanadi', async ({ page }) => {
   await openEditor(page)
 
-  const field = page.getByLabel('Shtrix-kod yoki tovar nomi')
+  const field = page.getByLabel('Tovar nomi')
 
   await field.fill(product.name)
 
@@ -164,7 +165,7 @@ test('nom bo‘yicha qidiruv: model ro‘yxatdan tanlanadi', async ({ page }) =>
 test('klaviatura bilan: o‘q, Enter, Tab — sichqonchasiz ishlaydi', async ({ page }) => {
   await openEditor(page)
 
-  const field = page.getByLabel('Shtrix-kod yoki tovar nomi')
+  const field = page.getByLabel('Tovar nomi')
 
   await field.fill(product.name)
   await expect(page.getByRole('option', { name: new RegExp(product.name) })).toBeVisible()
@@ -208,7 +209,7 @@ test('klaviatura bilan: o‘q, Enter, Tab — sichqonchasiz ishlaydi', async ({ 
 test('bitta tannarx hamma qatorga tushadi, alohidasi ustun turadi', async ({ page, request }) => {
   await openEditor(page)
 
-  await page.getByLabel('Shtrix-kod yoki tovar nomi').fill(product.name)
+  await page.getByLabel('Tovar nomi').fill(product.name)
   await page.getByRole('option', { name: new RegExp(product.name) }).click()
 
   const grid = page.getByTestId('model-grid')
@@ -229,7 +230,7 @@ test('bitta tannarx hamma qatorga tushadi, alohidasi ustun turadi', async ({ pag
   await expect(grid).toContainText('650 000')
 
   await grid.getByRole('button', { name: 'Tayyor' }).click()
-  await page.getByRole('button', { name: 'Qoralama' }).click()
+  await page.getByRole('button', { name: 'Qoralama', exact: true }).click()
 
   await expect(page.locator('.notice')).toContainText('qoralama')
 
@@ -255,7 +256,7 @@ test('ustama sotuv narxini taklif qiladi, narx faqat tasdiqlanganda saqlanadi', 
 
   await openEditor(page)
 
-  await page.getByLabel('Shtrix-kod yoki tovar nomi').fill(product.name)
+  await page.getByLabel('Tovar nomi').fill(product.name)
   await page.getByRole('option', { name: new RegExp(product.name) }).click()
 
   const grid = page.getByTestId('model-grid')
@@ -269,7 +270,7 @@ test('ustama sotuv narxini taklif qiladi, narx faqat tasdiqlanganda saqlanadi', 
   await grid.getByLabel(`${product.sizes[0]!.name} ${product.colors[0]!.name}: nechta`).fill('1')
   await grid.getByRole('button', { name: 'Tayyor' }).click()
 
-  await page.getByRole('button', { name: 'Qoralama' }).click()
+  await page.getByRole('button', { name: 'Qoralama', exact: true }).click()
   await expect(page.locator('.notice')).toContainText('qoralama')
 
   // Qoralama — do'konda hali eski narx
@@ -277,10 +278,14 @@ test('ustama sotuv narxini taklif qiladi, narx faqat tasdiqlanganda saqlanadi', 
 
   expect(draft.sale_price).toBe(before.sale_price)
 
+  // Qoralamani chipdan qaytarib yuklaymiz va tasdiqlaymiz. Chip aynan
+  // shu hujjatniki: boshqa testlar ham qoralama qoldiradi.
   const saved = await lastPurchase(request)
-  const row = page.locator('tbody tr', { hasText: saved.number })
 
-  await row.getByRole('button', { name: 'Tasdiqlash' }).click()
+  await page.getByRole('button', { name: new RegExp(`${saved.number} qoralamasi`) }).click()
+  await expect(page.locator('.draft-note')).toContainText(saved.number)
+
+  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
   await expect(page.getByTestId('purchase-summary')).toBeVisible()
 
   const confirmed = await findProduct(request, product.name)
@@ -294,7 +299,7 @@ test('noma’lum shtrix-kod: shu kod bilan yangi mahsulot yaratiladi', async ({ 
 
   await openEditor(page)
 
-  const field = page.getByLabel('Shtrix-kod yoki tovar nomi')
+  const field = page.getByLabel('Tovar nomi')
 
   await field.fill(code)
   await field.press('Enter')
@@ -320,7 +325,7 @@ test('noma’lum shtrix-kod: shu kod bilan yangi mahsulot yaratiladi', async ({ 
 
   await grid.getByLabel('Model tannarxi').fill('90000')
   await grid.getByRole('button', { name: 'Tayyor' }).click()
-  await page.getByRole('button', { name: 'Saqlash va tasdiqlash' }).click()
+  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
 
   await expect(page.getByTestId('purchase-summary')).toBeVisible()
 
@@ -334,7 +339,7 @@ test('noma’lum shtrix-kod: shu kod bilan yangi mahsulot yaratiladi', async ({ 
 test('qoralama davom ettiriladi: qatorlar katakchaga qaytadi', async ({ page }) => {
   await openEditor(page)
 
-  await page.getByLabel('Shtrix-kod yoki tovar nomi').fill(product.name)
+  await page.getByLabel('Tovar nomi').fill(product.name)
   await page.getByRole('option', { name: new RegExp(product.name) }).click()
 
   const grid = page.getByTestId('model-grid')
@@ -343,7 +348,7 @@ test('qoralama davom ettiriladi: qatorlar katakchaga qaytadi', async ({ page }) 
   await grid.getByLabel('Model tannarxi').fill('120000')
   await grid.getByLabel(cell).fill('6')
   await grid.getByRole('button', { name: 'Tayyor' }).click()
-  await page.getByRole('button', { name: 'Qoralama' }).click()
+  await page.getByRole('button', { name: 'Qoralama', exact: true }).click()
 
   const notice = page.locator('.notice')
 
@@ -353,8 +358,12 @@ test('qoralama davom ettiriladi: qatorlar katakchaga qaytadi', async ({ page }) 
 
   expect(number, 'qoralama raqami ko‘rinmadi').not.toBe('')
 
-  // Ro'yxatdagi qoralama bosilsa — tahrirlash uchun ochiladi
-  await page.locator('tbody tr', { hasText: number }).click()
+  // Qoralamalar kartasidagi chip bosilsa — forma qayta to'ladi.
+  // Chip aynan shu hujjatniki: boshqa testlar ham qoralama qoldiradi.
+  const chip = page.getByRole('button', { name: new RegExp(`${number} qoralamasi`) })
+
+  await expect(chip).toBeVisible()
+  await chip.click()
 
   await expect(page.locator('.draft-note')).toContainText(number)
   await expect(page.locator('.models-table tbody tr', { hasText: product.name })).toContainText('6')
@@ -374,11 +383,84 @@ test('tasdiqlangan kirimda bitta qatorning yorlig‘i qayta chiqadi', async ({ p
   await page.locator('tbody tr', { hasText: product.purchase.number }).click()
 
   const opened = page.getByTestId('opened-purchase')
-  const first = opened.locator('tbody tr').first()
+
+  // To'liq ro'yxat "Batafsil" ostida — shtrix-kod va qator yorlig'i
+  await opened.getByRole('button', { name: 'Batafsil' }).click()
+
+  const first = opened.locator('.table-scroll tbody tr').first()
 
   await expect(first).toBeVisible()
   await first.getByRole('button', { name: /yorliqni qayta chop etish/ }).click()
 
   // Faqat o'sha qatorning donasi chiqadi (2 dona), butun hujjat emas
   await expect(page.locator('.print-sheet .label')).toHaveCount(2)
+})
+
+
+test('tezkor qator: oxirgi modeldan katakcha ochiladi', async ({ page }) => {
+  await openEditor(page)
+
+  const chip = page.getByTestId('model-strip').locator('.model-chip').first()
+
+  await expect(chip).toBeVisible()
+
+  const name = (await chip.locator('strong').textContent())?.trim() ?? ''
+
+  await chip.click()
+
+  await expect(page.getByTestId('model-grid')).toContainText(name)
+})
+
+test('yangi mahsulot rasmsiz ham saqlanadi', async ({ page, request }) => {
+  const name = `Rasmsiz ko‘ylak ${Date.now()}`
+
+  await openEditor(page)
+  await page.getByRole('button', { name: 'Yangi mahsulot' }).click()
+
+  const form = page.getByTestId('quick-product')
+
+  // Rasm maydoni bo'sh turadi — u majburiy emas
+  await expect(form.locator('.drop-empty')).toBeVisible()
+
+  await form.getByLabel('Mahsulot nomi').fill(name)
+  await form.getByLabel('Tannarx').fill('100000')
+  await form.getByLabel('Ustama foizi').fill('50')
+
+  // 100 000 + 50 % = 150 000
+  await expect(form.getByLabel('Sotuv narxi')).toHaveValue(/150.000/)
+
+  await form.getByRole('button', { name: 'Saqlash va qabul qilish' }).click()
+  await expect(form.locator('.load-error')).toHaveCount(0)
+
+  const grid = page.getByTestId('model-grid')
+
+  await expect(grid).toContainText(name)
+
+  // Tannarx oynadan katakchaga ko'chadi — qayta yozish shart emas
+  await expect(grid.getByLabel('Model tannarxi')).toHaveValue('100000')
+
+  const saved = await findProduct(request, name)
+
+  expect(saved.sale_price).toBe('150000.00')
+  expect(saved.images).toHaveLength(0)
+})
+
+test('ochilgan hujjatda qatorlar model bo‘yicha katakchada', async ({ page }) => {
+  await openApp(page, admin, '/purchases')
+  await page.locator('tbody tr', { hasText: product.purchase.number }).click()
+
+  const opened = page.getByTestId('opened-purchase')
+  const model = opened.locator('.doc-model', { hasText: product.name })
+
+  await expect(model).toBeVisible()
+  await expect(model).toContainText('8 dona')
+
+  // Kelgan katak — soni bilan, kelmagani — chiziqcha
+  await expect(
+    model.getByLabel(`${product.sizes[0]!.name} ${product.colors[0]!.name}: 2 dona`),
+  ).toHaveText('2')
+
+  await expect(
+    model.getByLabel(`${product.sizes[2]!.name} ${product.colors[1]!.name}: 0 dona`),
+  ).toHaveText('—')
 })

@@ -446,6 +446,17 @@ class CatalogListTests(TestCase):
 
         self.assertEqual(self.cards()[0]['size_stock'], [])
 
+    def test_color_count_for_the_receiving_strip(self):
+        """Kirim ekranidagi karta «S–L · 2 rang» deb yozadi."""
+        create_product(sizes=('S', 'M', 'L'), colors=('Qora', 'Oq'))
+
+        self.assertEqual(self.cards()[0]['color_count'], 2)
+
+    def test_color_count_is_zero_without_colors(self):
+        create_product(name='Sharf')
+
+        self.assertEqual(self.cards()[0]['color_count'], 0)
+
     def test_search_by_name_does_not_multiply_stock(self):
         """Ilgari qidiruv variantlarga ikkinchi JOIN qo'shib, yig'indini ko'paytirardi."""
         product = create_product(name='Yozgi ko‘ylak', sizes=('S', 'M'), colors=('Qora', 'Oq'))

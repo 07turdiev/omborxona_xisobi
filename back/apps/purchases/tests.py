@@ -280,6 +280,30 @@ class PurchaseReceivingTests(TestCase):
         self.assertEqual(Decimal(line['price']), Decimal('400000.00'))
         self.assertTrue(line['barcode'])
 
+    def test_line_carries_size_and_color_for_the_grouped_grid(self):
+        """Ochilgan hujjatda qatorlar model bo'yicha katakchaga yig'iladi."""
+        created = self._post([
+            {'variant': self.variants[0].pk, 'quantity': 1, 'unit_cost': '200000'}
+        ])
+
+        line = created.json()['lines'][0]
+
+        self.assertEqual(line['size'], self.variants[0].size_id)
+        self.assertEqual(line['size_name'], self.variants[0].size.name)
+        self.assertEqual(line['color_name'], self.variants[0].color.name)
+
+    def test_purchase_shows_who_created_it(self):
+        """«Oxirgi kirimlar» jadvalidagi Xodim ustuni."""
+        self.admin.first_name = 'Gulnora'
+        self.admin.last_name = 'Karimova'
+        self.admin.save(update_fields=['first_name', 'last_name'])
+
+        created = self._post([
+            {'variant': self.variants[0].pk, 'quantity': 1, 'unit_cost': '200000'}
+        ])
+
+        self.assertEqual(created.json()['created_by_name'], 'Gulnora Karimova')
+
     def test_zero_new_sale_price_is_rejected(self):
         response = self._post([
             {

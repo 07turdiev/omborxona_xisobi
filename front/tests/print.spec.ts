@@ -186,7 +186,10 @@ test('kirim yorliqlari: 3 dona — 3 sahifa', async ({ page, request }) => {
   const row = page.locator('tr', { hasText: purchase.number })
 
   await expect(row).toBeVisible()
-  await row.getByRole('button', { name: /Yorliqlar/ }).click()
+  await row.click()
+
+  // Yorliqlar hujjatning ichida: ro'yxat qatorida faqat ochish belgisi
+  await page.getByTestId('opened-purchase').getByRole('button', { name: /Yorliqlar chop etish/ }).click()
 
   const pdf = await printToPdf(page)
   const info = await readPdf(pdf)
@@ -211,10 +214,14 @@ test('kirim yorliqlari: 3 dona + 2 qo‘shimcha — 5 sahifa', async ({ page, re
 
   await openApp(page, '/purchases')
 
-  const row = page.locator('tr', { hasText: purchase.number })
+  // Qoralama chip orqali formaga yuklanadi va shu yerda tasdiqlanadi
+  const chip = page.getByRole('button', { name: new RegExp(`${purchase.number} qoralamasi`) })
 
-  await expect(row).toBeVisible()
-  await row.getByRole('button', { name: 'Tasdiqlash' }).click()
+  await expect(chip).toBeVisible()
+  await chip.click()
+
+  await expect(page.locator('.draft-note')).toContainText(purchase.number)
+  await page.getByRole('button', { name: 'Tasdiqlash' }).click()
 
   const summary = page.getByTestId('purchase-summary')
 

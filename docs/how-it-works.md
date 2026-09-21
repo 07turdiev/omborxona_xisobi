@@ -154,42 +154,50 @@ ham topadi.
 
 ---
 
-## 7. Kirim oqimi
+## 7. Tovar qabul qilish
 
-Do'konga tovar **shtrix-kodsiz** keladi: yorliqni do'konning o'zi
-chiqaradi. Shuning uchun kirim ekrani skanerdan boshlanmaydi:
+Do'konga tovar **shtrix-kodsiz** keladi: qutida, o'lchamlari aralash,
+yorliqsiz. Yorliqni do'konning o'zi chiqaradi. Shuning uchun kirim
+ekrani skanerdan emas, **modeldan** boshlanadi.
 
-```
-nom bo'yicha qidiruv  ─┐
-skanerlangan kod      ─┼─► model tanlanadi ─► o'lcham × rang katakchasi
-«Yangi mahsulot»      ─┘                            │
-                                                    ▼
-                                    tannarx (modelga bitta) + ustama %
-                                                    │
-                        «Saqlash va tasdiqlash» ────┤
-                                                    ▼
-                                 qoldiq + yangi narx + yorliqlar
-```
+Ish tartibi:
 
-Uch narsa e'tiborga olingan:
+1. **Qutini oching va modellarga ajrating.** Bir model — bir nom: masalan
+   "Bahorgi kurtka". Uning ichida o'lchamlar va ranglar bo'ladi.
 
-1. **Model bo'yicha kiritiladi.** Bitta modelda 10-20 variant bo'ladi;
-   ularni bittalab qidirish o'rniga katakchaga dona yoziladi. Bo'sh
-   katak — kelmagan degani. Serverga baribir oddiy qatorlar ketadi.
+2. **Modelni toping.** Agar u do'konda birinchi marta bo'lsa —
+   «Yangi mahsulot»: nomi, brendi, kategoriyasi, o'lchamlari va ranglari
+   yoziladi (rasm ixtiyoriy, keyin ham qo'shiladi). Avval kelgan bo'lsa —
+   nomini yozib ro'yxatdan tanlang yoki ekran tepasidagi oxirgi modellar
+   qatoridan bosing.
 
-2. **Tannarx modelga bitta.** Bir kirimda bir model odatda bir narxda
-   keladi; kerak bo'lsa alohida qatorga boshqa narx yoziladi va u
-   modelnikidan ustun turadi.
+3. **Katakchani to'ldiring.** Ustunlar — o'lchamlar, qatorlar — ranglar.
+   Har katakka nechta kelganini yozasiz, Tab bilan keyingisiga o'tasiz.
+   Bo'sh katak — o'sha o'lchamdan kelmagan degani.
 
-3. **Yangi mahsulot shu yerda yaratiladi** — kategoriya, nom, o'lcham va
-   ranglar. Matritsa va shtrix-kodlar avtomatik chiqadi, keyin darhol
-   katakcha ochiladi. Noma'lum kod skanerlansa, o'sha kod yangi
-   mahsulotning yagona variantiga yoziladi.
+4. **Tannarx va ustama.** Tannarx modelga bitta yoziladi va hamma
+   qatorga tushadi; bitta qatorniki boshqacha bo'lsa, «Alohida tannarx»
+   ostida o'zgartiriladi. «Ustama %» yozilsa, sotuv narxi taklif
+   qilinadi (4-bo'limga qarang) — uni qo'lda tuzatish mumkin.
 
-Tasdiqlangandan keyin xulosa ko'rinadi (model, dona, tannarx, yorliq) va
-har dona uchun bitta yorliq chiqadi. "Qo'shimcha yorliq" — yopishtirishda
-yirtilganini almashtirish uchun; qo'shimchalar qatorlar bo'ylab navbat
-bilan taqsimlanadi.
+5. **Tasdiqlang.** Shunda tovar qoldiqqa tushadi, yangi narx mahsulotga
+   yoziladi va xulosa ko'rinadi: nechta model, nechta dona, tannarx jami
+   va nechta yorliq.
+
+6. **Yorliqlarni chop eting va yopishtiring.** Har dona uchun bitta
+   yorliq chiqadi. «Qo'shimcha yorliq» — yopishtirishda yirtilganini
+   almashtirish uchun; qo'shimchalar qatorlar bo'ylab navbat bilan
+   taqsimlanadi. Keyin ham kerak bo'lsa, hujjatni ochib bitta modelning
+   yoki bitta variantning yorlig'ini qayta chiqarish mumkin.
+
+Ishni yarmida to'xtatish kerak bo'lsa, «Qoralama» bosiladi: hujjat
+saqlanadi va forma ostidagi chipdan qaytarib ochiladi.
+
+**Skaner qayerda kerak.** Kassada (sotuv), inventarizatsiyada (sanoq) va
+qaytarishda — u yerda tovarda yorliq bor. Kirimda skaner shart emas,
+lekin ishlaydi: yorlig'i bor tovar skanerlansa, katakchasi ochiladi va
+soni bittaga oshadi. Noma'lum kod skanerlansa, o'sha kod bilan yangi
+mahsulot yaratish taklif qilinadi.
 
 ---
 

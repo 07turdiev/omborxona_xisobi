@@ -46,7 +46,7 @@ class PurchaseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdmin]
 
     def get_queryset(self):
-        queryset = Purchase.objects.select_related('supplier').prefetch_related(
+        queryset = Purchase.objects.select_related('supplier', 'created_by').prefetch_related(
             'lines__variant__product', 'lines__variant__size', 'lines__variant__color'
         )
 

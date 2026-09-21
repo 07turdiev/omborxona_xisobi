@@ -118,6 +118,16 @@
           <path d="M7 7L8 21H16L17 7"/>
       </symbol>
   
+      <symbol id="i-eye" viewBox="0 0 24 24">
+          <path d="M2 12C4.5 7.5 7.8 5.5 12 5.5C16.2 5.5 19.5 7.5 22 12C19.5 16.5 16.2 18.5 12 18.5C7.8 18.5 4.5 16.5 2 12Z"/>
+          <circle cx="12" cy="12" r="3"/>
+      </symbol>
+
+      <symbol id="i-bag" viewBox="0 0 24 24">
+          <path d="M5 8H19L20 21H4L5 8Z"/>
+          <path d="M9 11V7A3 3 0 0 1 15 7V11"/>
+      </symbol>
+
       <symbol id="i-close" viewBox="0 0 24 24">
           <path d="M6 6L18 18"/>
           <path d="M18 6L6 18"/>

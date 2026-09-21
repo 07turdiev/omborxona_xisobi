@@ -186,3 +186,81 @@ export function gridCell(
 ): Variant | undefined {
   return variants.find((variant) => variant.size === size && variant.color === color)
 }
+
+// --- Ochilgan hujjat: qatorlar model bo'yicha ------------------------------
+
+export interface LineGroup {
+  product: number
+  name: string
+  lines: PurchaseLine[]
+  sizes: GridAxis[]
+  colors: GridAxis[]
+  units: number
+  total: string
+  /** Hamma qatorda bir xil bo'lsa — tannarx, aks holda bo'sh */
+  cost: string
+}
+
+/**
+ * Hujjat qatorlarini model bo'yicha guruhlaydi.
+ *
+ * Tasdiqlangan kirimda yigirmata qator bitta modelnikidir: ularni
+ * ro'yxat qilib emas, kelgandagidek o'lcham × rang katakchasi qilib
+ * ko'rsatish kerak — qaysi o'lchamdan nechta kelgani shunda ko'rinadi.
+ */
+export function groupLines(lines: PurchaseLine[]): LineGroup[] {
+  const groups = new Map<number, LineGroup>()
+
+  for (const line of lines) {
+    const key = line.product ?? line.variant
+
+    const group =
+      groups.get(key) ??
+      ({
+        product: key,
+        name: line.product_name ?? '',
+        lines: [],
+        sizes: [],
+        colors: [],
+        units: 0,
+        total: '0',
+        cost: '',
+      } satisfies LineGroup)
+
+    group.lines.push(line)
+    group.units += line.quantity
+    group.total = addMoney(group.total, multiplyMoney(line.unit_cost, line.quantity))
+
+    const size = line.size ?? null
+    const color = line.color ?? null
+
+    if (!group.sizes.some((item) => item.id === size)) {
+      group.sizes.push({ id: size, name: line.size_name ?? '—' })
+    }
+
+    if (!group.colors.some((item) => item.id === color)) {
+      group.colors.push({ id: color, name: line.color_name ?? '—' })
+    }
+
+    groups.set(key, group)
+  }
+
+  for (const group of groups.values()) {
+    const costs = new Set(group.lines.map((line) => line.unit_cost))
+
+    group.cost = costs.size === 1 ? [...costs][0]! : ''
+  }
+
+  return [...groups.values()]
+}
+
+/** Guruhdagi katak: shu o'lcham va rangdagi qator (bo'lmasa — bo'sh) */
+export function groupCell(
+  group: LineGroup,
+  size: number | null,
+  color: number | null,
+): PurchaseLine | undefined {
+  return group.lines.find(
+    (line) => (line.size ?? null) === size && (line.color ?? null) === color,
+  )
+}

@@ -6,16 +6,16 @@ import { formatMoney } from '@/utils/money'
 import type { Product } from '@/types'
 
 /**
- * Kirim ekranining maydoni: skaner ham, qidiruv ham.
+ * Kirim ekranining qidiruv maydoni.
  *
- * Do'konga tovar shtrix-kodsiz keladi, shuning uchun bitta maydon ikki
- * ishni bajaradi:
+ * Do'konga tovar shtrix-kodsiz keladi, shuning uchun maydon **nomdan**
+ * boshlanadi: yozilgan harflar bo'yicha nom, brend va SKU qidiriladi,
+ * model ro'yxatdan tanlanadi (sichqoncha bilan ham, o'q tugmalari
+ * bilan ham).
  *
- *   • faqat raqam yozilib Enter bosilsa — shtrix-kod bo'yicha qidiruv
- *     (USB skaner shunday ishlaydi: kodni yozadi va Enter bosadi);
- *   • harf yozilsa — nomi, brendi yoki SKU bo'yicha jonli qidiruv va
- *     ro'yxatdan model tanlash (sichqoncha bilan ham, o'q tugmalari
- *     bilan ham).
+ * Skaner ham ishlayveradi — faqat raqam yozilib Enter bosilsa, kod
+ * bo'yicha qidiriladi. Lekin ekran skanerni talab qilmaydi: yangi
+ * tovarda yorliq hali yo'q.
  */
 
 const emit = defineEmits<{ scan: [code: string]; pick: [product: Product] }>()
@@ -127,8 +127,8 @@ defineExpose({ focus })
         role="combobox"
         aria-controls="purchase-search-results"
         :aria-expanded="open"
-        placeholder="Shtrix-kodni skanerlang yoki tovar nomini yozing"
-        aria-label="Shtrix-kod yoki tovar nomi"
+        placeholder="Tovar nomini yozing — yoki yangi mahsulot qo‘shing"
+        aria-label="Tovar nomi"
         @keydown.enter.prevent="onEnter"
         @keydown.down.prevent="move(1)"
         @keydown.up.prevent="move(-1)"

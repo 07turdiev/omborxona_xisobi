@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   draftLines,
+  groupCell,
+  groupLines,
   draftTotal,
   draftUnits,
   emptyModel,
@@ -176,5 +178,66 @@ describe('qoralamani qayta ochish', () => {
 
     expect(model.quantities).toEqual({})
     expect(model.cost).toBe('')
+  })
+})
+
+
+describe('ochilgan hujjat: qatorlar model bo‘yicha', () => {
+  const lines: PurchaseLine[] = [
+    {
+      ...line(OQ_S.id, 3, '200000.00'),
+      product_name: 'Bahorgi kurtka',
+      size: 10,
+      size_name: 'S',
+      color: 20,
+      color_name: 'Oq',
+    },
+    {
+      ...line(QORA_M.id, 2, '200000.00'),
+      product_name: 'Bahorgi kurtka',
+      size: 11,
+      size_name: 'M',
+      color: 21,
+      color_name: 'Qora',
+    },
+    {
+      ...line(99, 1, '50000.00'),
+      product: 2,
+      product_name: 'Sharf',
+      size: null,
+      size_name: null,
+      color: null,
+      color_name: null,
+    },
+  ]
+
+  it('har model o‘z o‘qlari va yig‘indisi bilan chiqadi', () => {
+    const [kurtka, sharf] = groupLines(lines)
+
+    expect(kurtka!.name).toBe('Bahorgi kurtka')
+    expect(kurtka!.units).toBe(5)
+    expect(kurtka!.total).toBe('1000000.00')
+    expect(kurtka!.cost).toBe('200000.00')
+    expect(kurtka!.sizes.map((size) => size.name)).toEqual(['S', 'M'])
+    expect(kurtka!.colors.map((color) => color.name)).toEqual(['Oq', 'Qora'])
+
+    expect(sharf!.name).toBe('Sharf')
+    expect(sharf!.units).toBe(1)
+  })
+
+  it('katak topiladi, kelmagani bo‘sh qoladi', () => {
+    const [kurtka] = groupLines(lines)
+
+    expect(groupCell(kurtka!, 10, 20)?.quantity).toBe(3)
+    expect(groupCell(kurtka!, 11, 20)).toBeUndefined()
+  })
+
+  it('tannarx har xil bo‘lsa, umumiysi ko‘rsatilmaydi', () => {
+    const mixed = groupLines([
+      { ...lines[0]! },
+      { ...lines[1]!, unit_cost: '250000.00' },
+    ])
+
+    expect(mixed[0]!.cost).toBe('')
   })
 })

@@ -75,6 +75,8 @@ export interface CatalogCard {
   sale_price: string
   total_stock: number
   size_stock: SizeStock[]
+  /** Nechta rangda bor — kirim ekranidagi qisqa qator */
+  color_count?: number
   primary_image: ProductImage | null
   /** Faqat administrator javobida */
   effective_mxik_code?: string
@@ -193,6 +195,11 @@ export interface PurchaseLine {
   product?: number
   product_name?: string
   variant_label?: string
+  /** Ochilgan hujjatdagi katakcha uchun */
+  size?: number | null
+  size_name?: string | null
+  color?: number | null
+  color_name?: string | null
   sku?: string
   barcode?: string
   /** Yorliqdagi narx */
@@ -210,6 +217,8 @@ export interface Purchase {
   date: string
   supplier: number | null
   supplier_name: string | null
+  /** Kim kiritgan — «Oxirgi kirimlar» jadvalidagi Xodim ustuni */
+  created_by_name?: string
   status: PurchaseStatus
   status_display: string
   note: string

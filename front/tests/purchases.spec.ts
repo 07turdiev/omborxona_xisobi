@@ -26,8 +26,11 @@ test('ta’minotchisiz kirimda qarz yo‘q, qatorda "Bekor" tugmasi ham yo‘q',
   const row = page.locator('tbody tr', { hasText: product.purchase.number })
 
   await expect(row).toBeVisible()
-  await expect(row.locator('td').nth(2)).toHaveText('Ta’minotchisiz')
-  await expect(row.locator('td').nth(4)).toHaveText('—')
+
+  // Ta'minotchi hujjat raqami ostida, qarz esa summa ostida — faqat
+  // ta'minotchili va to'lanmagan hujjatda
+  await expect(row).toContainText('Ta’minotchisiz')
+  await expect(row).not.toContainText('Qarz:')
 
   await expect(row.getByRole('button', { name: 'Bekor' })).toHaveCount(0)
   await expect(page.locator('tbody .button-danger')).toHaveCount(0)
@@ -36,7 +39,11 @@ test('ta’minotchisiz kirimda qarz yo‘q, qatorda "Bekor" tugmasi ham yo‘q',
 test('kirim ochiladi: chop etish va bekor qilish ajratilgan', async ({ page }) => {
   await openApp(page, admin, '/purchases')
 
-  await page.locator('tbody tr', { hasText: product.purchase.number }).click()
+  // Ko'z belgisi ham, qatorning o'zi ham hujjatni ochadi
+  await page
+    .locator('tbody tr', { hasText: product.purchase.number })
+    .getByRole('button', { name: /ochish/ })
+    .click()
 
   const opened = page.getByTestId('opened-purchase')
 

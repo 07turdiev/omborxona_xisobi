@@ -39,6 +39,13 @@ class PurchaseLineSerializer(serializers.ModelSerializer):
 
     product_name = serializers.CharField(source='variant.product.name', read_only=True)
     variant_label = serializers.CharField(source='variant.label', read_only=True)
+
+    #: Ochilgan hujjatda qatorlar model bo'yicha o'lcham × rang
+    #: katakchasiga yig'iladi — nomlar shu yerdan olinadi
+    size = serializers.IntegerField(source='variant.size_id', read_only=True)
+    size_name = serializers.CharField(source='variant.size.name', read_only=True, default=None)
+    color = serializers.IntegerField(source='variant.color_id', read_only=True)
+    color_name = serializers.CharField(source='variant.color.name', read_only=True, default=None)
     sku = serializers.CharField(source='variant.sku', read_only=True)
     barcode = serializers.CharField(source='variant.barcode', read_only=True)
 
@@ -53,7 +60,8 @@ class PurchaseLineSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchaseLine
         fields = (
-            'id', 'variant', 'product', 'product_name', 'variant_label', 'sku', 'barcode',
+            'id', 'variant', 'product', 'product_name', 'variant_label',
+            'size', 'size_name', 'color', 'color_name', 'sku', 'barcode',
             'price', 'quantity', 'unit_cost', 'new_sale_price', 'line_total',
         )
         read_only_fields = ('id',)
@@ -76,6 +84,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
     lines = PurchaseLineSerializer(many=True)
     supplier_name = serializers.CharField(source='supplier.name', read_only=True, default=None)
+    created_by_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     is_editable = serializers.BooleanField(read_only=True)
     debt = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
@@ -83,13 +92,18 @@ class PurchaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Purchase
         fields = (
-            'id', 'number', 'date', 'supplier', 'supplier_name', 'status',
-            'status_display', 'note', 'total', 'amount_paid', 'debt',
+            'id', 'number', 'date', 'supplier', 'supplier_name', 'created_by_name',
+            'status', 'status_display', 'note', 'total', 'amount_paid', 'debt',
             'is_editable', 'confirmed_at', 'cancelled_at', 'lines', 'created_at',
         )
         read_only_fields = (
             'id', 'number', 'status', 'total', 'confirmed_at', 'cancelled_at', 'created_at',
         )
+
+    def get_created_by_name(self, purchase) -> str:
+        user = purchase.created_by
+
+        return (user.get_full_name() or user.username) if user else ''
 
     def validate(self, attrs):
         if self.instance is not None and not self.instance.is_editable:

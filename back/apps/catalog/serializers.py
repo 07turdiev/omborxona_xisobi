@@ -204,14 +204,15 @@ class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerial
     effective_mxik_code = serializers.CharField(read_only=True)
     total_stock = serializers.IntegerField(read_only=True)
     size_stock = serializers.SerializerMethodField()
+    color_count = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = (
             'id', 'name', 'slug', 'category', 'category_name', 'brand',
-            'sale_price', 'total_stock', 'size_stock', 'primary_image',
-            'effective_mxik_code',
+            'sale_price', 'total_stock', 'size_stock', 'color_count',
+            'primary_image', 'effective_mxik_code',
         )
 
     def get_size_stock(self, product):
@@ -236,6 +237,12 @@ class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerial
             entry['quantity'] += variant.stock_quantity
 
         return sorted(totals.values(), key=lambda entry: (entry['position'], entry['size_name']))
+
+    def get_color_count(self, product) -> int:
+        """Nechta rangda bor — kirim ekranidagi qisqa qator uchun."""
+        return len({
+            variant.color_id for variant in product.variants.all() if variant.color_id
+        })
 
     def get_primary_image(self, product):
         images = list(product.images.all())
