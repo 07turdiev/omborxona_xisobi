@@ -6,7 +6,9 @@ import ProductPicker from '@/components/ProductPicker.vue'
 import ReceiptPrint from '@/components/ReceiptPrint.vue'
 import ScanField from '@/components/ScanField.vue'
 import { catalogApi } from '@/api/catalog'
+import { inventoryApi } from '@/api/inventory'
 import { errorMessage } from '@/api/client'
+import { shopStock, warehouseStock } from '@/utils/stock'
 import { salesApi } from '@/api/sales'
 import { useAuthStore } from '@/stores/auth'
 import { usePosStore, type CartLine } from '@/stores/pos'
@@ -23,6 +25,10 @@ const changeButton = ref<HTMLButtonElement | null>(null)
 const error = ref('')
 const notice = ref('')
 const saving = ref(false)
+
+/** Zalda tugagan, lekin omborda bor tovar — olib chiqish taklifi */
+const fetchFromWarehouse = ref<Variant | null>(null)
+const bringing = ref(false)
 
 const paymentMethod = ref<'cash' | 'card' | 'mixed'>('cash')
 const cardPart = ref('0')
@@ -73,13 +79,69 @@ function focusScanner() {
 function clearMessages() {
   error.value = ''
   notice.value = ''
+  fetchFromWarehouse.value = null
 }
 
+/**
+ * Savatga qo'shadi.
+ *
+ * Zalda tovar qolmagan, lekin omborda bor bo'lsa — kassir bir bosishda
+ * olib chiqadi (`fromWarehouse`). Shu sababli tovar darhol rad etilmaydi,
+ * balki taklif ko'rsatiladi.
+ */
 function addToCart(variant: Variant) {
+  if (shopStock(variant) < 1 && warehouseStock(variant) > 0) {
+    fetchFromWarehouse.value = variant
+    notice.value = ''
+    error.value = ''
+    return
+  }
+
   const result = pos.add(variant)
 
   if (!result.ok) error.value = result.message ?? 'Tovar qo‘shilmadi.'
   else notice.value = `${variant.product_name} ${variant.label} qo‘shildi`
+}
+
+/** «Ombordan olib chiqish»: ko'chirish yoziladi va tovar savatga tushadi. */
+async function bringFromWarehouse() {
+  const variant = fetchFromWarehouse.value
+
+  if (!variant || bringing.value) return
+
+  bringing.value = true
+  error.value = ''
+
+  try {
+    const locations = await inventoryApi.locations()
+
+    const warehouse = locations.find((item) => item.kind === 'warehouse')
+    const shop = locations.find((item) => item.kind === 'shop')
+
+    if (!warehouse || !shop) throw new Error('Joylar topilmadi')
+
+    await inventoryApi.transfer({
+      source: warehouse.id,
+      target: shop.id,
+      note: 'Kassada so‘raldi',
+      lines: [{ variant: variant.id, quantity: 1 }],
+    })
+
+    // Qoldiq o'zgardi — variantni yangilab olamiz
+    const fresh = await catalogApi.byBarcode(variant.barcode)
+
+    fetchFromWarehouse.value = null
+
+    const result = pos.add(fresh)
+
+    if (!result.ok) error.value = result.message ?? 'Tovar qo‘shilmadi.'
+    else notice.value = `${fresh.product_name} ${fresh.label} ombordan olib chiqildi`
+  } catch (err) {
+    error.value = errorMessage(err, 'Ombordan olib chiqib bo‘lmadi.')
+  } finally {
+    bringing.value = false
+    focusScanner()
+  }
 }
 
 /** Skanerdan kelgan kod: tovarni savatga qo'shadi. */
@@ -292,6 +354,25 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
       <p v-if="error" class="pos-error" role="alert">{{ error }}</p>
       <p v-else-if="notice" class="pos-notice">{{ notice }}</p>
+
+      <!-- Zalda tugagan tovar: bir bosishda ombordan olib chiqiladi -->
+      <div v-if="fetchFromWarehouse" class="from-warehouse" data-testid="from-warehouse">
+        <div>
+          <strong>{{ fetchFromWarehouse.product_name }} {{ fetchFromWarehouse.label }}</strong>
+          <small>
+            Zalda qolmagan. Omborda {{ warehouseStock(fetchFromWarehouse) }} dona bor.
+          </small>
+        </div>
+
+        <button
+          class="button button-gradient"
+          type="button"
+          :disabled="bringing"
+          @click="bringFromWarehouse"
+        >
+          {{ bringing ? 'Olib chiqilmoqda…' : 'Ombordan olib chiqish' }}
+        </button>
+      </div>
 
       <div class="cart-table-wrap">
         <table class="data-table cart-table">
@@ -574,8 +655,30 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   display: none;
 }
 
+.from-warehouse {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+
+.from-warehouse strong {
+  display: block;
+  font-size: 15px;
+}
+
+.from-warehouse small {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .cart-table-wrap {
-  flex: 1;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);

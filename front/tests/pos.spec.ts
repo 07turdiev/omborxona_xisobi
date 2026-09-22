@@ -7,7 +7,14 @@
 
 import { expect, test, type Page } from '@playwright/test'
 
-import { createTestProduct, login, openApp, type Session, type TestProduct } from './data'
+import {
+  createTestProduct,
+  login,
+  openApp,
+  stockInWarehouseOnly,
+  type Session,
+  type TestProduct,
+} from './data'
 
 let admin: Session
 let product: TestProduct
@@ -144,6 +151,53 @@ test('F4 to‘lov turini, F2 sotuvni, Esc savatni boshqaradi', async ({ page }) 
   await expect(change).toHaveCount(0)
   await expect(page.locator('.cart-table .empty-state')).toBeVisible()
   await expect(page.locator('.scan-field input')).toBeFocused()
+})
+
+test('zalda qolmagan tovar bir bosishda ombordan olib chiqiladi', async ({ page, request }) => {
+  // Alohida mahsulot: boshqa testlardagi qoldiqqa tegmaslik uchun
+  const other = await createTestProduct(request, admin)
+  const hidden = await stockInWarehouseOnly(request, admin, other)
+
+  await openPos(page)
+
+  const picker = page.locator('.pos-picker')
+
+  await picker.getByRole('searchbox', { name: 'Tovar qidirish' }).fill(other.name)
+  await expect(picker.locator('.tile')).toHaveCount(1)
+  await picker.locator('.tile').first().click()
+
+  // Katak zalda nol, lekin o'chirilgan emas — ombordagi zaxira ko'rinadi
+  const cell = page.getByRole('button', {
+    name: `${hidden.size} ${hidden.color}: 0 dona, omborda 3`,
+  })
+
+  await expect(cell).toBeEnabled()
+  await cell.click()
+
+  const offer = page.getByTestId('from-warehouse')
+
+  await expect(offer).toBeVisible()
+  await expect(offer).toContainText('Omborda 3 dona bor')
+
+  // Savatga hali tushmagan: avval ombordan olib chiqiladi
+  await expect(page.locator('.cart-table .empty-state')).toBeVisible()
+
+  await offer.getByRole('button', { name: 'Ombordan olib chiqish' }).click()
+
+  await expect(offer).toBeHidden()
+
+  const row = page.locator('.cart-table tbody tr')
+
+  await expect(row).toHaveCount(1)
+  await expect(row.first()).toContainText(other.name)
+
+  // Ko'chirish hujjati yozildi: ombordan bittasi kamaydi
+  await picker.getByRole('searchbox', { name: 'Tovar qidirish' }).fill(other.name)
+  await picker.locator('.tile').first().click()
+
+  await expect(
+    page.getByRole('button', { name: `${hidden.size} ${hidden.color}: 1 dona, omborda 2` }),
+  ).toBeVisible()
 })
 
 test.describe('kassa ekrani 1366×768', () => {

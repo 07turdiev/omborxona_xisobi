@@ -4,7 +4,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { catalogApi } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { formatMoney } from '@/utils/money'
-import type { CatalogCard, Category, Product, Variant } from '@/types'
+import { shopStock, warehouseStock } from '@/utils/stock'
+import type { CatalogCard, CatalogVariant, Category, Product, Variant } from '@/types'
 
 /**
  * Kassadagi tovar tanlagich.
@@ -123,6 +124,20 @@ function cell(size: number | null, color: number | null) {
   )
 }
 
+/** Zalda yo'q, lekin omborda bor — kassa uni olib chiqishni taklif qiladi */
+function onlyInWarehouse(variant?: CatalogVariant | Variant): boolean {
+  return Boolean(variant) && shopStock(variant!) < 1 && warehouseStock(variant!) > 0
+}
+
+function cellLabel(size: string, color: string, variant?: CatalogVariant | Variant): string {
+  if (!variant) return `${size} ${color}: 0 dona`
+
+  const warehouse = warehouseStock(variant)
+  const tail = warehouse ? `, omborda ${warehouse}` : ''
+
+  return `${size} ${color}: ${shopStock(variant)} dona${tail}`
+}
+
 function take(variant: Variant | undefined) {
   if (!variant || variant.stock_quantity < 1) return
 
@@ -178,7 +193,10 @@ function take(variant: Variant | undefined) {
 
         <span class="tile-name">{{ card.name }}</span>
         <span class="tile-price">{{ formatMoney(card.sale_price) }}</span>
-        <span class="tile-stock">{{ card.total_stock }} dona</span>
+        <span class="tile-stock">
+          Zalda {{ card.shop_stock ?? card.total_stock }}
+          <template v-if="card.warehouse_stock"> · omborda {{ card.warehouse_stock }}</template>
+        </span>
       </button>
     </div>
 
@@ -210,14 +228,18 @@ function take(variant: Variant | undefined) {
                 <th>{{ size.name }}</th>
 
                 <td v-for="color in colors" :key="String(color.id)">
+                  <!-- Katakdagi son — zaldagi qoldiq. Zalda yo'q, lekin
+                       omborda bor bo'lsa, katak baribir bosiladi: kassa
+                       ombordan olib chiqishni taklif qiladi. -->
                   <button
                     class="variant-cell"
+                    :class="{ 'from-warehouse': onlyInWarehouse(cell(size.id, color.id)) }"
                     type="button"
                     :disabled="!cell(size.id, color.id)?.stock_quantity"
-                    :aria-label="`${size.name} ${color.name}: ${cell(size.id, color.id)?.stock_quantity ?? 0} dona`"
+                    :aria-label="cellLabel(size.name, color.name, cell(size.id, color.id))"
                     @click="take(cell(size.id, color.id))"
                   >
-                    {{ cell(size.id, color.id)?.stock_quantity ?? '—' }}
+                    {{ cell(size.id, color.id) ? shopStock(cell(size.id, color.id)!) : '—' }}
                   </button>
                 </td>
               </tr>
@@ -425,6 +447,13 @@ function take(variant: Variant | undefined) {
 .variant-cell:hover:not(:disabled) {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+/* Zalda yo'q, ombordan olib chiqiladigan katak */
+.variant-cell.from-warehouse {
+  border-style: dashed;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .variant-cell:disabled {

@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 
 import { addMoney, compareMoney, multiplyMoney, percentOf, subtractMoney, toCents } from '@/utils/money'
+import { shopStock } from '@/utils/stock'
 import { uuid } from '@/utils/uuid'
 import type { Variant } from '@/types'
 
@@ -113,21 +114,27 @@ export const usePosStore = defineStore('pos', () => {
 
   const itemCount = computed(() => lines.value.reduce((sum, line) => sum + line.quantity, 0))
 
-  /** Skanerlangan variantni qo'shadi yoki miqdorini oshiradi. */
+  /**
+   * Skanerlangan variantni qo'shadi yoki miqdorini oshiradi.
+   *
+   * Qoldiq **savdo zali** bo'yicha tekshiriladi: omborda turgan tovar
+   * avval zalga chiqariladi (kassadagi «Ombordan olib chiqish»).
+   */
   function add(variant: Variant, quantity = 1): { ok: boolean; message?: string } {
     const existing = lines.value.find((line) => line.variantId === variant.id)
     const wanted = (existing?.quantity ?? 0) + quantity
+    const available = shopStock(variant)
 
-    if (wanted > variant.stock_quantity) {
+    if (wanted > available) {
       return {
         ok: false,
-        message: `${variant.product_name} — omborda ${variant.stock_quantity} dona qolgan`,
+        message: `${variant.product_name} — zalda ${available} dona qolgan`,
       }
     }
 
     if (existing) {
       existing.quantity = wanted
-      existing.stock = variant.stock_quantity
+      existing.stock = available
     } else {
       lines.value.push({
         variantId: variant.id,
@@ -137,7 +144,7 @@ export const usePosStore = defineStore('pos', () => {
         label: variant.label,
         price: variant.price,
         quantity,
-        stock: variant.stock_quantity,
+        stock: available,
         discountPercent: '0',
       })
     }
@@ -156,7 +163,7 @@ export const usePosStore = defineStore('pos', () => {
     }
 
     if (quantity > line.stock) {
-      return { ok: false, message: `Omborda ${line.stock} dona qolgan` }
+      return { ok: false, message: `Zalda ${line.stock} dona qolgan` }
     }
 
     line.quantity = quantity

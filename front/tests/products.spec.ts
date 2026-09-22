@@ -43,7 +43,12 @@ test('administrator: ixcham jadval', async ({ page }) => {
   const rows = table.locator('tbody tr')
 
   await expect(rows).toHaveCount(1)
-  await expect(rows.first().locator('td').nth(4)).toHaveText('8')
+
+  // Jami 8, hammasi zalda — kirim qabul qilingandan keyin chiqarilgan
+  const stock = rows.first().locator('td').nth(4)
+
+  await expect(stock).toContainText('8')
+  await expect(stock).toContainText('zal 8 · ombor 0')
 
   await rows.first().click()
   await expect(page).toHaveURL(new RegExp(`/products/${product.id}$`))

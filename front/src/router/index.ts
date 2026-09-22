@@ -68,7 +68,7 @@ const routes: RouteRecordRaw[] = [
       title: 'Tovarlar',
       section: 'products',
       admin: true,
-      description: 'Mahsulotlarni tartiblash uchun ro‘yxatlar va soliq (MXIK) kodlari',
+      description: 'Mahsulotlarni tartiblash uchun ro‘yxatlar: kategoriya, o‘lcham, rang',
     },
   },
   {
@@ -120,6 +120,19 @@ const routes: RouteRecordRaw[] = [
       section: 'purchases',
       admin: true,
       description: 'Tovar keltiruvchilar va ular bilan hisob-kitob',
+    },
+  },
+
+  // --- Zalga chiqarish --------------------------------------------------
+  {
+    // Kassir ham ocha oladi: javonni sotuvchining o'zi to'ldiradi
+    path: '/transfers',
+    name: 'transfers',
+    component: () => import('@/views/TransferView.vue'),
+    meta: {
+      title: 'Zalga chiqarish',
+      section: 'transfers',
+      description: 'Ombordagi tovarni savdo zaliga chiqarasiz',
     },
   },
 

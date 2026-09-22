@@ -23,6 +23,7 @@ import {
 } from '@/utils/catalog'
 import { documentLabel, documentLink } from '@/utils/documents'
 import { formatMoney, formatSum } from '@/utils/money'
+import { stockLine } from '@/utils/stock'
 import type { CatalogProduct, Product, StockMovement, Variant } from '@/types'
 
 /**
@@ -383,7 +384,10 @@ function when(value: string) {
 
             <div>
               <dt>Qoldiq</dt>
-              <dd>{{ variant.stock_quantity }} dona</dd>
+              <dd>
+                {{ variant.stock_quantity }} dona
+                <small class="cell-sub">{{ stockLine(variant) }}</small>
+              </dd>
             </div>
           </dl>
 

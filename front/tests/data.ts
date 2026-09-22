@@ -29,11 +29,26 @@ export interface Named {
   name: string
 }
 
+export interface StockAt {
+  location: number
+  kind: 'warehouse' | 'shop'
+  quantity: number
+}
+
 export interface TestVariant {
   id: number
   barcode: string
   price: string
+  /** Ikkala joyning yig'indisi */
   stock_quantity: number
+  stocks: StockAt[]
+}
+
+/** Savdo zalidagi qoldiq — kassa faqat shuni sotadi. */
+export function shopQuantity(variant: TestVariant): number {
+  return (variant.stocks ?? [])
+    .filter((stock) => stock.kind === 'shop')
+    .reduce((sum, stock) => sum + stock.quantity, 0)
 }
 
 export interface TestProduct extends Named {
@@ -100,7 +115,8 @@ export async function stockedVariants(
 
   expect(chosen.length, `kamida ${count} ta faol tovar kerak — seed_demo`).toBe(count)
 
-  const empty = chosen.filter((variant) => variant.stock_quantity < 1)
+  // Kirim omborga tushadi — kassa uchun zalda bo'lishi kerak
+  const empty = chosen.filter((variant) => shopQuantity(variant) < 1)
 
   if (empty.length) {
     await receive(request, access, empty.map((variant) => ({ variant: variant.id, quantity: 1 })))
@@ -109,11 +125,47 @@ export async function stockedVariants(
   return chosen
 }
 
-/** Tasdiqlangan kirim. */
+/** Joylar ro'yxati: ombor va savdo zali. */
+export async function locations(
+  request: APIRequestContext,
+  access: string,
+): Promise<{ id: number; kind: 'warehouse' | 'shop' }[]> {
+  return (await request.get(`${API}/api/locations/`, { headers: headers(access) })).json()
+}
+
+/** Ombordan zalga chiqaradi — javonni to'ldirish. */
+export async function moveToShop(
+  request: APIRequestContext,
+  access: string,
+  lines: { variant: number; quantity: number }[],
+): Promise<{ id: number; number: string }> {
+  const places = await locations(request, access)
+
+  const response = await request.post(`${API}/api/transfers/`, {
+    headers: headers(access),
+    data: {
+      source: places.find((place) => place.kind === 'warehouse')!.id,
+      target: places.find((place) => place.kind === 'shop')!.id,
+      lines,
+    },
+  })
+
+  expect(response.ok(), `zalga chiqarilmadi: ${await response.text()}`).toBeTruthy()
+
+  return response.json()
+}
+
+/**
+ * Tasdiqlangan kirim.
+ *
+ * Tovar avval omborga tushadi. Testlarning ko'pi sotuvni tekshiradi,
+ * shuning uchun standart holda darhol zalga ham chiqariladi.
+ */
 async function receive(
   request: APIRequestContext,
   access: string,
   lines: { variant: number; quantity: number }[],
+  { toShop = true } = {},
 ): Promise<{ id: number; number: string }> {
   const purchase = await (
     await request.post(`${API}/api/purchases/`, {
@@ -132,6 +184,8 @@ async function receive(
   })
 
   expect(confirmed.ok(), 'test uchun kirim tasdiqlanishi kerak').toBeTruthy()
+
+  if (toShop) await moveToShop(request, access, lines)
 
   return { id: purchase.id, number: purchase.number }
 }
@@ -185,6 +239,40 @@ export async function createTestProduct(
   ])
 
   return { id: created.id, name, sizes, colors, purchase }
+}
+
+/**
+ * Faqat omborda turgan variant: zalda nol, omborda `quantity` dona.
+ *
+ * Kassadagi «Ombordan olib chiqish» va «Zalga chiqarish» ekranlari shu
+ * holatni tekshiradi.
+ */
+export async function stockInWarehouseOnly(
+  request: APIRequestContext,
+  session: Session,
+  product: TestProduct,
+  quantity = 3,
+): Promise<{ id: number; barcode: string; size: string; color: string }> {
+  const full = await (
+    await request.get(`${API}/api/products/${product.id}/`, {
+      headers: headers(session.access),
+    })
+  ).json()
+
+  const variant = full.variants.find(
+    (item: TestVariant) => item.stock_quantity === 0,
+  )
+
+  expect(variant, 'qoldiqsiz variant topilmadi').toBeTruthy()
+
+  await receive(request, session.access, [{ variant: variant.id, quantity }], { toShop: false })
+
+  return {
+    id: variant.id,
+    barcode: variant.barcode,
+    size: variant.size_name,
+    color: variant.color_name,
+  }
 }
 
 /** Bitta qatorli, naqd to'langan sotuv. Chek raqamini qaytaradi. */

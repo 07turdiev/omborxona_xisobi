@@ -8,13 +8,14 @@ import { errorMessage } from '@/api/client'
 import { inventoryApi } from '@/api/inventory'
 import { formatDate, todayIso } from '@/utils/date'
 import { differingLines, findScanned, uncountedLines, type CountLine } from '@/utils/stockCount'
-import type { Category, StockCount } from '@/types'
+import type { Category, Location, StockCount, Variant } from '@/types'
 
 /** Oxirgi o'zgarishdan keyin shuncha kutib saqlanadi */
 const AUTOSAVE_DELAY = 3000
 
 const counts = ref<StockCount[]>([])
 const categories = ref<Category[]>([])
+const locations = ref<Location[]>([])
 const route = useRoute()
 const opened = ref<StockCount | null>(null)
 
@@ -25,7 +26,13 @@ const notice = ref('')
 
 const editorOpen = ref(false)
 const scanner = ref<InstanceType<typeof ScanField> | null>(null)
-const draft = ref({ date: todayIso(), category: null as number | null, note: '' })
+const draft = ref({
+  date: todayIso(),
+  category: null as number | null,
+  // Joy: zal va ombor alohida sanaladi
+  location: null as number | null,
+  note: '',
+})
 const lines = ref<CountLine[]>([])
 
 /** Serverdagi qoralama. Birinchi o'zgarishda yaratiladi. */
@@ -35,6 +42,9 @@ const savedAt = ref<Date | null>(null)
 const saving = ref(false)
 
 let timer: ReturnType<typeof setTimeout> | null = null
+
+/** Standart joy — savdo zali: ko'pincha shu sanaladi */
+const shopLocation = computed(() => locations.value.find((item) => item.kind === 'shop'))
 
 const uncounted = computed(() => uncountedLines(lines.value))
 const differing = computed(() => differingLines(lines.value))
@@ -56,13 +66,15 @@ async function load() {
   error.value = ''
 
   try {
-    const [page, categoryList] = await Promise.all([
+    const [page, categoryList, places] = await Promise.all([
       inventoryApi.counts(),
       catalogApi.categories(),
+      inventoryApi.locations(),
     ])
 
     counts.value = page.results
     categories.value = categoryList
+    locations.value = places
   } catch (err) {
     error.value = errorMessage(err, 'Inventarizatsiyalarni yuklab bo‘lmadi.')
   } finally {
@@ -70,8 +82,15 @@ async function load() {
   }
 }
 
+/** Variantning tanlangan joydagi qoldig'i. */
+function expectedAt(variant: Variant): number {
+  const stock = (variant.stocks ?? []).find((item) => item.location === draft.value.location)
+
+  return stock?.quantity ?? 0
+}
+
 /**
- * Tanlangan kategoriya bo'yicha qatorlarni yig'adi.
+ * Tanlangan kategoriya va joy bo'yicha qatorlarni yig'adi.
  *
  * Sanalgan soni **noldan** boshlanadi: tizimdagi qoldiq bilan
  * to'ldirilsa, sanalmagan tovar «bor» bo'lib qolar va kamomad umuman
@@ -95,7 +114,7 @@ async function fillLines() {
         barcode: variant.barcode,
         product_name: variant.product_name,
         variant_label: variant.label,
-        expected_quantity: variant.stock_quantity,
+        expected_quantity: expectedAt(variant),
         counted_quantity: 0,
       })),
     )
@@ -125,7 +144,12 @@ async function openEditor() {
   opened.value = null
   notice.value = ''
   error.value = ''
-  draft.value = { date: todayIso(), category: null, note: '' }
+  draft.value = {
+    date: todayIso(),
+    category: null,
+    location: shopLocation.value?.id ?? null,
+    note: '',
+  }
 
   try {
     await fillLines()
@@ -148,6 +172,7 @@ async function continueDraft(count: StockCount) {
   draft.value = {
     date: count.date,
     category: count.category,
+    location: count.location,
     note: count.note,
   }
 
@@ -224,6 +249,7 @@ async function flushSave() {
       const created = await inventoryApi.createCount({
         date: draft.value.date,
         category: draft.value.category,
+        location: draft.value.location,
         note: draft.value.note,
         lines: payload,
       })
@@ -355,6 +381,15 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="field">
+          <label>Qayerni sanayapsiz?</label>
+          <select v-model="draft.location" :disabled="draftId !== null" @change="fillLines">
+            <option v-for="place in locations" :key="place.id" :value="place.id">
+              {{ place.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
           <label>Kategoriya</label>
           <select v-model="draft.category" :disabled="draftId !== null" @change="fillLines">
             <option :value="null">Hammasi</option>
@@ -457,6 +492,7 @@ onBeforeUnmount(() => {
             <tr>
               <th>Hujjat</th>
               <th>Sana</th>
+              <th>Joy</th>
               <th>Kategoriya</th>
               <th>Holati</th>
               <th></th>
@@ -465,16 +501,17 @@ onBeforeUnmount(() => {
 
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="empty-state">Yuklanmoqda…</td>
+              <td colspan="6" class="empty-state">Yuklanmoqda…</td>
             </tr>
 
             <tr v-else-if="!counts.length">
-              <td colspan="5" class="empty-state">Inventarizatsiya o‘tkazilmagan.</td>
+              <td colspan="6" class="empty-state">Inventarizatsiya o‘tkazilmagan.</td>
             </tr>
 
             <tr v-for="count in counts" v-else :key="count.id">
               <td><strong>{{ count.number }}</strong></td>
               <td>{{ formatDate(count.date) }}</td>
+              <td>{{ count.location_name }}</td>
               <td>{{ count.category_name ?? 'Hammasi' }}</td>
               <td>
                 <span class="pill" :class="count.status === 'confirmed' ? 'pill-green' : 'pill-grey'">

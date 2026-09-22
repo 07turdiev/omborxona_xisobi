@@ -1,0 +1,450 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+
+import { catalogApi } from '@/api/catalog'
+import { errorMessage } from '@/api/client'
+import { inventoryApi, type Transfer } from '@/api/inventory'
+import { formatDayMonth, formatTime } from '@/utils/date'
+import { shopStock, warehouseStock } from '@/utils/stock'
+import type { Location, Product, Variant } from '@/types'
+
+/**
+ * Zalga chiqarish: ombordagi tovarni savdo zaliga ko'chirish.
+ *
+ * Kunlik ish: ertalab javonlar to'ldiriladi. Kassada bitta dona kerak
+ * bo'lsa, u yerdan ham olib chiqish mumkin — bu ekran ko'p tovarni
+ * bir yo'la chiqarish uchun.
+ */
+
+interface Chosen {
+  product: number
+  name: string
+  variants: Variant[]
+  quantities: Record<number, number>
+}
+
+const locations = ref<Location[]>([])
+const transfers = ref<Transfer[]>([])
+const chosen = ref<Chosen[]>([])
+
+const search = ref('')
+const results = ref<Product[]>([])
+const searching = ref(false)
+const saving = ref(false)
+const error = ref('')
+const notice = ref('')
+
+let timer: ReturnType<typeof setTimeout> | undefined
+
+const warehouse = computed(() => locations.value.find((item) => item.kind === 'warehouse'))
+const shop = computed(() => locations.value.find((item) => item.kind === 'shop'))
+
+const units = computed(() =>
+  chosen.value.reduce(
+    (sum, item) => sum + Object.values(item.quantities).reduce((a, b) => a + (b || 0), 0),
+    0,
+  ),
+)
+
+async function load() {
+  try {
+    const [places, page] = await Promise.all([inventoryApi.locations(), inventoryApi.transfers()])
+
+    locations.value = places
+    transfers.value = page.results
+  } catch (err) {
+    error.value = errorMessage(err, 'Ma’lumotni yuklab bo‘lmadi.')
+  }
+}
+
+async function runSearch() {
+  const text = search.value.trim()
+
+  if (text.length < 2) {
+    results.value = []
+    return
+  }
+
+  searching.value = true
+
+  try {
+    const page = await catalogApi.products({ search: text })
+
+    results.value = page.results.slice(0, 8)
+  } catch {
+    results.value = []
+  } finally {
+    searching.value = false
+  }
+}
+
+function onSearchInput() {
+  clearTimeout(timer)
+  timer = setTimeout(runSearch, 250)
+}
+
+/** Tovarni ro'yxatga qo'shadi: faqat omborda qoldig'i borlari ko'rinadi. */
+function choose(product: Product) {
+  search.value = ''
+  results.value = []
+  notice.value = ''
+
+  if (chosen.value.some((item) => item.product === product.id)) return
+
+  const variants = product.variants.filter((variant) => warehouseStock(variant) > 0)
+
+  if (!variants.length) {
+    error.value = `«${product.name}» omborda qolmagan.`
+    return
+  }
+
+  error.value = ''
+  chosen.value.push({
+    product: product.id,
+    name: product.name,
+    variants,
+    quantities: {},
+  })
+}
+
+function setQuantity(item: Chosen, variant: Variant, value: string) {
+  const wanted = Number.parseInt(value, 10)
+  const limit = warehouseStock(variant)
+
+  if (!value.trim() || Number.isNaN(wanted) || wanted <= 0) {
+    delete item.quantities[variant.id]
+    return
+  }
+
+  item.quantities[variant.id] = Math.min(wanted, limit)
+}
+
+function remove(product: number) {
+  chosen.value = chosen.value.filter((item) => item.product !== product)
+}
+
+async function moveToShop() {
+  if (!units.value || saving.value) return
+
+  if (!warehouse.value || !shop.value) {
+    error.value = 'Joylar topilmadi.'
+    return
+  }
+
+  saving.value = true
+  error.value = ''
+  notice.value = ''
+
+  const lines = chosen.value.flatMap((item) =>
+    Object.entries(item.quantities)
+      .filter(([, quantity]) => quantity > 0)
+      .map(([variant, quantity]) => ({ variant: Number(variant), quantity })),
+  )
+
+  try {
+    const transfer = await inventoryApi.transfer({
+      source: warehouse.value.id,
+      target: shop.value.id,
+      lines,
+    })
+
+    notice.value = `${transfer.number}: ${units.value} dona zalga chiqarildi.`
+    chosen.value = []
+
+    await load()
+  } catch (err) {
+    error.value = errorMessage(err, 'Zalga chiqarib bo‘lmadi.')
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(load)
+</script>
+
+<template>
+  <section class="app-section active">
+    <p v-if="error" class="load-error">{{ error }}</p>
+    <p v-if="notice" class="notice">{{ notice }}</p>
+
+    <div class="table-card card-padded stage">
+      <h3 class="card-title">Qaysi tovarni zalga chiqarasiz?</h3>
+
+      <div class="search-wrap">
+        <div class="scan-field">
+          <svg aria-hidden="true"><use href="#i-search" /></svg>
+
+          <input
+            v-model="search"
+            type="text"
+            autocomplete="off"
+            placeholder="Tovar nomini yozing"
+            aria-label="Tovar nomi"
+            @input="onSearchInput"
+          />
+
+          <span v-if="searching" class="search-state">Qidirilmoqda…</span>
+        </div>
+
+        <ul v-if="results.length" class="results" role="listbox">
+          <li
+            v-for="product in results"
+            :key="product.id"
+            role="option"
+            :aria-selected="false"
+            @mousedown.prevent="choose(product)"
+          >
+            <span>{{ product.name }}</span>
+            <small>{{ product.category_name }}</small>
+          </li>
+        </ul>
+      </div>
+
+      <div v-if="!chosen.length" class="empty-state">
+        Ombordagi tovarni toping va nechtasini zalga chiqarishni yozing.
+      </div>
+
+      <div v-for="item in chosen" :key="item.product" class="model" data-testid="transfer-model">
+        <div class="model-head">
+          <strong>{{ item.name }}</strong>
+
+          <button
+            class="icon-button delete"
+            type="button"
+            :aria-label="`${item.name}: ro‘yxatdan olib tashlash`"
+            @click="remove(item.product)"
+          >
+            <svg><use href="#i-trash" /></svg>
+          </button>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Variant</th>
+              <th class="num">Omborda</th>
+              <th class="num">Zalda</th>
+              <th class="num">Chiqariladi</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="variant in item.variants" :key="variant.id">
+              <td>{{ variant.label || item.name }}</td>
+              <td class="num">{{ warehouseStock(variant) }}</td>
+              <td class="num">{{ shopStock(variant) }}</td>
+
+              <td class="num">
+                <input
+                  class="quantity"
+                  type="number"
+                  min="0"
+                  :max="warehouseStock(variant)"
+                  :aria-label="`${variant.label || item.name}: nechta chiqariladi`"
+                  :value="item.quantities[variant.id] || ''"
+                  @input="setQuantity(item, variant, ($event.target as HTMLInputElement).value)"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="chosen.length" class="stage-foot">
+        <strong>Jami: {{ units }} dona</strong>
+
+        <button
+          class="button button-gradient big"
+          type="button"
+          :disabled="!units || saving"
+          @click="moveToShop"
+        >
+          {{ saving ? 'Chiqarilmoqda…' : 'Zalga chiqarish' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="table-card card-padded">
+      <h3 class="card-title">Oxirgi chiqarilganlar</h3>
+
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Hujjat</th>
+              <th>Sana</th>
+              <th>Xodim</th>
+              <th>Tovar</th>
+              <th class="num">Dona</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-if="!transfers.length">
+              <td colspan="5" class="empty-state">Hali chiqarilmagan.</td>
+            </tr>
+
+            <tr v-for="transfer in transfers" v-else :key="transfer.id">
+              <td>
+                <strong>{{ transfer.number }}</strong>
+                <small class="cell-sub">{{ transfer.source_name }} → {{ transfer.target_name }}</small>
+              </td>
+
+              <td>
+                {{ formatDayMonth(transfer.date) }}
+                <small class="cell-sub">{{ formatTime(transfer.created_at) }}</small>
+              </td>
+
+              <td>{{ transfer.created_by_name || '—' }}</td>
+
+              <td>
+                {{ transfer.lines[0]?.product_name }}
+                <small v-if="transfer.lines.length > 1" class="cell-sub">
+                  va yana {{ transfer.lines.length - 1 }} ta
+                </small>
+              </td>
+
+              <td class="num">
+                {{ transfer.lines.reduce((sum, line) => sum + line.quantity, 0) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</template>
+
+<style scoped>
+.stage {
+  margin-bottom: 12px;
+}
+
+.card-title {
+  margin-bottom: 14px;
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 500;
+}
+
+.search-wrap {
+  position: relative;
+  max-width: 620px;
+  margin-bottom: 14px;
+}
+
+.scan-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.scan-field svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.scan-field input {
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 16px;
+}
+
+.search-state {
+  flex: none;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.results {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-large);
+}
+
+.results li {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.results li:hover {
+  background: var(--accent-soft);
+}
+
+.results small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.model {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-soft);
+}
+
+.model-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.model-head strong {
+  font-size: 16px;
+}
+
+.quantity {
+  width: 80px;
+  text-align: right;
+}
+
+.stage-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.stage-foot strong {
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stage-foot .button {
+  margin-left: auto;
+}
+
+.big {
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
+}
+</style>

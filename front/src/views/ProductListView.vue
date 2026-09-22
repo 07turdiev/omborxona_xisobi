@@ -321,6 +321,9 @@ onActivated(() => {
 
               <td class="num">
                 <span :class="{ out: !card.total_stock }">{{ card.total_stock }}</span>
+                <small class="cell-sub">
+                  zal {{ card.shop_stock ?? 0 }} · ombor {{ card.warehouse_stock ?? 0 }}
+                </small>
               </td>
 
             </tr>
@@ -356,6 +359,11 @@ onActivated(() => {
 
           <span class="card-stock" :class="card.total_stock ? 'in' : 'out'">
             {{ card.total_stock ? `${card.total_stock} dona` : 'Tugagan' }}
+          </span>
+
+          <!-- Qayerda turibdi: zalda sotiladi, ombordagisi zaxira -->
+          <span v-if="card.total_stock" class="card-places">
+            Zalda {{ card.shop_stock ?? 0 }} · omborda {{ card.warehouse_stock ?? 0 }}
           </span>
 
           <!-- "Qaysi o'lcham qoldi" — mahsulotni ochmasdan ko'rinadi -->
@@ -691,6 +699,11 @@ onActivated(() => {
   font-size: 12px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
+}
+
+.card-places {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .card-price {

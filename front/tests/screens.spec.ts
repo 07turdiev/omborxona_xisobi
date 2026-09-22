@@ -73,7 +73,10 @@ async function fillCart(page: Page) {
 
   await expect(grid.or(row).first()).toBeVisible()
 
-  if (await grid.isVisible()) await grid.locator('.variant-cell:not([disabled])').first().click()
+  // Zalda turgan katakcha: ombordagisi bosilsa, avval olib chiqish so'raladi
+  if (await grid.isVisible()) {
+    await grid.locator('.variant-cell:not([disabled]):not(.from-warehouse)').first().click()
+  }
 
   await expect(row.first()).toBeVisible()
 

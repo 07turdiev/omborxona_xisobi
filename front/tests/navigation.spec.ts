@@ -18,7 +18,7 @@ test.beforeAll(async ({ request }) => {
   cashier = await login(request, 'kassir')
 })
 
-test('administrator menyusi: yettita band', async ({ page }) => {
+test('administrator menyusi: sakkizta band', async ({ page }) => {
   await openApp(page, admin, '/dashboard')
 
   await expect(page.locator('.sidebar-menu .menu-item')).toHaveText([
@@ -26,19 +26,21 @@ test('administrator menyusi: yettita band', async ({ page }) => {
     'Sotish',
     'Tovarlar',
     'Tovar qabul qilish',
+    'Zalga chiqarish',
     'Sanoq',
     'Hisobot',
     'Sozlamalar',
   ])
 })
 
-test('kassir menyusi: uchta band, yopiq sahifadan kassaga qaytariladi', async ({ page }) => {
+test('kassir menyusi: to‘rtta band, yopiq sahifadan kassaga qaytariladi', async ({ page }) => {
   await openApp(page, cashier, '/')
 
   await expect(page.locator('.sidebar-menu .menu-item')).toHaveText([
     'Sotish',
     'Qaytarish',
     'Tovarlar',
+    'Zalga chiqarish',
   ])
 
   await page.goto('/purchases')
@@ -54,6 +56,7 @@ const PAGES: [string, string, string][] = [
   ['/dashboard', 'Bosh sahifa', 'Bosh sahifa'],
   ['/purchases', 'Tovar qabul qilish', 'Tovar qabul qilish'],
   ['/suppliers', 'Tovar qabul qilish', 'Tovar qabul qilish'],
+  ['/transfers', 'Zalga chiqarish', 'Zalga chiqarish'],
   ['/stock-counts', 'Sanoq', 'Sanoq'],
   ['/write-offs', 'Sanoq', 'Sanoq'],
   ['/reports', 'Hisobot', 'Hisobot'],

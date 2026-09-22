@@ -38,7 +38,6 @@ export interface Category {
   id: number
   name: string
   product_count?: number
-  /** Soliq tasnifi kodi — kategoriyadagi mahsulotlar uchun standart */
 }
 
 export interface Size {
@@ -72,6 +71,9 @@ export interface CatalogCard {
   brand: string
   sale_price: string
   total_stock: number
+  /** Savdo zalidagi va ombordagi qoldiq */
+  shop_stock?: number
+  warehouse_stock?: number
   size_stock: SizeStock[]
   /** Nechta rangda bor — kirim ekranidagi qisqa qator */
   color_count?: number
@@ -96,6 +98,7 @@ export interface CatalogVariant {
   price: string
   average_cost?: string
   stock_quantity: number
+  stocks?: StockAtLocation[]
   is_active: boolean
 }
 
@@ -107,6 +110,24 @@ export interface CatalogProduct extends CatalogCard {
   colors: Color[]
   sizes: Size[]
   variants: CatalogVariant[]
+}
+
+export type LocationKind = 'warehouse' | 'shop'
+
+export interface Location {
+  id: number
+  name: string
+  kind: LocationKind
+  kind_display: string
+  is_active: boolean
+}
+
+/** Variantning bitta joydagi qoldig'i */
+export interface StockAtLocation {
+  location: number
+  location_name: string
+  kind: LocationKind
+  quantity: number
 }
 
 export interface Variant {
@@ -124,7 +145,10 @@ export interface Variant {
   price: string
   /** Faqat administrator javobida bo'ladi */
   average_cost?: string
+  /** Ikkala joyning yig'indisi */
   stock_quantity: number
+  /** Har joydagi qoldiq: zalda nechta, omborda nechta */
+  stocks?: StockAtLocation[]
   min_stock: number
   is_active: boolean
 }
@@ -153,8 +177,6 @@ export interface Product {
   slug: string
   sale_price: string
   images: ProductImage[]
-  /** Bo'sh bo'lsa kategoriyaniki ishlatiladi */
-  /** Amaldagi kod: mahsulotniki yoki kategoriyaniki */
   is_active: boolean
   variants: Variant[]
 }
@@ -335,6 +357,9 @@ export interface StockCount {
   status_display: string
   category: number | null
   category_name: string | null
+  /** Qaysi joy sanaldi: zal yoki ombor */
+  location: number | null
+  location_name: string
   note: string
   confirmed_at: string | null
   lines: StockCountLine[]

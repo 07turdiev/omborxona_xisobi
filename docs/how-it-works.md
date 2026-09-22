@@ -8,7 +8,8 @@ tizimni tushunish.
 ## 1. Nima bu
 
 Bitta kiyim do'koni uchun kassa va ombor tizimi. Bitta do'kon, bitta
-ombor, bitta valyuta (so'm), ikkita rol.
+ombor, bitta valyuta (so'm), ikkita rol. Tovar omborda turadi,
+sotiladigani savdo zaliga chiqariladi (3-bo'lim).
 
 | Rol | Nima qila oladi |
 |---|---|
@@ -72,7 +73,45 @@ joyida qoladi.
 
 ---
 
-## 3. Tannarx — o'rtacha qiymat
+## 3. Ombor va do'kon: tovar qayerda turadi
+
+Do'konda tovar ikki joyda turadi va qoldiq **har joyda alohida**
+yuritiladi (`Location`, `VariantStock`):
+
+| Joy | Nimasi | Kim ishlatadi |
+| --- | --- | --- |
+| **Ombor** | zaxira: kelgan tovarning hammasi | qabul qiluvchi |
+| **Do'kon** | savdo zali, javondagi tovar | kassa |
+
+Oqim doim bir xil:
+
+```
+kirim → Ombor → (ko'chirish) → Do'kon → sotuv
+```
+
+- **Kirim doim omborga tushadi.** Tovar shtrix-kodsiz keladi, qabulda
+  yorliq chop etiladi va zaxiraga qo'yiladi.
+- **Sotuv faqat zaldagi qoldiqdan** bo'ladi. Omborda 20 dona bo'lsa-yu
+  zalda nol bo'lsa, kassa uni sota olmaydi.
+- **Ko'chirish** (`Transfer`, `KCH-` raqami) ikki yozuv qiladi:
+  ombordan `TRANSFER_OUT`, zalga `TRANSFER_IN`. Do'konning umumiy
+  qoldig'i o'zgarmaydi — tovar joyini almashtirdi, xolos.
+
+Zalga chiqarishning ikki yo'li bor:
+
+1. **«Zalga chiqarish» ekrani** — ertalab javonni to'ldirish. Tovar
+   topiladi, har variantga nechta chiqarilishi yoziladi, bitta hujjat
+   yoziladi.
+2. **Kassadagi bir bosish** — xaridor so'ragan narsa zalda tugagan
+   bo'lsa, kassir «Ombordan olib chiqish» tugmasini bosadi: bitta
+   donaga ko'chirish yoziladi va tovar savatga tushadi.
+
+Sanoq ham joy bo'yicha o'tkaziladi: zal sanalganda ombordagi tovar
+farqqa tushmaydi. Hisobdan chiqarish ham o'z joyidan bo'ladi.
+
+---
+
+## 4. Tannarx — o'rtacha qiymat
 
 Har kirimda variantning o'rtacha tannarxi qayta hisoblanadi:
 
@@ -89,7 +128,7 @@ ko'rsatmaydi.
 
 ---
 
-## 4. Narx
+## 5. Narx
 
 Sotuv narxi mahsulotda turadi; variant o'z narxini berishi mumkin
 (masalan XL qimmatroq). Amaldagi narx — `Variant.price`.
@@ -115,7 +154,7 @@ cheklov yo'q.
 
 ---
 
-## 5. Hujjatlar va raqamlar
+## 6. Hujjatlar va raqamlar
 
 | Prefiks | Hujjat |
 |---|---|
@@ -123,6 +162,7 @@ cheklov yo'q.
 | `SOT-2026-000001` | Sotuv (chek) |
 | `QAY-2026-000001` | Qaytarish |
 | `INV-2026-000001` | Inventarizatsiya |
+| `KCH-2026-000001` | Ombordan zalga ko'chirish |
 
 Raqam har yili nolga qaytadi. Ikki hujjat bir xil raqam olmasligi uchun
 `pg_advisory_xact_lock` ishlatiladi — tranzaksiya tugaguncha boshqa
@@ -135,7 +175,7 @@ ham qabul qiladi.
 
 ---
 
-## 6. Shtrix-kod
+## 7. Shtrix-kod
 
 Har variantga ichki EAN-13 kod beriladi:
 
@@ -154,7 +194,7 @@ ham topadi.
 
 ---
 
-## 7. Tovar qabul qilish
+## 8. Tovar qabul qilish
 
 Do'konga tovar **shtrix-kodsiz** keladi: qutida, o'lchamlari aralash,
 yorliqsiz. Yorliqni do'konning o'zi chiqaradi. Shuning uchun kirim
@@ -191,14 +231,15 @@ Ish tartibi:
 4. **Tannarx va ustama.** Tannarx modelga bitta yoziladi va hamma
    qatorga tushadi; bitta qatorniki boshqacha bo'lsa, «Alohida tannarx»
    ostida o'zgartiriladi. «Ustama %» yozilsa, sotuv narxi taklif
-   qilinadi (4-bo'limga qarang) — uni qo'lda tuzatish mumkin.
+   qilinadi (5-bo'limga qarang) — uni qo'lda tuzatish mumkin.
 
    Kim keltirgani, to'langan summa va sana — «Qo'shimcha» ostida. Ular
    majburiy emas: ko'pincha tovar shunchaki keladi va kiritiladi.
 
-5. **«Qabul qilish» tugmasini bosing.** Shunda tovar qoldiqqa tushadi,
-   yangi narx mahsulotga yoziladi va xulosa ko'rinadi: nechta tovar
-   turi, nechta dona, tannarx jami va nechta yorliq.
+5. **«Qabul qilish» tugmasini bosing.** Shunda tovar **omborga**
+   tushadi, yangi narx mahsulotga yoziladi va xulosa ko'rinadi: nechta
+   tovar turi, nechta dona, tannarx jami va nechta yorliq. Sotish uchun
+   u keyin savdo zaliga chiqariladi (3-bo'lim).
 
 6. **Yorliqlarni chop eting va yopishtiring** (3-qadam). Har dona uchun bitta
    yorliq chiqadi. «Qo'shimcha yorliq» — yopishtirishda yirtilganini
@@ -216,7 +257,7 @@ beradi.
 
 ---
 
-## 8. Kassa oqimi
+## 9. Kassa oqimi
 
 ```
 skanerlash → savat → chegirma → to'lov turi → «Yakunlash»
@@ -238,9 +279,14 @@ Uch narsa e'tiborga olingan:
 3. **Fokus har amaldan keyin skaner maydoniga qaytadi** — kassir
    sichqonchaga qo'l urmaydi.
 
+4. **Zalda tugagan tovar yo'lni to'smaydi.** Xaridor so'ragan narsa
+   javonda qolmagan, lekin omborda bor bo'lsa, kassa «Ombordan olib
+   chiqish» tugmasini ko'rsatadi: bitta bosishda ko'chirish hujjati
+   yoziladi va tovar savatga tushadi (3-bo'lim).
+
 ---
 
-## 9. Qaytarish va almashtirish
+## 10. Qaytarish va almashtirish
 
 Qaytarishda tovar **asl tannarxi bilan** omborga qaytadi va mijozga
 chegirma hisobga olingan summa beriladi. Qator to'liq qaytarilsa,
@@ -255,7 +301,7 @@ teng bo'ladi — sotuv, qaytarish va almashtirish qanday aralashmasin.
 
 ---
 
-## 10. Bekor qilish va kun chegarasi
+## 11. Bekor qilish va kun chegarasi
 
 Chekni bekor qilish faqat **o'sha kuni** va faqat administrator uchun.
 Ertasiga kunlik kassa yopilgan bo'ladi, shuning uchun qaytarish
@@ -267,7 +313,7 @@ mahalliy kun chegarasidan foydalanadi (`apps/core/dates.py`).
 
 ---
 
-## 11. Chop etish
+## 12. Chop etish
 
 Chek va yorliq brauzer orqali chiqadi — maxsus drayver kerak emas.
 
@@ -288,7 +334,7 @@ yozilganda o'lcham printer zichligiga (203 dpi) qarab suzib ketardi.
 
 ---
 
-## 12. Papkalar
+## 13. Papkalar
 
 ```
 back/apps/
@@ -317,7 +363,7 @@ saqlaydi.
 
 ---
 
-## 13. Fiskal modul
+## 14. Fiskal modul
 
 O'zbekistonda chek fiskal operatorga yuborilishi kerak. Hozir bu
 ulanmagan: `apps/sales/fiscal.py` da bo'sh provayder turibdi va u
