@@ -25,6 +25,7 @@ from apps.catalog.serializers import (
 )
 from apps.catalog.services import add_variant, remove_product_image, reorder_images
 from apps.core.permissions import IsAdmin, IsAdminOrReadOnly
+from apps.inventory.models import VariantStock
 from apps.inventory.queries import low_stock_variants
 
 
@@ -182,6 +183,19 @@ class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
 
         if params.get('in_stock') == 'true':
             queryset = queryset.filter(total_stock__gt=0)
+
+        # Faqat zalda yoki faqat omborda turgan tovarlar. Qoldiq ikki
+        # joyda alohida yuritiladi, ro'yxat ham shunday ko'rinsin.
+        if kind := params.get('location'):
+            queryset = queryset.filter(
+                Exists(
+                    VariantStock.objects.filter(
+                        variant__product=OuterRef('pk'),
+                        location__kind=kind,
+                        quantity__gt=0,
+                    )
+                )
+            )
 
         if params.get('low_stock') == 'true':
             queryset = queryset.filter(Exists(low_stock_variants(variants)))

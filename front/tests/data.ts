@@ -258,6 +258,41 @@ export async function createTestProduct(
   return { id: created.id, name, sizes, colors, purchase }
 }
 
+/** Tovarning zaldagi hamma qoldig'ini omborga qaytaradi. */
+export async function moveToWarehouse(
+  request: APIRequestContext,
+  session: Session,
+  product: TestProduct,
+): Promise<void> {
+  const full = await (
+    await request.get(`${API}/api/products/${product.id}/`, {
+      headers: headers(session.access),
+    })
+  ).json()
+
+  const lines = full.variants
+    .map((variant: TestVariant) => ({
+      variant: variant.id,
+      quantity: shopQuantity(variant),
+    }))
+    .filter((line: { quantity: number }) => line.quantity > 0)
+
+  if (!lines.length) return
+
+  const places = await locations(request, session.access)
+
+  const response = await request.post(`${API}/api/transfers/`, {
+    headers: headers(session.access),
+    data: {
+      source: places.find((place) => place.kind === 'shop')!.id,
+      target: places.find((place) => place.kind === 'warehouse')!.id,
+      lines,
+    },
+  })
+
+  expect(response.ok(), `omborga qaytarilmadi: ${await response.text()}`).toBeTruthy()
+}
+
 /**
  * Faqat omborda turgan variant: zalda nol, omborda `quantity` dona.
  *

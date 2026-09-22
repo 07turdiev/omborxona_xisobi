@@ -81,16 +81,20 @@ yuritiladi (`Location`, `VariantStock`):
 | Joy | Nimasi | Kim ishlatadi |
 | --- | --- | --- |
 | **Ombor** | zaxira: kelgan tovarning hammasi | qabul qiluvchi |
-| **Do'kon** | savdo zali, javondagi tovar | kassa |
+| **Savdo zali** | javondagi tovar | kassa |
 
 Oqim doim bir xil:
 
 ```
-kirim → Ombor → (ko'chirish) → Do'kon → sotuv
+kirim → Ombor → (ko'chirish) → Savdo zali → sotuv
+          ↑                        ↑
+          └──── qabulda tanlanadi ─┘
 ```
 
-- **Kirim doim omborga tushadi.** Tovar shtrix-kodsiz keladi, qabulda
-  yorliq chop etiladi va zaxiraga qo'yiladi.
+- **Kirim odatda omborga tushadi.** Tovar shtrix-kodsiz keladi,
+  qabulda yorliq chop etiladi va zaxiraga qo'yiladi. Qabul ekranida
+  «Qayerga tushsin?» tanlovi bor: kichik partiyani ombordan o'tkazmay
+  to'g'ridan-to'g'ri javonga qo'yish mumkin.
 - **Sotuv faqat zaldagi qoldiqdan** bo'ladi. Omborda 20 dona bo'lsa-yu
   zalda nol bo'lsa, kassa uni sota olmaydi.
 - **Ko'chirish** (`Transfer`, `KCH-` raqami) ikki yozuv qiladi:
@@ -108,6 +112,9 @@ Zalga chiqarishning ikki yo'li bor:
 
 Sanoq ham joy bo'yicha o'tkaziladi: zal sanalganda ombordagi tovar
 farqqa tushmaydi. Hisobdan chiqarish ham o'z joyidan bo'ladi.
+
+Tovarlar ro'yxatida «Joy» filtri bor: faqat zalda turganlarni yoki
+faqat omborda yotganlarni ajratib ko'rish mumkin.
 
 ---
 
@@ -240,10 +247,12 @@ Ish tartibi:
    Kim keltirgani, to'langan summa va sana — «Qo'shimcha» ostida. Ular
    majburiy emas: ko'pincha tovar shunchaki keladi va kiritiladi.
 
-5. **«Qabul qilish» tugmasini bosing.** Shunda tovar **omborga**
-   tushadi, yangi narx mahsulotga yoziladi va xulosa ko'rinadi: nechta
-   tovar turi, nechta dona, tannarx jami va nechta yorliq. Sotish uchun
-   u keyin savdo zaliga chiqariladi (3-bo'lim).
+5. **«Qayerga tushsin?» ni tanlab, «Qabul qilish» ni bosing.**
+   Standart — ombor: kelgan partiya zaxiraga qo'yiladi va javonga
+   keyin chiqariladi (3-bo'lim). Kichik partiyani darhol savdo zaliga
+   kiritish ham mumkin. Shunda yangi narx mahsulotga yoziladi va
+   xulosa ko'rinadi: nechta tovar turi, nechta dona, tannarx jami,
+   nechta yorliq va tovar qayerda.
 
 6. **Yorliqlarni chop eting va yopishtiring** (3-qadam). Har dona uchun bitta
    yorliq chiqadi. «Qo'shimcha yorliq» — yopishtirishda yirtilganini

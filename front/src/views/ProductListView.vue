@@ -26,6 +26,9 @@ const search = ref('')
 const category = ref('')
 const inStock = ref(false)
 const lowStock = ref(false)
+
+/** Joy filtri: '' — hammasi, 'shop' — zalda, 'warehouse' — omborda */
+const place = ref('')
 const ordering = ref<CatalogOrdering>('newest')
 
 const cards = ref<CatalogCard[]>([])
@@ -97,6 +100,7 @@ async function load(more = false) {
       category: category.value || undefined,
       in_stock: inStock.value ? 'true' : undefined,
       low_stock: lowStock.value ? 'true' : undefined,
+      location: place.value || undefined,
       ordering: ordering.value,
       page: target,
     })
@@ -145,7 +149,7 @@ watch(search, () => {
   searchTimer = setTimeout(() => void load(), 300)
 })
 
-watch([category, inStock, lowStock, ordering], () => void load())
+watch([category, inStock, lowStock, place, ordering], () => void load())
 
 onMounted(async () => {
   try {
@@ -210,6 +214,13 @@ onActivated(() => {
           <option v-for="item in ORDERINGS" :key="item.value" :value="item.value">
             {{ item.label }}
           </option>
+        </select>
+
+        <!-- Qoldiq ikki joyda alohida: ro'yxatni ham ajratib ko'rish mumkin -->
+        <select v-model="place" aria-label="Joy">
+          <option value="">Hamma joy</option>
+          <option value="shop">Zalda bor</option>
+          <option value="warehouse">Omborda bor</option>
         </select>
 
         <label class="check">

@@ -2,6 +2,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.core.numbering import next_number
+from apps.inventory.models import Location
 from apps.purchases.models import Purchase, PurchaseLine, Supplier, SupplierPayment
 from apps.purchases.services import recalculate_total, supplier_balance
 
@@ -86,6 +87,12 @@ class PurchaseSerializer(serializers.ModelSerializer):
     supplier_name = serializers.CharField(source='supplier.name', read_only=True, default=None)
     created_by_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    #: Tovar qayerga tushadi. Ko'rsatilmasa — ombor.
+    location = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.filter(is_active=True), required=False
+    )
+    location_name = serializers.CharField(source='location.name', read_only=True)
     is_editable = serializers.BooleanField(read_only=True)
     debt = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
 
@@ -93,6 +100,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         model = Purchase
         fields = (
             'id', 'number', 'date', 'supplier', 'supplier_name', 'created_by_name',
+            'location', 'location_name',
             'status', 'status_display', 'note', 'total', 'amount_paid', 'debt',
             'is_editable', 'confirmed_at', 'cancelled_at', 'lines', 'created_at',
         )
@@ -131,6 +139,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         lines = validated_data.pop('lines', [])
         request = self.context['request']
+
+        # Ko'rsatilmasa omborga: kelgan partiya odatda zaxiraga qo'yiladi
+        validated_data.setdefault('location', Location.warehouse())
 
         purchase = Purchase.objects.create(
             number=next_number('KIR', Purchase.objects, validated_data.get('date')),

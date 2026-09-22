@@ -9,7 +9,14 @@
 
 import { expect, test, type Page } from '@playwright/test'
 
-import { createTestProduct, login, openApp, type Session, type TestProduct } from './data'
+import {
+  createTestProduct,
+  login,
+  moveToWarehouse,
+  openApp,
+  type Session,
+  type TestProduct,
+} from './data'
 
 let admin: Session
 let cashier: Session
@@ -52,6 +59,27 @@ test('administrator: ixcham jadval', async ({ page }) => {
 
   await rows.first().click()
   await expect(page).toHaveURL(new RegExp(`/products/${product.id}$`))
+})
+
+test('joy filtri: zaldagi va ombordagi tovar alohida ko‘rinadi', async ({ page, request }) => {
+  const hidden = await createTestProduct(request, admin)
+
+  // Bu tovarning hammasi omborda qoladi
+  await moveToWarehouse(request, admin, hidden)
+
+  await openApp(page, admin, '/products')
+
+  const search = page.getByRole('searchbox', { name: 'Mahsulot qidirish' })
+  const cards = page.locator('.product-card')
+
+  await search.fill(hidden.name)
+  await expect(cards).toHaveCount(1)
+
+  await page.getByLabel('Joy').selectOption('warehouse')
+  await expect(cards).toHaveCount(1)
+
+  await page.getByLabel('Joy').selectOption('shop')
+  await expect(cards).toHaveCount(0)
 })
 
 test('administrator: amallar va qoldiq tarixi hujjatga olib boradi', async ({ page }, info) => {

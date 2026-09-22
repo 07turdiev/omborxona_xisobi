@@ -3,6 +3,7 @@
 from decimal import Decimal
 
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.catalog.models import Category, Color, Size, Variant
 from apps.inventory.models import Location
@@ -14,7 +15,7 @@ from apps.core.factories import (
     create_product,
     receive_stock,
 )
-from apps.inventory.models import MovementReason, StockMovement
+from apps.inventory.models import MovementReason, StockMovement, VariantStock
 from apps.purchases.models import Purchase, Supplier
 from apps.purchases.services import supplier_balance
 from apps.sales.services import create_sale
@@ -424,3 +425,63 @@ class ProductFromPurchaseTests(TestCase):
 
         self.assertEqual(found.status_code, 200)
         self.assertEqual(found.json()['product_name'], 'Sumka')
+
+
+class PurchaseLocationTests(TestCase):
+    """Kirim omborga ham, to'g'ridan-to'g'ri zalga ham tushishi mumkin."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.variant = create_product().variants.get()
+        self.client = api_client(self.admin)
+
+    def create(self, location=None) -> dict:
+        payload = {
+            'date': str(timezone.localdate()),
+            'supplier': None,
+            'lines': [
+                {'variant': self.variant.pk, 'quantity': 4, 'unit_cost': '100000'}
+            ],
+        }
+
+        if location is not None:
+            payload['location'] = location.pk
+
+        response = self.client.post('/api/purchases/', payload, format='json')
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        return response.json()
+
+    def stock(self, location) -> int:
+        row = VariantStock.objects.filter(variant=self.variant, location=location).first()
+
+        return row.quantity if row else 0
+
+    def test_without_a_location_it_goes_to_the_warehouse(self):
+        purchase = self.create()
+
+        self.assertEqual(purchase['location_name'], Location.warehouse().name)
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+
+        self.assertEqual(self.stock(Location.warehouse()), 4)
+        self.assertEqual(self.stock(Location.shop()), 0)
+
+    def test_goods_can_land_straight_on_the_shop_floor(self):
+        """Kichik partiya ombordan o'tmay javonga qo'yiladi."""
+        purchase = self.create(Location.shop())
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+
+        self.assertEqual(self.stock(Location.shop()), 4)
+        self.assertEqual(self.stock(Location.warehouse()), 0)
+
+    def test_cancelling_takes_it_back_from_the_same_place(self):
+        purchase = self.create(Location.shop())
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+        response = self.client.post(f'/api/purchases/{purchase["id"]}/cancel/')
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(self.stock(Location.shop()), 0)

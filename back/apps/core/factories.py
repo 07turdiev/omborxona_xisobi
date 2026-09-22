@@ -88,6 +88,7 @@ def receive_stock(variant, quantity: int, unit_cost, *, user=None, supplier=None
     purchase = Purchase.objects.create(
         number=next_number('KIR', Purchase.objects, date),
         date=date,
+        location=Location.warehouse(),
         supplier=supplier,
         created_by=user,
     )

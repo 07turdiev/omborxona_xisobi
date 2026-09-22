@@ -4,6 +4,7 @@ import type { Paginated, Purchase, PurchaseLine, Supplier, SupplierPayment } fro
 export interface PurchaseInput {
   date: string
   supplier: number | null
+  location?: number | null
   note?: string
   amount_paid?: string
   lines: Pick<PurchaseLine, 'variant' | 'quantity' | 'unit_cost' | 'new_sale_price'>[]

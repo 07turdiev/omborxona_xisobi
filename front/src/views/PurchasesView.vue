@@ -9,6 +9,7 @@ import PurchaseModelGrid from '@/components/PurchaseModelGrid.vue'
 import { catalogApi } from '@/api/catalog'
 import AmountField from '@/components/AmountField.vue'
 import { errorMessage } from '@/api/client'
+import { inventoryApi } from '@/api/inventory'
 import { purchasesApi } from '@/api/purchases'
 import { formatDayMonth, formatTime, todayIso } from '@/utils/date'
 import { formatMoney, formatSum, normalizeMoneyInput } from '@/utils/money'
@@ -21,7 +22,7 @@ import {
   type DraftModel,
 } from '@/utils/receiving'
 import type { LabelItem } from '@/api/agent'
-import type { Product, Purchase, PurchaseLine, Supplier } from '@/types'
+import type { Location, Product, Purchase, PurchaseLine, Supplier } from '@/types'
 
 /**
  * Tovar qabul qilish — uch qadam.
@@ -56,9 +57,13 @@ const draft = ref({
   number: '',
   date: todayIso(),
   supplier: null as number | null,
+  /** Tovar qayerga tushadi: ombor yoki savdo zali */
+  location: null as number | null,
   note: '',
   amount_paid: '',
 })
+
+const locations = ref<Location[]>([])
 
 const models = ref<DraftModel[]>([])
 const extraOpen = ref(false)
@@ -89,10 +94,18 @@ async function load() {
   error.value = ''
 
   try {
-    const [page, supplierPage] = await Promise.all([purchasesApi.list(), purchasesApi.suppliers()])
+    const [page, supplierPage, places] = await Promise.all([
+      purchasesApi.list(),
+      purchasesApi.suppliers(),
+      inventoryApi.locations(),
+    ])
 
     purchases.value = page.results
     suppliers.value = supplierPage.results
+    locations.value = places
+
+    // Joy ro'yxati kelgach standart tanlov qo'yiladi
+    draft.value.location ??= places.find((place) => place.kind === 'warehouse')?.id ?? null
   } catch (err) {
     error.value = errorMessage(err, 'Ro‘yxatni yuklab bo‘lmadi.')
   } finally {
@@ -106,6 +119,8 @@ function reset() {
     number: '',
     date: todayIso(),
     supplier: null,
+    // Odatda ombor: kelgan partiya zaxiraga qo'yiladi
+    location: locations.value.find((place) => place.kind === 'warehouse')?.id ?? null,
     note: '',
     amount_paid: '',
   }
@@ -189,6 +204,7 @@ async function save(confirmAfter: boolean) {
   const payload = {
     date: draft.value.date,
     supplier: draft.value.supplier,
+    location: draft.value.location,
     note: draft.value.note,
     amount_paid: draft.value.amount_paid
       ? normalizeMoneyInput(draft.value.amount_paid)
@@ -234,6 +250,7 @@ async function continueDraft(purchase: Purchase) {
       number: full.number,
       date: full.date,
       supplier: full.supplier,
+      location: full.location,
       note: full.note,
       amount_paid: Number(full.amount_paid) ? full.amount_paid : '',
     }
@@ -448,6 +465,16 @@ onMounted(async () => {
       <footer class="stage-foot">
         <strong>Jami: {{ units }} dona · {{ formatSum(total) }}</strong>
 
+        <label class="where">
+          <span>Qayerga tushsin?</span>
+
+          <select v-model="draft.location" aria-label="Qayerga tushsin">
+            <option v-for="place in locations" :key="place.id" :value="place.id">
+              {{ place.name }}
+            </option>
+          </select>
+        </label>
+
         <div class="stage-actions">
           <button
             class="button button-outline"
@@ -493,6 +520,11 @@ onMounted(async () => {
         <li>
           <span>Yorliq</span>
           <strong data-testid="label-count">{{ labelCount }}</strong>
+        </li>
+
+        <li>
+          <span>Qayerda</span>
+          <strong data-testid="summary-location">{{ summary.purchase.location_name }}</strong>
         </li>
       </ul>
 
@@ -810,6 +842,17 @@ onMounted(async () => {
 .drafts,
 .history {
   margin-bottom: 12px;
+}
+
+.where {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.where select {
+  width: auto;
 }
 
 .draft-chips {

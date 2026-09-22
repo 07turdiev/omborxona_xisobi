@@ -232,6 +232,9 @@ export interface Purchase {
   date: string
   supplier: number | null
   supplier_name: string | null
+  /** Tovar qayerga tushdi: ombor yoki savdo zali */
+  location: number
+  location_name: string
   /** Kim kiritgan — «Oxirgi kirimlar» jadvalidagi Xodim ustuni */
   created_by_name?: string
   status: PurchaseStatus

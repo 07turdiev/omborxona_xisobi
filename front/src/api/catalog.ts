@@ -42,6 +42,8 @@ export interface CatalogFilters {
   category?: number | string
   in_stock?: 'true'
   low_stock?: 'true'
+  /** Faqat shu turdagi joyda qoldig'i borlar */
+  location?: string
   ordering?: CatalogOrdering
   page?: number
 }

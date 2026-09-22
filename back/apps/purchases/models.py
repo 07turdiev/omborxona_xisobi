@@ -87,6 +87,16 @@ class Purchase(TimeStampedModel):
         _('Holati'), max_length=10, choices=Status.choices, default=Status.DRAFT
     )
 
+    #: Tovar qayerga tushadi. Odatda ombor: kelgan partiya zaxiraga
+    #: qo'yiladi va javonga keyin chiqariladi. Kichik partiyani esa
+    #: darhol zalga kiritish qulayroq.
+    location = models.ForeignKey(
+        'inventory.Location',
+        on_delete=models.PROTECT,
+        related_name='purchases',
+        verbose_name=_('Joy'),
+    )
+
     note = models.CharField(_('Izoh'), max_length=300, blank=True)
 
     #: Qatorlardan hisoblanadi

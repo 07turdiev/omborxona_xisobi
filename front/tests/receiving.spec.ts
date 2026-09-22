@@ -202,6 +202,38 @@ test('bitta o‘lcham va bitta rang: jadval bitta katakdan iborat', async ({ pag
   await expect(page.getByTestId('step-quantities')).toContainText('5 dona')
 })
 
+test('qabulda joy tanlanadi: tovar to‘g‘ridan-to‘g‘ri zalga tushadi', async ({
+  page,
+  request,
+}) => {
+  const name = `Zalga kirim ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+  await fillNewProduct(page, name, { sizes: [sizes[0]!.name], colors: [colors[0]!.name] })
+
+  await grid(page).getByLabel('Model tannarxi').fill('100000')
+  await page.keyboard.press('Tab')
+  await grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`).fill('4')
+
+  // Standart — ombor; bu safar javonga qo'yamiz
+  await page.getByLabel('Qayerga tushsin').selectOption({ label: 'Savdo zali' })
+  await confirmButton(page).click()
+
+  const summary = page.getByTestId('purchase-summary')
+
+  await expect(summary).toBeVisible()
+  await expect(summary.getByTestId('summary-location')).toHaveText('Savdo zali')
+
+  // Qoldiq ombordan o'tmay zalga tushdi
+  const saved = await findProduct(request, name)
+  const variant = saved.variants[0]!
+  const at = (kind: string) =>
+    variant.stocks?.find((stock: { kind: string }) => stock.kind === kind)?.quantity ?? 0
+
+  expect(at('shop')).toBe(4)
+  expect(at('warehouse')).toBe(0)
+})
+
 test('rasm majburiy, narx ustamadan taklif qilinadi', async ({ page, request }) => {
   const name = `Ustamali ko‘ylak ${Date.now()}`
 

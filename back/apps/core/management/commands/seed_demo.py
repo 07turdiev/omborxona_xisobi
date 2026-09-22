@@ -174,6 +174,7 @@ class Command(BaseCommand):
         purchase = Purchase.objects.create(
             number=next_number('KIR', Purchase.objects, today),
             date=today,
+            location=Location.warehouse(),
             supplier=supplier,
             note='Namuna partiya',
         )

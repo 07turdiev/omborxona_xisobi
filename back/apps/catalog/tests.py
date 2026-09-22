@@ -520,6 +520,17 @@ class CatalogListTests(TestCase):
 
         self.assertEqual(self.names('?low_stock=true'), ['Tugayapti'])
 
+    def test_location_filter_splits_the_shop_and_the_warehouse(self):
+        """Tovarlar ro'yxati qayerdagi tovar kerakligini so'rashi mumkin."""
+        in_shop = create_product(name='Javonda').variants.get()
+        in_warehouse = create_product(name='Zaxirada').variants.get()
+
+        receive_stock(in_shop, 3, '100000')
+        receive_stock(in_warehouse, 5, '100000', location=Location.warehouse())
+
+        self.assertEqual(self.names('?location=shop'), ['Javonda'])
+        self.assertEqual(self.names('?location=warehouse'), ['Zaxirada'])
+
     def test_low_stock_looks_at_the_shop_not_the_warehouse(self):
         """Omborda to'la bo'lsa ham, javon bo'sh bo'lsa — ogohlantirish."""
         variant = create_product(name='Zalda tugadi').variants.get()
