@@ -5,8 +5,9 @@ import { catalogApi } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { inventoryApi, type Transfer } from '@/api/inventory'
 import { formatDayMonth, formatTime } from '@/utils/date'
+import { formatSum } from '@/utils/money'
 import { shopStock, warehouseStock } from '@/utils/stock'
-import type { Location, Product, Variant } from '@/types'
+import type { CatalogCard, Location, Variant } from '@/types'
 
 /**
  * Zalga chiqarish: ombordagi tovarni savdo zaliga ko'chirish.
@@ -14,6 +15,9 @@ import type { Location, Product, Variant } from '@/types'
  * Kunlik ish: ertalab javonlar to'ldiriladi. Kassada bitta dona kerak
  * bo'lsa, u yerdan ham olib chiqish mumkin — bu ekran ko'p tovarni
  * bir yo'la chiqarish uchun.
+ *
+ * Ombordagi tovarlar darhol ro'yxatda turadi: ekran ochilgan zahoti
+ * nima chiqarish mumkinligi ko'rinsin, xodim nom yozib qidirmasin.
  */
 
 interface Chosen {
@@ -28,8 +32,11 @@ const transfers = ref<Transfer[]>([])
 const chosen = ref<Chosen[]>([])
 
 const search = ref('')
-const results = ref<Product[]>([])
+
+/** Omborda qoldig'i bor tovarlar */
+const available = ref<CatalogCard[]>([])
 const searching = ref(false)
+const opening = ref(0)
 const saving = ref(false)
 const error = ref('')
 const notice = ref('')
@@ -58,26 +65,29 @@ async function load() {
   } catch (err) {
     error.value = errorMessage(err, 'Ma’lumotni yuklab bo‘lmadi.')
   }
+
+  await loadAvailable()
 }
 
-async function runSearch() {
-  const text = search.value.trim()
-
-  if (text.length < 2) {
-    results.value = []
-    return
-  }
-
+/** Omborda qoldig'i bor tovarlar. Qidiruv shu ro'yxatni toraytiradi. */
+async function loadAvailable() {
   const current = ++request
 
   searching.value = true
 
   try {
-    const page = await catalogApi.products({ search: text })
+    const page = await catalogApi.catalog({
+      location: 'warehouse',
+      search: search.value.trim() || undefined,
+      ordering: 'name',
+    })
 
-    if (current === request) results.value = page.results.slice(0, 8)
-  } catch {
-    if (current === request) results.value = []
+    if (current === request) available.value = page.results
+  } catch (err) {
+    if (current === request) {
+      available.value = []
+      error.value = errorMessage(err, 'Ombordagi tovarlarni yuklab bo‘lmadi.')
+    }
   } finally {
     if (current === request) searching.value = false
   }
@@ -85,35 +95,42 @@ async function runSearch() {
 
 function onSearchInput() {
   clearTimeout(timer)
-  timer = setTimeout(runSearch, 250)
+  timer = setTimeout(loadAvailable, 250)
 }
 
-/** Tovarni ro'yxatga qo'shadi: faqat omborda qoldig'i borlari ko'rinadi. */
-function choose(product: Product) {
-  search.value = ''
-  results.value = []
+/** Tanlangan tovarni pastdagi ro'yxatga qo'shadi. */
+async function choose(card: CatalogCard) {
   notice.value = ''
   error.value = ''
-  request += 1
 
-  if (chosen.value.some((item) => item.product === product.id)) return
+  if (chosen.value.some((item) => item.product === card.id)) return
 
-  // Savdodan chiqarilgan variant zalga chiqarilmaydi
-  const variants = product.variants.filter(
-    (variant) => variant.is_active && warehouseStock(variant) > 0,
-  )
+  opening.value = card.id
 
-  if (!variants.length) {
-    error.value = `«${product.name}» omborda qolmagan.`
-    return
+  try {
+    const product = await catalogApi.product(card.id)
+
+    // Savdodan chiqarilgan variant zalga chiqarilmaydi
+    const variants = product.variants.filter(
+      (variant) => variant.is_active && warehouseStock(variant) > 0,
+    )
+
+    if (!variants.length) {
+      error.value = `«${product.name}» omborda qolmagan.`
+      return
+    }
+
+    chosen.value.push({
+      product: product.id,
+      name: product.name,
+      variants,
+      quantities: {},
+    })
+  } catch (err) {
+    error.value = errorMessage(err, 'Tovarni ochib bo‘lmadi.')
+  } finally {
+    opening.value = 0
   }
-
-  chosen.value.push({
-    product: product.id,
-    name: product.name,
-    variants,
-    quantities: {},
-  })
 }
 
 function setQuantity(item: Chosen, variant: Variant, value: string) {
@@ -183,51 +200,47 @@ onMounted(load)
     <p v-if="notice" class="notice">{{ notice }}</p>
 
     <div class="table-card card-padded stage">
-      <h3 class="card-title">Qaysi tovarni zalga chiqarasiz?</h3>
+      <h3 class="card-title">Ombordagi tovarlar</h3>
+      <p class="card-hint">Zalga chiqariladiganini bosing.</p>
 
-      <div class="search-wrap">
-        <div class="search-field">
-          <svg aria-hidden="true"><use href="#i-search" /></svg>
+      <div class="search-field">
+        <svg aria-hidden="true"><use href="#i-search" /></svg>
 
-          <input
-            v-model="search"
-            type="text"
-            autocomplete="off"
-            role="combobox"
-            aria-controls="transfer-results"
-            :aria-expanded="results.length > 0"
-            placeholder="Tovar nomini yozing"
-            aria-label="Tovar nomi"
-            @input="onSearchInput"
-            @keydown.enter.prevent="results[0] && choose(results[0])"
-          />
+        <input
+          v-model="search"
+          type="text"
+          autocomplete="off"
+          placeholder="Ro‘yxatni toraytirish uchun nom yozing"
+          aria-label="Tovar nomi"
+          @input="onSearchInput"
+        />
 
-          <span v-if="searching" class="search-state">Qidirilmoqda…</span>
-        </div>
-
-        <ul
-          v-if="results.length"
-          id="transfer-results"
-          class="results"
-          role="listbox"
-          aria-label="Topilgan tovarlar"
-        >
-          <li
-            v-for="product in results"
-            :key="product.id"
-            role="option"
-            :aria-selected="false"
-            tabindex="0"
-            @mousedown.prevent="choose(product)"
-            @keydown.enter="choose(product)"
-          >
-            <span>{{ product.name }}</span>
-            <small>{{ product.category_name }}</small>
-          </li>
-        </ul>
+        <span v-if="searching" class="search-state">Qidirilmoqda…</span>
       </div>
 
-      <div v-if="!chosen.length" class="empty-state">Tovar tanlanmagan.</div>
+      <!-- Ombordagi tovarlar: bosilgani pastdagi ro'yxatga tushadi -->
+      <ul v-if="available.length" class="available" aria-label="Ombordagi tovarlar">
+        <li v-for="card in available" :key="card.id">
+          <button
+            type="button"
+            :disabled="opening === card.id || chosen.some((item) => item.product === card.id)"
+            @click="choose(card)"
+          >
+            <img v-if="card.primary_image" :src="card.primary_image.thumb" alt="" />
+            <span v-else class="no-image"><svg><use href="#i-image" /></svg></span>
+
+            <span class="card-text">
+              <strong>{{ card.name }}</strong>
+              <small>{{ card.category_name }} · {{ formatSum(card.sale_price) }}</small>
+              <small class="stock">Omborda {{ card.warehouse_stock }} · zalda {{ card.shop_stock }}</small>
+            </span>
+          </button>
+        </li>
+      </ul>
+
+      <div v-else-if="!searching" class="empty-state">
+        {{ search.trim() ? 'Bunday nomli tovar omborda yo‘q.' : 'Omborda tovar qolmagan.' }}
+      </div>
 
       <div v-for="item in chosen" :key="item.product" class="model" data-testid="transfer-model">
         <div class="model-head">
@@ -346,22 +359,24 @@ onMounted(load)
 }
 
 .card-title {
-  margin-bottom: 14px;
+  margin-bottom: 4px;
   font-family: var(--font-display);
   font-size: 23px;
   font-weight: 500;
 }
 
-.search-wrap {
-  position: relative;
-  max-width: 620px;
-  margin-bottom: 14px;
-}
-
 /* Ko'rinishi `app.css` dagi umumiy `.search-field` dan; bu yerda
    faqat kengligi — ekranning boshlanish maydoni kengroq bo'lsin */
+.card-hint {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
 .search-field {
   width: 100%;
+  max-width: 620px;
+  margin-bottom: 14px;
   padding-right: 12px;
 }
 
@@ -371,36 +386,80 @@ onMounted(load)
   font-size: 13px;
 }
 
-.results {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 4px);
-  right: 0;
-  left: 0;
-  margin: 0;
-  padding: 4px;
+/* Ombordagi tovarlar ro'yxati */
+.available {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
   list-style: none;
+}
+
+.available button {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: var(--shadow-large);
-}
-
-.results li {
-  display: flex;
-  flex-direction: column;
-  padding: 8px 10px;
-  border-radius: var(--radius);
+  text-align: left;
   cursor: pointer;
 }
 
-.results li:hover {
+.available button:hover:not(:disabled) {
+  border-color: var(--accent);
   background: var(--accent-soft);
 }
 
-.results small {
+.available button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.available img,
+.available .no-image {
+  flex: none;
+  width: 48px;
+  height: 60px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.available .no-image {
+  display: grid;
+  place-items: center;
+  background: var(--surface-soft);
+}
+
+.available .no-image svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.6;
+}
+
+.card-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-text strong {
+  font-size: 15px;
+}
+
+.card-text small {
   color: var(--text-muted);
   font-size: 12px;
+}
+
+.card-text .stock {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .model {

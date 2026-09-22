@@ -103,9 +103,10 @@ kirim → Ombor → (ko'chirish) → Savdo zali → sotuv
 
 Zalga chiqarishning ikki yo'li bor:
 
-1. **«Zalga chiqarish» ekrani** — ertalab javonni to'ldirish. Tovar
-   topiladi, har variantga nechta chiqarilishi yoziladi, bitta hujjat
-   yoziladi.
+1. **«Zalga chiqarish» ekrani** — ertalab javonni to'ldirish. Ekran
+   ochilganda ombordagi hamma tovar ro'yxatda turadi: keraklisi
+   bosiladi, har o'lcham va rangga nechta chiqarilishi yoziladi,
+   oxirida bitta hujjat yoziladi.
 2. **Kassadagi bir bosish** — xaridor so'ragan narsa zalda tugagan
    bo'lsa, kassir «Ombordan olib chiqish» tugmasini bosadi: bitta
    donaga ko'chirish yoziladi va tovar savatga tushadi.

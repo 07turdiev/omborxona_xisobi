@@ -112,8 +112,11 @@ defineExpose({
   background: var(--surface);
 }
 
+/* Fokus belgisi o'ramda — ichkaridagi maydonda emas. Aks holda global
+   `:focus-visible` konturi maydon ichida ikkinchi ramka bo'lib chiqadi. */
 .amount-field:focus-within {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .amount-field.disabled {
@@ -126,9 +129,17 @@ defineExpose({
   min-height: 0;
   padding: 0;
   border: 0;
+  border-radius: 0;
   background: none;
   box-shadow: none;
   font-variant-numeric: tabular-nums;
+}
+
+.amount-field input:focus,
+.amount-field input:focus-visible {
+  border: 0;
+  outline: none;
+  box-shadow: none;
 }
 
 .amount-field small {

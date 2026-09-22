@@ -31,8 +31,11 @@ test('ombordagi tovar zalga chiqariladi va hujjat yoziladi', async ({ page, requ
 
   await openApp(page, admin, '/transfers')
 
-  await page.getByLabel('Tovar nomi').fill(product.name)
-  await page.getByRole('option', { name: product.name }).click()
+  // Ombordagi tovarlar darhol ko'rinadi — qidirish shart emas
+  const card = page.getByRole('button', { name: product.name })
+
+  await expect(card).toBeVisible()
+  await card.click()
 
   const model = page.getByTestId('transfer-model')
 
@@ -66,7 +69,7 @@ test('ombordagi qoldiqdan ortig‘i yozilmaydi', async ({ page, request }) => {
   await openApp(page, admin, '/transfers')
 
   await page.getByLabel('Tovar nomi').fill(other.name)
-  await page.getByRole('option', { name: other.name }).click()
+  await page.getByRole('button', { name: other.name }).click()
 
   const row = page
     .getByTestId('transfer-model')
