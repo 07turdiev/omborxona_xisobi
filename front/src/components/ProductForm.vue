@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { catalogApi, type ProductInput } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
@@ -9,8 +9,8 @@ import type { Category, Color, Product, Size } from '@/types'
 /**
  * Mahsulotni yaratish va tahrirlash oynasi.
  *
- * Rasmlar bu yerda emas — mahsulot sahifasida: rasm yuklash formani
- * to'smasin va rasm faqat saqlangan mahsulotga qo'shiladi.
+ * Yangi mahsulotga bitta rasm majburiy — rasmsiz tovarni ro'yxatdan
+ * tanib bo'lmaydi. Qolgan rasmlar mahsulot sahifasida qo'shiladi.
  */
 
 const props = defineProps<{ product: Product | null }>()
@@ -23,6 +23,9 @@ const colors = ref<Color[]>([])
 
 const saving = ref(false)
 const error = ref('')
+
+const picker = ref<HTMLInputElement | null>(null)
+const photo = ref<{ file: File; url: string } | null>(null)
 
 const form = ref({
   category: 0,
@@ -76,6 +79,23 @@ onMounted(async () => {
   }
 })
 
+function onPickPhoto(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  input.value = ''
+
+  if (!file?.type.startsWith('image/')) return
+
+  if (photo.value) URL.revokeObjectURL(photo.value.url)
+
+  photo.value = { file, url: URL.createObjectURL(file) }
+}
+
+onBeforeUnmount(() => {
+  if (photo.value) URL.revokeObjectURL(photo.value.url)
+})
+
 function toggle(list: number[], id: number) {
   const index = list.indexOf(id)
 
@@ -85,6 +105,7 @@ function toggle(list: number[], id: number) {
 
 async function onSave() {
   if (!form.value.name.trim() || saving.value) return
+  if (isNew.value && !photo.value) return
 
   saving.value = true
   error.value = ''
@@ -110,6 +131,9 @@ async function onSave() {
       ? await catalogApi.updateProduct(props.product.id, payload)
       : await catalogApi.createProduct(payload)
 
+    // Rasm yuklashga mahsulot `id` si kerak, shuning uchun saqlagandan keyin
+    if (photo.value) await catalogApi.uploadImage(saved.id, photo.value.file, null)
+
     emit('saved', saved)
   } catch (err) {
     error.value = errorMessage(err, 'Saqlab bo‘lmadi.')
@@ -125,6 +149,28 @@ async function onSave() {
       <h3>{{ isNew ? 'Yangi mahsulot' : 'Mahsulotni tahrirlash' }}</h3>
 
       <p v-if="error" class="load-error">{{ error }}</p>
+
+      <div v-if="isNew" class="field">
+        <label>Rasm — majburiy</label>
+
+        <div class="photo-field">
+          <img v-if="photo" :src="photo.url" alt="" class="photo-preview" />
+
+          <button class="button button-outline" type="button" @click="picker?.click()">
+            <svg><use href="#i-image" /></svg>
+            <span>{{ photo ? 'Boshqasini tanlash' : 'Rasm tanlash' }}</span>
+          </button>
+        </div>
+
+        <input
+          ref="picker"
+          type="file"
+          accept="image/*"
+          hidden
+          data-testid="product-photo"
+          @change="onPickPhoto"
+        />
+      </div>
 
       <div class="field">
         <label>Kategoriya</label>
@@ -209,7 +255,12 @@ async function onSave() {
           Bekor qilish
         </button>
 
-        <button class="button button-gradient" type="button" :disabled="saving" @click="onSave">
+        <button
+          class="button button-gradient"
+          type="button"
+          :disabled="saving || (isNew && !photo)"
+          @click="onSave"
+        >
           {{ saving ? 'Saqlanmoqda…' : 'Saqlash' }}
         </button>
       </div>
@@ -241,6 +292,19 @@ async function onSave() {
 
 .overlay-card > .field {
   margin-bottom: 12px;
+}
+
+.photo-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.photo-preview {
+  width: 56px;
+  height: 72px;
+  border-radius: var(--radius);
+  object-fit: cover;
 }
 
 .chips {

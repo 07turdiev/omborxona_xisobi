@@ -8,7 +8,7 @@
 
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
-import { API, login, openApp, type Session } from './data'
+import { API, login, openApp, testPhoto, type Session } from './data'
 
 // Do'kondagi kompyuter
 test.use({ viewport: { width: 1366, height: 768 } })
@@ -125,6 +125,10 @@ async function fillNewProduct(
       .click()
   }
 
+  // Rasm majburiy: usiz «Davom etish» ochilmaydi
+  await form.getByTestId('file-input').setInputFiles(testPhoto())
+  await expect(form.locator('.photo-grid li')).toHaveCount(1)
+
   await form.getByRole('button', { name: 'Davom etish' }).click()
   await expect(form.locator('.load-error')).toHaveCount(0)
 }
@@ -198,15 +202,12 @@ test('bitta o‘lcham va bitta rang: jadval bitta katakdan iborat', async ({ pag
   await expect(page.getByTestId('step-quantities')).toContainText('5 dona')
 })
 
-test('rasmsiz saqlanadi, narx ustamadan taklif qilinadi', async ({ page, request }) => {
-  const name = `Rasmsiz ko‘ylak ${Date.now()}`
+test('rasm majburiy, narx ustamadan taklif qilinadi', async ({ page, request }) => {
+  const name = `Ustamali ko‘ylak ${Date.now()}`
 
   await openApp(page, admin, '/purchases')
 
   const form = panel(page)
-
-  // Rasm maydoni bo'sh turadi — u majburiy emas
-  await expect(form.locator('.drop-empty')).toBeVisible()
 
   await form.getByLabel('Mahsulot nomi').fill(name)
   await form.getByLabel('Tannarx').fill('100000')
@@ -215,14 +216,23 @@ test('rasmsiz saqlanadi, narx ustamadan taklif qilinadi', async ({ page, request
   // 100 000 + 50 % = 150 000
   await expect(form.getByLabel('Sotuv narxi')).toHaveValue(/150.000/)
 
-  await form.getByRole('button', { name: 'Davom etish' }).click()
+  // Rasmsiz davom etib bo'lmaydi: rasmsiz tovarni ro'yxatdan tanib bo'lmaydi
+  const next = form.getByRole('button', { name: 'Davom etish' })
+
+  await expect(form.locator('.drop-empty')).toContainText('majburiy')
+  await expect(next).toBeDisabled()
+
+  await form.getByTestId('file-input').setInputFiles(testPhoto())
+  await expect(next).toBeEnabled()
+
+  await next.click()
 
   await expect(grid(page)).toContainText(name)
 
   const saved = await findProduct(request, name)
 
   expect(saved.sale_price).toBe('150000.00')
-  expect(saved.images).toHaveLength(0)
+  expect(saved.images).toHaveLength(1)
 })
 
 test('shu nomli tovar bor: yangisi yaratilmaydi', async ({ page, request }) => {

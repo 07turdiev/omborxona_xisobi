@@ -15,7 +15,8 @@ import type { Category, Color, Product, Size } from '@/types'
  * tovar tizimga kiritiladi, keyin har o'lcham × rang uchun shtrix-kod
  * avtomatik yaratiladi.
  *
- * Chap tomonda rasmlar (majburiy emas), o'ng tomonda ma'lumot.
+ * Chap tomonda rasmlar, o'ng tomonda ma'lumot. Kamida bitta rasm
+ * majburiy: rasmsiz tovarni na javonda, na ro'yxatda tanib bo'ladi.
  *
  * Nom yozilganda shu nomli tovar bor-yo'qligi tekshiriladi: bir tovar
  * ikki marta yaratilsa, qoldiq ikkiga bo'linib ketardi.
@@ -192,8 +193,9 @@ async function onSave() {
       product.variants = [variant]
     }
 
-    // Rasmlar mahsulot yaratilgandan keyin yuklanadi. Bittasi
-    // yuklanmasa ham mahsulot qoladi — suratni keyin qo'shish mumkin.
+    // Rasmlar mahsulot yaratilgandan keyin yuklanadi: yuklashga
+    // mahsulot `id` si kerak. Bittasi yuklanmasa ham mahsulot qoladi —
+    // suratni tovar sahifasidan qo'shish mumkin.
     if (photos.value.length) {
       uploading.value = true
 
@@ -209,7 +211,7 @@ async function onSave() {
 
       uploading.value = false
 
-      if (failed) error.value = `${failed} ta rasm yuklanmadi — keyin qo‘shsangiz bo‘ladi.`
+      if (failed) error.value = `${failed} ta rasm yuklanmadi — tovar sahifasidan qo‘shing.`
     }
 
     emit('created', product, { cost: form.value.cost, markup: form.value.markup })
@@ -234,9 +236,9 @@ async function onSave() {
     </p>
 
     <div class="panel-body">
-        <!-- Rasmlar: majburiy emas -->
+        <!-- Kamida bitta rasm majburiy -->
         <aside class="photo-panel">
-          <span class="eyebrow">MAHSULOT RASMLARI</span>
+          <span class="eyebrow">MAHSULOT RASMI</span>
 
           <div
             class="drop-zone"
@@ -247,7 +249,7 @@ async function onSave() {
           >
             <div v-if="!photos.length" class="drop-empty">
               <svg aria-hidden="true"><use href="#i-image" /></svg>
-              <strong>Asosiy rasm</strong>
+              <strong>Asosiy rasm — majburiy</strong>
               <span>Faylni shu yerga tashlang yoki tanlang</span>
             </div>
 
@@ -420,7 +422,7 @@ async function onSave() {
       <button
         class="button button-gradient next"
         type="button"
-        :disabled="saving || uploading || !ready || !form.name.trim()"
+        :disabled="saving || uploading || !ready || !form.name.trim() || !photos.length"
         @click="onSave"
       >
         {{ uploading ? 'Rasm yuklanmoqda…' : saving ? 'Saqlanmoqda…' : 'Davom etish' }}

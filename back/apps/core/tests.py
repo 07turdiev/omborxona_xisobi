@@ -1,5 +1,7 @@
 """Loyiha holati: migratsiyalar va namuna ma'lumotlari buyrug'i."""
 
+import shutil
+import tempfile
 from io import StringIO
 
 from django.core.management import call_command
@@ -80,6 +82,21 @@ class ShopSettingsTests(TestCase):
 class SeedDemoTests(TestCase):
     """Namuna ma'lumotlari faqat ishlab chiqish uchun."""
 
+    @classmethod
+    def setUpClass(cls):
+        """Namuna rasmlari vaqtinchalik papkaga tushsin."""
+        super().setUpClass()
+
+        cls.media = tempfile.mkdtemp()
+        cls.override = override_settings(MEDIA_ROOT=cls.media)
+        cls.override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.override.disable()
+        shutil.rmtree(cls.media, ignore_errors=True)
+        super().tearDownClass()
+
     def test_refuses_when_debug_is_off(self):
         """Serverda namuna xodim yaratilmasligi kerak — paroli ochiq."""
         # Testlarda DEBUG allaqachon False
@@ -98,8 +115,14 @@ class SeedDemoTests(TestCase):
         self.assertEqual(
             set(User.objects.values_list('username', flat=True)), {'admin', 'kassir'}
         )
-        self.assertEqual(Product.objects.count(), 4)
+        self.assertEqual(Product.objects.count(), 12)
         self.assertTrue(Variant.objects.exists())
+
+        # Har tovarda bitta asosiy rasm: rasmsiz tovar bo'lmaydi
+        self.assertTrue(all(
+            product.images.filter(is_primary=True).count() == 1
+            for product in Product.objects.all()
+        ))
 
         # Kirim tasdiqlangan — qoldiq bor
         self.assertTrue(all(

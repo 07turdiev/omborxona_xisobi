@@ -125,6 +125,23 @@ export async function stockedVariants(
   return chosen
 }
 
+/**
+ * Sinov uchun kichik PNG.
+ *
+ * Tovarga rasm majburiy, shuning uchun interfeys orqali tovar
+ * yaratadigan testlar shu faylni biriktiradi. Mazmuni muhim emas.
+ */
+export function testPhoto() {
+  return {
+    name: 'rasm.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    ),
+  }
+}
+
 /** Joylar ro'yxati: ombor va savdo zali. */
 export async function locations(
   request: APIRequestContext,

@@ -5,15 +5,17 @@ hammaga ma'lum, ular ishlab chiqarish bazasiga tushmasligi kerak.
 """
 
 from decimal import Decimal
+from pathlib import Path
 
 from django.conf import settings
+from django.core.files import File
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.catalog.models import Category, Color, Product, Size, Variant
-from apps.catalog.services import sync_variant_matrix
+from apps.catalog.services import add_product_image, sync_variant_matrix
 from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
 from apps.inventory import services as inventory_services
@@ -25,11 +27,46 @@ from apps.sales import services as sale_services
 #: Namuna xodimlar uchun parol — faqat lokal sinov uchun
 PASSWORD = 'demo12345'
 
+#: Rasmlar shu papkada: har tovarga bittadan (manba: `demo_photos/SOURCES.md`)
+PHOTO_DIR = Path(__file__).resolve().parents[2] / 'demo_photos'
+
+#: kategoriya, nom, brend, narx, o'lchamlar, ranglar, rasm
 PRODUCTS = [
-    ('Ko‘ylak', 'Yozgi ko‘ylak', 'Zara', '250000', ['S', 'M', 'L'], ['Oq', 'Qora']),
-    ('Ko‘ylak', 'Shifon ko‘ylak', 'Mango', '320000', ['M', 'L'], ['Qizil', 'Ko‘k']),
-    ('Shim', 'Klassik shim', 'LC Waikiki', '180000', ['S', 'M', 'L', 'XL'], ['Qora']),
-    ('Kurtka', 'Bahorgi kurtka', 'Koton', '450000', ['M', 'L'], ['Oq', 'Qora', 'Qizil']),
+    ('Ko‘ylak', 'Gulli yozgi ko‘ylak', 'Zara', '390000',
+     ['S', 'M', 'L'], ['Oq', 'Bej'], 'dress-floral'),
+    ('Ko‘ylak', 'Oq kechki ko‘ylak', 'Mango', '620000',
+     ['S', 'M', 'L'], ['Oq'], 'dress-white'),
+    ('Bluzka', 'Yo‘l-yo‘l zig‘ir bluzka', 'Koton', '210000',
+     ['S', 'M', 'L'], ['Oq', 'Bej'], 'blouse-striped'),
+    ('Bluzka', 'Kashtali oq bluzka', 'LC Waikiki', '185000',
+     ['S', 'M', 'L'], ['Oq'], 'blouse-floral'),
+    ('Bluzka', 'Shifon gulli bluzka', 'Zara', '240000',
+     ['S', 'M', 'L'], ['Bej', 'Ko‘k'], 'blouse-lace'),
+    ('Bluzka', 'Yengsiz qora bluzka', 'Mango', '160000',
+     ['S', 'M', 'L'], ['Qora'], 'top-black'),
+    ('Shim', 'Yo‘l-yo‘l keng shim', 'Zara', '290000',
+     ['S', 'M', 'L', 'XL'], ['Oq'], 'trousers-striped'),
+    ('Shim', 'Zig‘ir shim', 'Koton', '250000',
+     ['S', 'M', 'L', 'XL'], ['Sariq', 'Bej'], 'trousers-linen'),
+    ('Shim', 'Naqshli keng shim', 'LC Waikiki', '270000',
+     ['M', 'L', 'XL'], ['Qora'], 'trousers-wide'),
+    ('Yubka', 'Fatin yubka', 'Mango', '340000',
+     ['S', 'M', 'L'], ['Jigarrang'], 'skirt-brown'),
+    ('Pidjak', 'Katak pidjak', 'Zara', '520000',
+     ['S', 'M', 'L'], ['Kulrang'], 'blazer-gray'),
+    ('Kofta', 'Trikotaj kofta', 'Koton', '330000',
+     ['S', 'M', 'L'], ['Yashil'], 'knit-gray'),
+]
+
+COLORS = [
+    ('Oq', '#FFFFFF'),
+    ('Qora', '#1A1A1A'),
+    ('Bej', '#D9C7AE'),
+    ('Jigarrang', '#8A6636'),
+    ('Kulrang', '#9E9E9E'),
+    ('Ko‘k', '#1976D2'),
+    ('Yashil', '#4E8A72'),
+    ('Sariq', '#E0B23C'),
 ]
 
 
@@ -73,7 +110,7 @@ class Command(BaseCommand):
         Location.objects.get_or_create(
             kind=Location.Kind.WAREHOUSE, defaults={'name': 'Ombor'}
         )
-        Location.objects.get_or_create(kind=Location.Kind.SHOP, defaults={'name': 'Do‘kon'})
+        Location.objects.get_or_create(kind=Location.Kind.SHOP, defaults={'name': 'Savdo zali'})
 
         self._create()
 
@@ -110,15 +147,10 @@ class Command(BaseCommand):
         }
         colors = {
             name: Color.objects.create(name=name, hex_code=hex_code)
-            for name, hex_code in [
-                ('Oq', '#FFFFFF'),
-                ('Qora', '#1A1A1A'),
-                ('Qizil', '#D32F2F'),
-                ('Ko‘k', '#1976D2'),
-            ]
+            for name, hex_code in COLORS
         }
 
-        for category, name, brand, price, product_sizes, product_colors in PRODUCTS:
+        for category, name, brand, price, product_sizes, product_colors, photo in PRODUCTS:
             product = Product.objects.create(
                 category=categories[category],
                 name=name,
@@ -130,6 +162,7 @@ class Command(BaseCommand):
                 [sizes[item].id for item in product_sizes],
                 [colors[item].id for item in product_colors],
             )
+            self._add_photo(product, photo)
 
         supplier = Supplier.objects.create(
             name='Toshkent Tekstil', phone='+998 90 000 00 00'
@@ -191,6 +224,16 @@ class Command(BaseCommand):
 
         self._report()
 
+    def _add_photo(self, product, name: str) -> None:
+        """Tovarga bitta rasm biriktiradi — rasmsiz tovar bo'lmaydi."""
+        path = PHOTO_DIR / f'{name}.webp'
+
+        if not path.exists():
+            raise CommandError(f'Namuna rasmi topilmadi: {path}')
+
+        with path.open('rb') as handle:
+            add_product_image(product, File(handle, name=path.name))
+
     def _report(self):
         sample = Variant.objects.order_by('id').first()
 
@@ -199,8 +242,8 @@ class Command(BaseCommand):
         self.stdout.write('')
         self.stdout.write(f'  Xodimlar     : admin / kassir, parol: {PASSWORD}')
         self.stdout.write(
-            f'  Mahsulot     : {Product.objects.count()} ta, '
-            f'variant: {Variant.objects.count()} ta'
+            f'  Mahsulot     : {Product.objects.count()} ta '
+            f'(hammasi rasmli), variant: {Variant.objects.count()} ta'
         )
         self.stdout.write(
             f'  Qoldiq       : '
