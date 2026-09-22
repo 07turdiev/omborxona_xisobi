@@ -33,8 +33,6 @@ const form = ref({
   material: '',
   care: '',
   sale_price: '',
-  mxik_code: '',
-  package_code: '',
   size_ids: [] as number[],
   color_ids: [] as number[],
 })
@@ -69,8 +67,6 @@ onMounted(async () => {
     material: product.material,
     care: product.care,
     sale_price: product.sale_price,
-    mxik_code: product.mxik_code,
-    package_code: product.package_code,
     size_ids: [
       ...new Set(product.variants.map((item) => item.size).filter((id): id is number => id !== null)),
     ],
@@ -101,8 +97,6 @@ async function onSave() {
     material: form.value.material.trim(),
     care: form.value.care.trim(),
     sale_price: normalizeMoneyInput(form.value.sale_price || '0'),
-    mxik_code: form.value.mxik_code.trim(),
-    package_code: form.value.package_code.trim(),
     size_ids: form.value.size_ids,
     color_ids: form.value.color_ids,
   }
@@ -203,16 +197,6 @@ async function onSave() {
         <label>Tavsif</label>
         <textarea v-model="form.description" rows="3" />
       </div>
-
-      <div class="field">
-        <label>MXIK kodi</label>
-        <input
-          v-model="form.mxik_code"
-          type="text"
-          inputmode="numeric"
-          maxlength="17"
-          placeholder="Bo‘sh qoldirilsa kategoriyaniki"
-        />      </div>
 
       <div class="field">
         <label>Manzil qismi (slug)</label>

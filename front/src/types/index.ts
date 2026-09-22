@@ -39,8 +39,6 @@ export interface Category {
   name: string
   product_count?: number
   /** Soliq tasnifi kodi — kategoriyadagi mahsulotlar uchun standart */
-  mxik_code: string
-  package_code: string
 }
 
 export interface Size {
@@ -78,8 +76,6 @@ export interface CatalogCard {
   /** Nechta rangda bor — kirim ekranidagi qisqa qator */
   color_count?: number
   primary_image: ProductImage | null
-  /** Faqat administrator javobida */
-  effective_mxik_code?: string
 }
 
 export interface ImageGroup {
@@ -98,7 +94,6 @@ export interface CatalogVariant {
   color_name: string | null
   barcode: string
   price: string
-  /** Faqat administrator javobida */
   average_cost?: string
   stock_quantity: number
   is_active: boolean
@@ -159,10 +154,7 @@ export interface Product {
   sale_price: string
   images: ProductImage[]
   /** Bo'sh bo'lsa kategoriyaniki ishlatiladi */
-  mxik_code: string
-  package_code: string
   /** Amaldagi kod: mahsulotniki yoki kategoriyaniki */
-  effective_mxik_code: string
   is_active: boolean
   variants: Variant[]
 }
@@ -243,7 +235,6 @@ export interface SaleLine {
   unit_price: string
   discount_amount: string
   line_total: string
-  /** Faqat administrator javobida */
   unit_cost?: string
   line_cost?: string
   profit?: string
@@ -267,7 +258,6 @@ export interface Sale {
   fiscal_receipt_id: string
   fiscal_qr_url: string
   lines: SaleLine[]
-  /** Faqat administrator javobida */
   profit?: string
 }
 

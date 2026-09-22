@@ -28,7 +28,7 @@ function variantRow(page: Page, size: number, color: number) {
   return page.getByTestId('variants').locator('tbody tr', { hasText: label })
 }
 
-test('administrator: ixcham jadval va MXIK ustuni', async ({ page }) => {
+test('administrator: ixcham jadval', async ({ page }) => {
   await openApp(page, admin, '/products')
 
   await page.getByRole('button', { name: 'Jadval' }).click()
@@ -36,7 +36,7 @@ test('administrator: ixcham jadval va MXIK ustuni', async ({ page }) => {
   const table = page.locator('.product-table')
 
   await expect(table).toBeVisible()
-  await expect(table.locator('th')).toContainText(['Nomi', 'Narxi', 'O‘lchamlar', 'Qoldiq', 'MXIK'])
+  await expect(table.locator('th')).toContainText(['Nomi', 'Narxi', 'O‘lchamlar', 'Qoldiq'])
 
   await page.getByRole('searchbox', { name: 'Mahsulot qidirish' }).fill(product.name)
 

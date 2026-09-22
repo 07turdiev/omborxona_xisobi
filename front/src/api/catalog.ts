@@ -21,9 +21,6 @@ export interface ProductInput {
   material?: string
   care?: string
   sale_price: string
-  /** Bo'sh qoldirilsa kategoriyaning MXIK kodi ishlatiladi */
-  mxik_code?: string
-  package_code?: string
   is_active?: boolean
   size_ids?: number[]
   color_ids?: number[]

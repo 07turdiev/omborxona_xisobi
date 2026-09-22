@@ -9,10 +9,11 @@ Provayder **tranzaksiya yakunlangandan keyin** chaqiriladi
 yuborilsa, tranzaksiya bekor bo'lganda mavjud bo'lmagan sotuv ro'yxatdan
 o'tgan bo'lib qolardi.
 
-Ma'lumot provayderga tayyor lug'at (`payload`) bo'lib beriladi: har qator
-MXIK kodi bilan ketadi. Shunday qilingani uchun provayder ulanganda
-model tuzilishini bilishi shart emas — faqat shu lug'atni o'z formatiga
-o'giradi.
+Ma'lumot provayderga tayyor lug'at (`payload`) bo'lib beriladi. Shunday
+qilingani uchun provayder ulanganda model tuzilishini bilishi shart
+emas — faqat shu lug'atni o'z formatiga o'giradi. Soliq tasnifi kodi
+(MXIK) do'kon soliq tizimi bilan ishlamagani uchun olib tashlangan;
+provayder ulanadigan bo'lsa, u shu yerga qaytariladi.
 """
 
 import logging
@@ -27,9 +28,6 @@ def _line_payload(variant, quantity, unit_price, discount_amount, line_total) ->
     return {
         'name': f'{product.name} {variant.label}'.strip(),
         'barcode': variant.barcode,
-        # Soliq tasnifi: mahsulotniki bo'lmasa kategoriyanikidan olinadi
-        'mxik_code': product.effective_mxik_code,
-        'package_code': product.effective_package_code,
         'quantity': quantity,
         'unit_price': str(unit_price),
         'discount_amount': str(discount_amount),
@@ -78,11 +76,6 @@ def return_payload(sale_return) -> dict:
     }
 
 
-def missing_mxik(payload: dict) -> list[str]:
-    """MXIK kodi yo'q qatorlar nomi. Bo'sh ro'yxat — hammasi joyida."""
-    return [line['name'] for line in payload['lines'] if not line['mxik_code']]
-
-
 class FiscalProvider(ABC):
     """Fiskal xizmat bilan ishlash interfeysi."""
 
@@ -99,29 +92,17 @@ class NullFiscalProvider(FiscalProvider):
     """Standart provayder: hech narsa yubormaydi, faqat logga yozadi."""
 
     def register_sale(self, sale, payload: dict) -> dict:
-        self._warn_about_missing_codes(sale.number, payload)
         logger.info(
             'Fiskal: sotuv %s ro‘yxatdan o‘tkazilmadi (provayder ulanmagan)', sale.number
         )
         return {}
 
     def register_return(self, sale_return, payload: dict) -> dict:
-        self._warn_about_missing_codes(sale_return.number, payload)
         logger.info(
             'Fiskal: qaytarish %s ro‘yxatdan o‘tkazilmadi (provayder ulanmagan)',
             sale_return.number,
         )
         return {}
-
-    @staticmethod
-    def _warn_about_missing_codes(number: str, payload: dict) -> None:
-        """Kodsiz qator bo'lsa, chek haqiqiy provayderda rad etilardi."""
-        names = missing_mxik(payload)
-
-        if names:
-            logger.warning(
-                'Fiskal: %s — MXIK kodi yo‘q qatorlar: %s', number, ', '.join(names)
-            )
 
 
 def get_provider() -> FiscalProvider:

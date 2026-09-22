@@ -49,14 +49,6 @@ function addCategory() {
   }, 'Kategoriyani qo‘shib bo‘lmadi.')
 }
 
-/** Kategoriyaning MXIK kodi — shu kategoriyadagi hamma mahsulotga tarqaladi. */
-function saveCategoryCode(item: Category, value: string) {
-  void run(async () => {
-    await catalogApi.updateCategory(item.id, { mxik_code: value.trim() })
-    notice.value = `${item.name}: MXIK kodi saqlandi.`
-  }, 'MXIK kodini saqlab bo‘lmadi.')
-}
-
 function addSize() {
   const name = newSize.value.trim()
 
@@ -115,16 +107,11 @@ onMounted(load)
           <button class="button button-outline" type="button" @click="addCategory">Qo‘shish</button>
         </div>
 
-        <p class="field-hint">
-          MXIK — 17 xonali soliq kodi, tasnif.soliq.uz dan olinadi.
-        </p>
-
         <table class="data-table">
           <thead>
             <tr>
               <th>Nomi</th>
               <th class="num">Mahsulot</th>
-              <th>MXIK kodi</th>
               <th></th>
             </tr>
           </thead>
@@ -133,18 +120,6 @@ onMounted(load)
             <tr v-for="item in categories" :key="item.id">
               <td>{{ item.name }}</td>
               <td class="num">{{ item.product_count ?? '—' }}</td>
-              <td>
-                <input
-                  class="mxik-input"
-                  type="text"
-                  inputmode="numeric"
-                  maxlength="17"
-                  placeholder="17 xonali raqam"
-                  :value="item.mxik_code"
-                  :class="{ missing: !item.mxik_code }"
-                  @change="saveCategoryCode(item, ($event.target as HTMLInputElement).value)"
-                />
-              </td>
               <td class="num">
                 <button class="icon-button delete" type="button" aria-label="O‘chirish" @click="remove('category', item.id)">
                   <svg><use href="#i-trash" /></svg>
@@ -223,14 +198,7 @@ onMounted(load)
   margin: 10px 0;
 }
 
-.mxik-input {
-  width: 190px;
-  font-variant-numeric: tabular-nums;
-}
 
-.mxik-input.missing {
-  border-color: var(--orange);
-}
 
 .attribute-list {
   margin: 0;

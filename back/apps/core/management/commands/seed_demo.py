@@ -30,17 +30,6 @@ PRODUCTS = [
     ('Kurtka', 'Bahorgi kurtka', 'Koton', '450000', ['M', 'L'], ['Oq', 'Qora', 'Qizil']),
 ]
 
-#: DIQQAT: bu MXIK kodlari — O'YLAB TOPILGAN NAMUNA, soliq tizimida
-#: mavjud emas. Haqiqiy kodlar tasnif.soliq.uz ma'lumotnomasidan olinadi
-#: va Sozlamalar → Kategoriyalar bo'limida yoziladi. Namuna kodlar
-#: 99999 bilan boshlanadi — shunda ular tasodifan haqiqiy deb
-#: o'ylanmaydi.
-CATEGORY_CODES = {
-    'Ko‘ylak': '99999000000000001',
-    'Shim': '99999000000000002',
-    'Kurtka': '99999000000000003',
-}
-
 
 class Command(BaseCommand):
     help = 'Namuna ma’lumotlarini yaratadi (faqat DEBUG=True bo‘lganda)'
@@ -104,7 +93,7 @@ class Command(BaseCommand):
         )
 
         categories = {
-            name: Category.objects.create(name=name, mxik_code=CATEGORY_CODES.get(name, ''))
+            name: Category.objects.create(name=name)
             for name in dict.fromkeys(row[0] for row in PRODUCTS)
         }
         sizes = {

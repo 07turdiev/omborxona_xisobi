@@ -12,13 +12,6 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.fields import MoneyField
 from apps.core.models import TimeStampedModel
 
-#: MXIK — soliq tizimidagi mahsulot tasnifi kodi (17 xonali raqam).
-#: Fiskal chekda har qatorda shu kod bo'lishi shart.
-MXIK_VALIDATOR = RegexValidator(
-    regex=r'^\d{17}$',
-    message=_('MXIK kodi 17 xonali raqamdan iborat bo‘lishi kerak.'),
-)
-
 #: Rang kodi — katalogdagi rang doirachasi shu kod bilan chiziladi.
 HEX_VALIDATOR = RegexValidator(
     regex=r'^#[0-9A-Fa-f]{6}$',
@@ -27,27 +20,9 @@ HEX_VALIDATOR = RegexValidator(
 
 
 class Category(TimeStampedModel):
-    """Kategoriya — oddiy ro'yxat, ichma-ich emas.
-
-    MXIK kodi shu yerda bir marta yoziladi va kategoriyadagi hamma
-    mahsulotga tarqaladi: bitta ko'ylakning kodi boshqasinikidan farq
-    qilmaydi, shuning uchun har mahsulotga qo'lda yozish ortiqcha ish.
-    """
+    """Kategoriya — oddiy ro'yxat, ichma-ich emas."""
 
     name = models.CharField(_('Nomi'), max_length=100, unique=True)
-
-    mxik_code = models.CharField(
-        _('MXIK kodi'),
-        max_length=17,
-        blank=True,
-        validators=[MXIK_VALIDATOR],
-        help_text=_('17 xonali raqam. Mahsulotda o‘ziniki bo‘lmasa shu ishlatiladi.'),
-    )
-
-    package_code = models.CharField(
-        _('Qadoq kodi'), max_length=20, blank=True,
-        help_text=_('Soliq ma’lumotnomasidagi o‘ram kodi (ixtiyoriy).'),
-    )
 
     class Meta:
         verbose_name = _('Kategoriya')
@@ -128,17 +103,6 @@ class Product(TimeStampedModel):
 
     sale_price = MoneyField(_('Sotuv narxi'), default=0)
 
-    #: Kategoriyanikidan farq qilsa shu yerda yoziladi
-    mxik_code = models.CharField(
-        _('MXIK kodi'),
-        max_length=17,
-        blank=True,
-        validators=[MXIK_VALIDATOR],
-        help_text=_('Bo‘sh bo‘lsa kategoriyaning kodi ishlatiladi.'),
-    )
-
-    package_code = models.CharField(_('Qadoq kodi'), max_length=20, blank=True)
-
     is_active = models.BooleanField(_('Faol'), default=True)
 
     class Meta:
@@ -158,15 +122,6 @@ class Product(TimeStampedModel):
             self.slug = unique_slug(self.name, exclude_pk=self.pk)
 
         super().save(*args, **kwargs)
-
-    @property
-    def effective_mxik_code(self) -> str:
-        """Amaldagi MXIK: mahsulotniki bo'lmasa — kategoriyaniki."""
-        return self.mxik_code or self.category.mxik_code
-
-    @property
-    def effective_package_code(self) -> str:
-        return self.package_code or self.category.package_code
 
 
 class ProductImage(TimeStampedModel):

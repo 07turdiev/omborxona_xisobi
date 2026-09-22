@@ -12,7 +12,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'product_count', 'mxik_code', 'package_code')
+        fields = ('id', 'name', 'product_count')
 
 
 class SizeSerializer(serializers.ModelSerializer):
@@ -112,9 +112,6 @@ class ProductSerializer(serializers.ModelSerializer):
         validators=[UniqueValidator(queryset=Product.objects.all())],
     )
 
-    #: Interfeys kodsiz mahsulotlarni shu maydonga qarab ogohlantiradi
-    effective_mxik_code = serializers.CharField(read_only=True)
-
     size_ids = serializers.ListField(
         child=serializers.IntegerField(), write_only=True, required=False
     )
@@ -126,12 +123,11 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             'id', 'category', 'category_name', 'name', 'slug', 'brand', 'description',
-            'material', 'care', 'sale_price', 'mxik_code', 'package_code',
-            'effective_mxik_code', 'is_active', 'images', 'variants',
+            'material', 'care', 'sale_price', 'is_active', 'images', 'variants',
             'size_ids', 'color_ids',
         )
         read_only_fields = (
-            'id', 'category_name', 'variants', 'images', 'effective_mxik_code',
+            'id', 'category_name', 'variants', 'images',
         )
 
     def create(self, validated_data):
@@ -159,7 +155,7 @@ class ProductSerializer(serializers.ModelSerializer):
 #
 # Bular yuqoridagi administrator serializerlaridan **ataylab alohida**.
 # Katalog — ko'rsatish uchun: tarkib, ranglar, rasmlar. Administrator
-# serializeri esa tahrirlash uchun va unda matritsa, MXIK kabi ichki
+# serializeri esa tahrirlash uchun va unda matritsa kabi ichki
 # maydonlar bor. Keyinchalik onlayn do'kon uchun ommaviy (autentifikatsiyasiz)
 # serializer qo'shilsa, u shu yerdagilardan nusxa oladi va tahrirlash
 # serializeriga umuman tegmaydi.
@@ -193,15 +189,9 @@ class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerial
 
     Bu yerda rasmlar va variantlar to'liq berilmaydi — yigirma beshta
     mahsulotni ochishda ular javobni keraksiz kattalashtiradi.
-
-    MXIK kodi faqat administratorga: jadval ko'rinishida kodsiz
-    mahsulotlar ogohlantiriladi (fiskal chek ularni qabul qilmaydi).
     """
 
-    admin_only_fields = ('effective_mxik_code',)
-
     category_name = serializers.CharField(source='category.name', read_only=True)
-    effective_mxik_code = serializers.CharField(read_only=True)
     total_stock = serializers.IntegerField(read_only=True)
     size_stock = serializers.SerializerMethodField()
     color_count = serializers.SerializerMethodField()
@@ -212,7 +202,7 @@ class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerial
         fields = (
             'id', 'name', 'slug', 'category', 'category_name', 'brand',
             'sale_price', 'total_stock', 'size_stock', 'color_count',
-            'primary_image', 'effective_mxik_code',
+            'primary_image',
         )
 
     def get_size_stock(self, product):

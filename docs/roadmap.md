@@ -19,7 +19,6 @@ Holat: **2026-09-18**.
 | **Xarajatlar** | Ijara, ish haqi, kommunal — sof foydada hisobga olinadi |
 | **Xodimlar** | Qo'shish, rol, parolni almashtirish, bloklash |
 | **Sozlamalar** | Do'kon nomi, yorliq o'lchami, kassir chegirma chegarasi |
-| **MXIK kodlari** | Kategoriya bo'yicha standart kod, mahsulotda o'zgartirish mumkin; fiskal chekka har qator bilan ketadi |
 | **Chop etish agenti** | Chek va yorliq to'g'ridan-to'g'ri printerga: oyna ochilmaydi, qog'oz bo'shga ketmaydi |
 
 Testlar: **backend 95, frontend 44, agent 85, chop etish 10** — hammasi
@@ -54,7 +53,7 @@ qaror qabul qilinishi kerak**:
 
 | Variant | Nimani anglatadi |
 |---|---|
-| **Ro'yxatdan o'tgan virtual kassa provayderi (API bilan)** | Dastur chekni provayder API siga yuboradi. Ulash nuqtasi tayyor: `apps/sales/fiscal.py` dagi `FiscalProvider` ni amalga oshirish kifoya. Har qator MXIK kodi bilan ketadi |
+| **Ro'yxatdan o'tgan virtual kassa provayderi (API bilan)** | Dastur chekni provayder API siga yuboradi. Ulash nuqtasi tayyor: `apps/sales/fiscal.py` dagi `FiscalProvider` ni amalga oshirish kifoya. Soliq tasnifi kodi (MXIK) olib tashlangan — provayder ulanadigan bo'lsa, u qaytariladi |
 | **Alohida onlayn-NKM apparati** | Kassir chekni alohida qurilmada ham chiqaradi. Dasturga o'zgarish kam, lekin kassir har sotuvni ikki marta kiritadi |
 
 Birinchi variant afzal: kassir bitta ish qiladi va xato kamayadi.

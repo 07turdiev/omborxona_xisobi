@@ -820,9 +820,7 @@ class ConcurrentReturnTests(TransactionTestCase):
 
 
 class FiscalPayloadTests(TestCase):
-    """Fiskal provayderga ketadigan ma'lumot: har qator MXIK kodi bilan."""
-
-    CODE = '01234567890123456'
+    """Fiskal provayderga ketadigan ma'lumot."""
 
     def setUp(self):
         self.cashier = create_cashier()
@@ -837,41 +835,16 @@ class FiscalPayloadTests(TestCase):
             cash_amount=Decimal('250000') * quantity,
         )
 
-    def test_line_carries_category_code(self):
-        self.product.category.mxik_code = self.CODE
-        self.product.category.save()
-
+    def test_line_carries_name_and_barcode(self):
         payload = fiscal.sale_payload(self._sell())
         line = payload['lines'][0]
 
-        self.assertEqual(line['mxik_code'], self.CODE)
+        self.assertIn(self.product.name, line['name'])
         self.assertEqual(line['barcode'], self.variant.barcode)
         self.assertEqual(line['quantity'], 1)
         self.assertEqual(payload['number'], Sale.objects.get().number)
 
-    def test_product_code_overrides_category(self):
-        own = '76543210987654321'
-
-        self.product.category.mxik_code = self.CODE
-        self.product.category.save()
-        self.product.mxik_code = own
-        self.product.save()
-
-        payload = fiscal.sale_payload(self._sell())
-
-        self.assertEqual(payload['lines'][0]['mxik_code'], own)
-
-    def test_missing_code_is_reported(self):
-        """Kodsiz qator haqiqiy provayderda rad etilardi — oldindan ko'rinsin."""
-        payload = fiscal.sale_payload(self._sell())
-
-        self.assertEqual(payload['lines'][0]['mxik_code'], '')
-        self.assertEqual(fiscal.missing_mxik(payload), [self.product.name])
-
-    def test_return_payload_carries_code(self):
-        self.product.category.mxik_code = self.CODE
-        self.product.category.save()
-
+    def test_return_payload_points_to_the_sale(self):
         sale = self._sell(2)
         sale_return = create_return(
             sale=sale,
@@ -884,4 +857,4 @@ class FiscalPayloadTests(TestCase):
 
         self.assertEqual(payload['document'], 'return')
         self.assertEqual(payload['sale_number'], sale.number)
-        self.assertEqual(payload['lines'][0]['mxik_code'], self.CODE)
+        self.assertEqual(payload['lines'][0]['quantity'], 1)

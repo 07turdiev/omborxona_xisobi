@@ -70,11 +70,6 @@ watch(view, (value) => {
 
 const tableView = computed(() => auth.isAdmin && view.value === 'table')
 
-/** Fiskal chek MXIK kodisiz tovarni qabul qilmaydi */
-const withoutMxik = computed(() =>
-  auth.isAdmin ? cards.value.filter((card) => !card.effective_mxik_code).length : 0,
-)
-
 /**
  * Telefondagi "Filtr" tugmasida nechta filtr yoqilgani ko'rinadi.
  * Kategoriya sanalmaydi — u chiplarda, ro'yxatning o'zida ko'rinib turadi.
@@ -184,13 +179,6 @@ onActivated(() => {
 
 <template>
   <section class="app-section active catalog">
-    <p v-if="withoutMxik" class="mxik-warning">
-      <strong>{{ withoutMxik }} ta mahsulotda MXIK kodi yo‘q.</strong>
-      Fiskal chek bunday tovarni qabul qilmaydi. Kodni kategoriyaga bir marta
-      yozsangiz, ichidagi hamma mahsulotga tarqaladi —
-      <RouterLink to="/products/attributes">Kategoriya, o‘lcham, rang</RouterLink>
-    </p>
-
     <div class="catalog-toolbar">
       <div class="catalog-search">
         <svg aria-hidden="true"><use href="#i-search" /></svg>
@@ -302,7 +290,6 @@ onActivated(() => {
               <th class="num">Narxi</th>
               <th>O‘lchamlar</th>
               <th class="num">Qoldiq</th>
-              <th>MXIK</th>
             </tr>
           </thead>
 
@@ -336,12 +323,6 @@ onActivated(() => {
                 <span :class="{ out: !card.total_stock }">{{ card.total_stock }}</span>
               </td>
 
-              <td>
-                <span v-if="card.effective_mxik_code" class="mxik-code">
-                  {{ card.effective_mxik_code }}
-                </span>
-                <span v-else class="pill pill-red">yo‘q</span>
-              </td>
             </tr>
           </tbody>
         </table>
@@ -414,14 +395,6 @@ onActivated(() => {
   }
 }
 
-.mxik-warning {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--orange);
-  border-radius: var(--radius);
-  background: var(--orange-soft);
-  font-size: 14px;
-}
 
 .catalog-toolbar {
   display: flex;
@@ -633,11 +606,6 @@ onActivated(() => {
   font-weight: 700;
 }
 
-.mxik-code {
-  color: var(--text-muted);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
 
 /* --- Kartalar --- */
 
