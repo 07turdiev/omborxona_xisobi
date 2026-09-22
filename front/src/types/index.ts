@@ -325,6 +325,9 @@ export interface StockMovement {
   quantity: number
   reason: string
   reason_display: string
+  /** Qaysi joyda bo'ldi: ombor yoki savdo zali */
+  location: number
+  location_name: string
   document_type: string
   document_id: number | null
   /** KIR-…, SOT-…; hisobdan chiqarishda yo'q */

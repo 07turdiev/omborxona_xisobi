@@ -76,7 +76,8 @@ class StockMovementViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def get_queryset(self):
         queryset = StockMovement.objects.select_related(
-            'variant', 'variant__product', 'variant__size', 'variant__color', 'user'
+            'variant', 'variant__product', 'variant__size', 'variant__color',
+            'location', 'user',
         )
 
         params = self.request.query_params

@@ -468,6 +468,7 @@ function when(value: string) {
                 <tr>
                   <th>Vaqti</th>
                   <th>Sabab</th>
+                  <th>Joy</th>
                   <th class="num">Miqdor</th>
                   <th>Hujjat</th>
                   <th>Kim</th>
@@ -476,16 +477,17 @@ function when(value: string) {
 
               <tbody>
                 <tr v-if="historyLoading && !history.length">
-                  <td colspan="5" class="empty-state">Yuklanmoqda…</td>
+                  <td colspan="6" class="empty-state">Yuklanmoqda…</td>
                 </tr>
 
                 <tr v-else-if="!history.length">
-                  <td colspan="5" class="empty-state">Harakat yo‘q.</td>
+                  <td colspan="6" class="empty-state">Harakat yo‘q.</td>
                 </tr>
 
                 <tr v-for="movement in history" :key="movement.id">
                   <td>{{ when(movement.created_at) }}</td>
                   <td>{{ movement.reason_display }}</td>
+                  <td>{{ movement.location_name }}</td>
                   <td class="num">
                     <span :class="movement.quantity > 0 ? 'plus' : 'minus'">
                       {{ movement.quantity > 0 ? `+${movement.quantity}` : movement.quantity }}
