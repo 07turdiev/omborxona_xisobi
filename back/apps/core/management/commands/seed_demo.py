@@ -16,6 +16,8 @@ from apps.catalog.models import Category, Color, Product, Size, Variant
 from apps.catalog.services import sync_variant_matrix
 from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
+from apps.inventory import services as inventory_services
+from apps.inventory.models import Location
 from apps.purchases import services as purchase_services
 from apps.purchases.models import Purchase, PurchaseLine, Supplier
 from apps.sales import services as sale_services
@@ -66,6 +68,12 @@ class Command(BaseCommand):
         if options['force']:
             self.stdout.write('Baza tozalanmoqda...')
             call_command('flush', interactive=False, verbosity=0)
+
+        # `flush` joylarni ham o'chiradi (ular migratsiyada yaratilgan)
+        Location.objects.get_or_create(
+            kind=Location.Kind.WAREHOUSE, defaults={'name': 'Ombor'}
+        )
+        Location.objects.get_or_create(kind=Location.Kind.SHOP, defaults={'name': 'Do‘kon'})
 
         self._create()
 
@@ -147,6 +155,19 @@ class Command(BaseCommand):
 
         purchase_services.recalculate_total(purchase)
         purchase_services.confirm(purchase, user=admin)
+
+        # Kelgan tovarning bir qismi savdo zaliga chiqariladi: qolgani
+        # omborda turadi, xuddi haqiqiy do'kondagidek
+        inventory_services.create_transfer(
+            source=Location.warehouse(),
+            target=Location.shop(),
+            lines=[
+                {'variant': variant, 'quantity': 3}
+                for variant in Variant.objects.order_by('id')
+            ],
+            user=admin,
+            note='Javonga chiqarildi',
+        )
 
         # Ikkita sotuv: biri naqd (chegirma bilan), biri karta
         first, second = list(Variant.objects.order_by('id')[:2])

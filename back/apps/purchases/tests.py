@@ -5,6 +5,8 @@ from decimal import Decimal
 from django.test import TestCase
 
 from apps.catalog.models import Category, Color, Size, Variant
+from apps.inventory.models import Location
+from apps.inventory.services import create_transfer
 from apps.core.factories import (
     api_client,
     create_admin,
@@ -98,6 +100,15 @@ class PurchaseFlowTests(TestCase):
         purchase_id = created.json()['id']
         self.client_admin.post(f'/api/purchases/{purchase_id}/confirm/')
 
+        # Tovar zalga chiqarildi va sotildi — endi ombordan qaytarib
+        # bo'lmaydi, chunki u yerda qolmagan
+        create_transfer(
+            source=Location.warehouse(),
+            target=Location.shop(),
+            lines=[{'variant': self.variant, 'quantity': 2}],
+            user=self.admin,
+        )
+
         create_sale(
             user=self.admin,
             lines=[{'variant': self.variant, 'quantity': 2, 'unit_price': Decimal('250000')}],
@@ -151,8 +162,15 @@ class SupplierBalanceTests(TestCase):
 
     def test_purchase_debt_only_for_supplier_and_not_cancelled(self):
         """Qarz faqat ta'minotchili va bekor qilinmagan kirimda bo'ladi."""
+        # Bekor qilinadigan kirim omborda qoladi: zalga chiqarilgan tovarni
+        # ombordan qaytarib bo'lmaydi
         purchase = receive_stock(
-            self.variant, 4, '200000', user=self.admin, supplier=self.supplier
+            self.variant,
+            4,
+            '200000',
+            user=self.admin,
+            supplier=self.supplier,
+            location=Location.warehouse(),
         )
         purchase.amount_paid = Decimal('300000')
         purchase.save(update_fields=['amount_paid'])

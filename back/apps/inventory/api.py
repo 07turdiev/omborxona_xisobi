@@ -6,12 +6,16 @@ from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from rest_framework.permissions import IsAuthenticated
+
 from apps.core.permissions import IsAdmin
 from apps.inventory import services
-from apps.inventory.models import StockCount, StockMovement, WriteOff
+from apps.inventory.models import Location, StockCount, StockMovement, Transfer, WriteOff
 from apps.inventory.serializers import (
+    LocationSerializer,
     StockCountSerializer,
     StockMovementSerializer,
+    TransferSerializer,
     WriteOffSerializer,
 )
 
@@ -145,3 +149,53 @@ class WriteOffViewSet(
             return Response({'detail': exc.messages}, status=400)
 
         return Response(self.get_serializer(write_off).data, status=201)
+
+
+class LocationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """Joylar ro'yxati: ombor va savdo zali."""
+
+    serializer_class = LocationSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return Location.objects.filter(is_active=True)
+
+
+class TransferViewSet(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Ko'chirish: ombordan zalga chiqarish.
+
+    Kassa ham shu yerga murojaat qiladi: zalda tugagan tovarni bir
+    bosishda ombordan olib chiqadi.
+    """
+
+    serializer_class = TransferSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Transfer.objects.select_related('source', 'target', 'created_by').prefetch_related(
+            'lines__variant__product'
+        )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+
+        try:
+            transfer = services.create_transfer(
+                source=data['source'],
+                target=data['target'],
+                lines=data['lines'],
+                user=request.user,
+                date=data.get('date'),
+                note=data.get('note', ''),
+            )
+        except DjangoValidationError as exc:
+            return Response({'detail': exc.messages}, status=400)
+
+        return Response(self.get_serializer(transfer).data, status=201)

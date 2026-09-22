@@ -11,6 +11,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.catalog.models import Category, Color, Product, Size
 from apps.catalog.services import sync_variant_matrix
 from apps.core.numbering import next_number
+from apps.inventory.models import Location
+from apps.inventory.services import create_transfer
 from apps.purchases.models import Purchase, PurchaseLine
 from apps.purchases.services import confirm as confirm_purchase
 
@@ -73,8 +75,14 @@ def create_product(
 
 
 @transaction.atomic
-def receive_stock(variant, quantity: int, unit_cost, *, user=None, supplier=None, date=None):
-    """Tasdiqlangan kirim orqali omborga tovar kiritadi."""
+def receive_stock(variant, quantity: int, unit_cost, *, user=None, supplier=None, date=None, location=None):
+    """Tasdiqlangan kirim orqali tovar kiritadi.
+
+    Kirim doim **omborga** tushadi. Testlarning ko‘pchiligi sotuvni
+    sinaydi, shuning uchun standart holatda tovar darhol **zalga**
+    ko‘chiriladi — do‘konda javonga chiqarilgandek. Ombordagi
+    qoldiq kerak bo‘lsa: location=Location.warehouse().
+    """
     date = date or timezone.localdate()
 
     purchase = Purchase.objects.create(
@@ -91,4 +99,17 @@ def receive_stock(variant, quantity: int, unit_cost, *, user=None, supplier=None
         unit_cost=Decimal(unit_cost),
     )
 
-    return confirm_purchase(purchase, user=user)
+    confirmed = confirm_purchase(purchase, user=user)
+
+    target = location or Location.shop()
+
+    if target.kind != Location.Kind.WAREHOUSE:
+        create_transfer(
+            source=Location.warehouse(),
+            target=target,
+            lines=[{'variant': variant, 'quantity': quantity}],
+            user=user,
+            date=date,
+        )
+
+    return confirmed

@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
-from apps.inventory.models import MovementReason
+from apps.inventory.models import Location, MovementReason
 from apps.inventory.services import record_movement, round_money
 from apps.sales import fiscal
 from apps.sales.models import Sale, SaleLine, SaleReturn, SaleReturnLine
@@ -60,8 +60,9 @@ def create_sale(
     cash_amount=ZERO,
     card_amount=ZERO,
     request_key=None,
+    location=None,
 ) -> Sale:
-    """Chekni yozadi va tovarni ombordan chiqaradi.
+    """Chekni yozadi va tovarni **zaldan** chiqaradi.
 
     `lines` — `{variant, quantity, unit_price, discount_amount, discount_percent}`
     lug'atlari. Chek darajasidagi chegirma qatorlarga summasiga
@@ -70,6 +71,8 @@ def create_sale(
     """
     if not lines:
         raise ValidationError('Chekda birorta qator yo‘q')
+
+    location = location or Location.shop()
 
     prepared = []
     subtotal = ZERO
@@ -154,6 +157,7 @@ def create_sale(
 
     sale = Sale.objects.create(
         number=next_number('SOT', Sale.objects),
+        location=location,
         request_key=request_key,
         cashier=user,
         subtotal=subtotal,
@@ -166,6 +170,7 @@ def create_sale(
     for item in prepared:
         movement = record_movement(
             variant=item['variant'],
+            location=location,
             quantity=-item['quantity'],
             reason=MovementReason.SALE,
             document=sale,
@@ -210,6 +215,7 @@ def void_sale(sale: Sale, user=None) -> Sale:
     for line in sale.lines.select_related('variant'):
         record_movement(
             variant=line.variant,
+            location=sale.location,
             quantity=line.quantity,
             reason=MovementReason.SALE_VOID,
             unit_cost=line.unit_cost,
@@ -296,6 +302,7 @@ def create_return(*, sale: Sale, items, refund_method, user=None, request_key=No
 
         record_movement(
             variant=line.variant,
+            location=sale.location,
             quantity=quantity,
             reason=MovementReason.RETURN,
             unit_cost=line.unit_cost,

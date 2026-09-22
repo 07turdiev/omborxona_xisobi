@@ -1,8 +1,15 @@
-"""Ombor: harakatlar jurnali, inventarizatsiya va hisobdan chiqarish.
+"""Ombor: joylar, harakatlar jurnali, sanoq va hisobdan chiqarish.
+
+Do'konda tovar ikki joyda turadi: **Ombor** va **Do'kon** (savdo zali).
+Tovar avval omborga keladi, sotiladigani zalga ko'chiriladi. Shuning
+uchun har harakat qaysi joyda bo'lganini aytadi va qoldiq joy bo'yicha
+alohida yuritiladi (`VariantStock`).
 
 `StockMovement` — qoldiqning yagona haqiqat manbai. Jurnal yozuvi hech
 qachon o'zgartirilmaydi va o'chirilmaydi: xato bo'lsa teskari yozuv
-qo'shiladi. `Variant.stock_quantity` esa shu jurnaldan hisoblangan kesh.
+qo'shiladi. `VariantStock.quantity` (joydagi qoldiq) va
+`Variant.stock_quantity` (joylarning yig'indisi) — shu jurnaldan
+hisoblangan kesh.
 """
 
 from django.conf import settings
@@ -19,8 +26,92 @@ class MovementReason(models.TextChoices):
     SALE = 'sale', _('Sotuv')
     SALE_VOID = 'sale_void', _('Sotuv bekor qilindi')
     RETURN = 'return', _('Qaytarish')
-    COUNT_ADJUSTMENT = 'count_adjustment', _('Inventarizatsiya tuzatishi')
+    COUNT_ADJUSTMENT = 'count_adjustment', _('Sanoq tuzatishi')
     WRITE_OFF = 'write_off', _('Hisobdan chiqarish')
+    TRANSFER_OUT = 'transfer_out', _('Ko‘chirildi (chiqdi)')
+    TRANSFER_IN = 'transfer_in', _('Ko‘chirildi (kirdi)')
+
+
+class Location(TimeStampedModel):
+    """Tovar turadigan joy.
+
+    Do'konda ikkitasi bor: tovar keladigan **Ombor** va sotiladigan
+    **Do'kon** (savdo zali). Ro'yxat ochiq: ikkinchi do'kon ochilsa,
+    yangi qator qo'shiladi va qolgan kod o'zgarmaydi.
+    """
+
+    class Kind(models.TextChoices):
+        WAREHOUSE = 'warehouse', _('Ombor')
+        SHOP = 'shop', _('Do‘kon')
+
+    name = models.CharField(_('Nomi'), max_length=80, unique=True)
+    kind = models.CharField(_('Turi'), max_length=10, choices=Kind.choices)
+    is_active = models.BooleanField(_('Faol'), default=True)
+
+    class Meta:
+        verbose_name = _('Joy')
+        verbose_name_plural = _('Joylar')
+        ordering = ['kind', 'name']
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def of_kind(cls, kind: str) -> 'Location':
+        """Shu turdagi birinchi faol joy.
+
+        Yo'q bo'lsa — yaratiladi. Ombor va zal do'konning tuzilishi:
+        ular hech qachon yo'q bo'lmasligi kerak, aks holda tovar
+        qabul qilish ham, sotish ham to'xtab qolardi.
+        """
+        location = cls.objects.filter(kind=kind, is_active=True).order_by('pk').first()
+
+        if location is None:
+            location = cls.objects.create(kind=kind, name=cls.Kind(kind).label)
+
+        return location
+
+    @classmethod
+    def warehouse(cls) -> 'Location':
+        return cls.of_kind(cls.Kind.WAREHOUSE)
+
+    @classmethod
+    def shop(cls) -> 'Location':
+        return cls.of_kind(cls.Kind.SHOP)
+
+
+class VariantStock(models.Model):
+    """Variantning bitta joydagi qoldig'i — jurnaldan hisoblangan kesh."""
+
+    variant = models.ForeignKey(
+        'catalog.Variant',
+        on_delete=models.CASCADE,
+        related_name='stocks',
+        verbose_name=_('Variant'),
+    )
+
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.PROTECT,
+        related_name='stocks',
+        verbose_name=_('Joy'),
+    )
+
+    quantity = models.IntegerField(_('Qoldiq'), default=0)
+
+    class Meta:
+        verbose_name = _('Joydagi qoldiq')
+        verbose_name_plural = _('Joydagi qoldiqlar')
+        ordering = ['location_id', 'variant_id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['variant', 'location'], name='unique_variant_location'
+            ),
+        ]
+        indexes = [models.Index(fields=['location', 'variant'])]
+
+    def __str__(self):
+        return f'{self.variant_id} @ {self.location_id}: {self.quantity}'
 
 
 class StockMovement(models.Model):
@@ -31,6 +122,15 @@ class StockMovement(models.Model):
         on_delete=models.PROTECT,
         related_name='movements',
         verbose_name=_('Variant'),
+    )
+
+    #: Qaysi joyda sodir bo'ldi. Ko'chirishda ikkita yozuv bo'ladi:
+    #: manbadan chiqim, maqsadga kirim.
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.PROTECT,
+        related_name='movements',
+        verbose_name=_('Joy'),
     )
 
     quantity = models.IntegerField(_('Miqdor'))
@@ -58,7 +158,10 @@ class StockMovement(models.Model):
         verbose_name = _('Ombor harakati')
         verbose_name_plural = _('Ombor harakatlari')
         ordering = ['-created_at', '-id']
-        indexes = [models.Index(fields=['variant', '-created_at'])]
+        indexes = [
+            models.Index(fields=['variant', '-created_at']),
+            models.Index(fields=['location', '-created_at']),
+        ]
 
     def __str__(self):
         return f'{self.variant_id}: {self.quantity:+d} ({self.get_reason_display()})'
@@ -83,6 +186,14 @@ class StockCount(TimeStampedModel):
 
     number = models.CharField(_('Raqami'), max_length=20, unique=True)
     date = models.DateField(_('Sanasi'))
+
+    #: Qaysi joy sanaldi: zal alohida, ombor alohida
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.PROTECT,
+        related_name='stock_counts',
+        verbose_name=_('Joy'),
+    )
 
     status = models.CharField(
         _('Holati'), max_length=10, choices=Status.choices, default=Status.DRAFT
@@ -169,6 +280,13 @@ class WriteOff(TimeStampedModel):
         verbose_name=_('Variant'),
     )
 
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.PROTECT,
+        related_name='write_offs',
+        verbose_name=_('Joy'),
+    )
+
     quantity = models.PositiveIntegerField(_('Miqdor'))
     reason = models.CharField(_('Sababi'), max_length=300)
 
@@ -185,6 +303,79 @@ class WriteOff(TimeStampedModel):
         verbose_name = _('Hisobdan chiqarish')
         verbose_name_plural = _('Hisobdan chiqarishlar')
         ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f'{self.variant_id}: {self.quantity}'
+
+
+class Transfer(TimeStampedModel):
+    """Ko'chirish: ombordan zalga (yoki teskari).
+
+    Tasdiqlash bosqichi yo'q — ko'chirish bir harakatda bo'ladi: tovar
+    qo'lga olinib, ikkinchi joyga qo'yiladi. Jurnalga ikkita yozuv
+    tushadi: manbadan chiqim, maqsadga kirim.
+    """
+
+    number = models.CharField(_('Raqami'), max_length=20, unique=True)
+    date = models.DateField(_('Sanasi'))
+
+    source = models.ForeignKey(
+        Location,
+        on_delete=models.PROTECT,
+        related_name='transfers_out',
+        verbose_name=_('Qayerdan'),
+    )
+
+    target = models.ForeignKey(
+        Location,
+        on_delete=models.PROTECT,
+        related_name='transfers_in',
+        verbose_name=_('Qayerga'),
+    )
+
+    note = models.CharField(_('Izoh'), max_length=300, blank=True)
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='transfers',
+        verbose_name=_('Kim ko‘chirdi'),
+    )
+
+    class Meta:
+        verbose_name = _('Ko‘chirish')
+        verbose_name_plural = _('Ko‘chirishlar')
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return self.number
+
+
+class TransferLine(models.Model):
+    """Ko'chirish qatori."""
+
+    transfer = models.ForeignKey(
+        Transfer,
+        on_delete=models.CASCADE,
+        related_name='lines',
+        verbose_name=_('Ko‘chirish'),
+    )
+
+    variant = models.ForeignKey(
+        'catalog.Variant',
+        on_delete=models.PROTECT,
+        related_name='transfer_lines',
+        verbose_name=_('Variant'),
+    )
+
+    quantity = models.PositiveIntegerField(_('Miqdor'))
+
+    class Meta:
+        verbose_name = _('Ko‘chirish qatori')
+        verbose_name_plural = _('Ko‘chirish qatorlari')
+        ordering = ['id']
 
     def __str__(self):
         return f'{self.variant_id}: {self.quantity}'

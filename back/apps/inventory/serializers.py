@@ -1,6 +1,24 @@
 from rest_framework import serializers
 
-from apps.inventory.models import StockCount, StockCountLine, StockMovement, WriteOff
+from apps.inventory.models import (
+    Location,
+    StockCount,
+    StockCountLine,
+    StockMovement,
+    Transfer,
+    TransferLine,
+    WriteOff,
+)
+
+
+class LocationSerializer(serializers.ModelSerializer):
+    """Joy: ombor yoki savdo zali."""
+
+    kind_display = serializers.CharField(source='get_kind_display', read_only=True)
+
+    class Meta:
+        model = Location
+        fields = ('id', 'name', 'kind', 'kind_display', 'is_active')
 
 
 class StockMovementSerializer(serializers.ModelSerializer):
@@ -10,6 +28,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
     variant_label = serializers.CharField(source='variant.label', read_only=True)
     sku = serializers.CharField(source='variant.sku', read_only=True)
     reason_display = serializers.CharField(source='get_reason_display', read_only=True)
+    location_name = serializers.CharField(source='location.name', read_only=True)
     user_name = serializers.CharField(source='user.username', read_only=True, default=None)
 
     #: Hujjat raqami (KIR-…, SOT-…). Jurnalda faqat turi va id saqlanadi,
@@ -23,6 +42,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
         model = StockMovement
         fields = (
             'id', 'variant', 'product_name', 'variant_label', 'sku', 'quantity',
+            'location', 'location_name',
             'reason', 'reason_display', 'document_type', 'document_id',
             'document_number', 'document_sale_number',
             'unit_cost', 'user', 'user_name', 'created_at',
@@ -65,11 +85,19 @@ class StockCountSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True, default=None)
 
+    #: Qaysi joy sanaladi. Ko'rsatilmasa — savdo zali: zal tez-tez,
+    #: ombor esa kamdan-kam sanaladi.
+    location = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.filter(is_active=True), required=False
+    )
+    location_name = serializers.CharField(source='location.name', read_only=True)
+
     class Meta:
         model = StockCount
         fields = (
             'id', 'number', 'date', 'status', 'status_display', 'category',
-            'category_name', 'note', 'confirmed_at', 'lines', 'created_at',
+            'category_name', 'location', 'location_name', 'note', 'confirmed_at',
+            'lines', 'created_at',
         )
         read_only_fields = ('id', 'number', 'status', 'confirmed_at', 'created_at')
 
@@ -98,6 +126,8 @@ class StockCountSerializer(serializers.ModelSerializer):
 
         lines = validated_data.pop('lines', [])
         request = self.context['request']
+
+        validated_data.setdefault('location', Location.shop())
 
         stock_count = StockCount.objects.create(
             number=next_number('INV', StockCount.objects, validated_data.get('date')),
@@ -131,11 +161,17 @@ class WriteOffSerializer(serializers.ModelSerializer):
         source='variant.average_cost', max_digits=14, decimal_places=2, read_only=True
     )
 
+    location = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.filter(is_active=True), required=False
+    )
+    location_name = serializers.CharField(source='location.name', read_only=True)
+
     class Meta:
         model = WriteOff
         fields = (
             'id', 'variant', 'product_name', 'variant_label', 'sku',
-            'quantity', 'reason', 'unit_cost', 'created_at',
+            'location', 'location_name', 'quantity', 'reason', 'unit_cost',
+            'created_at',
         )
         read_only_fields = ('id', 'created_at')
 
@@ -144,3 +180,46 @@ class WriteOffSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Miqdor noldan katta bo‘lishi kerak.')
 
         return value
+
+
+class TransferLineSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='variant.product.name', read_only=True)
+    variant_label = serializers.CharField(source='variant.label', read_only=True)
+    sku = serializers.CharField(source='variant.sku', read_only=True)
+
+    class Meta:
+        model = TransferLine
+        fields = ('id', 'variant', 'product_name', 'variant_label', 'sku', 'quantity')
+        read_only_fields = ('id',)
+
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Miqdor noldan katta bo‘lishi kerak.')
+
+        return value
+
+
+class TransferSerializer(serializers.ModelSerializer):
+    """Ko'chirish: ombordan zalga yoki teskari."""
+
+    lines = TransferLineSerializer(many=True)
+
+    #: Ko'rsatilmasa — bugun. Ko'chirish odatda shu zahoti bo'ladi.
+    date = serializers.DateField(required=False)
+
+    source_name = serializers.CharField(source='source.name', read_only=True)
+    target_name = serializers.CharField(source='target.name', read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Transfer
+        fields = (
+            'id', 'number', 'date', 'source', 'source_name', 'target', 'target_name',
+            'note', 'lines', 'created_by_name', 'created_at',
+        )
+        read_only_fields = ('id', 'number', 'created_at')
+
+    def get_created_by_name(self, transfer) -> str:
+        user = transfer.created_by
+
+        return (user.get_full_name() or user.username) if user else ''

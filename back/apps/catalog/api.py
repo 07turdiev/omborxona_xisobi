@@ -59,7 +59,10 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Product.objects.select_related('category').prefetch_related(
-            'variants__size', 'variants__color', 'variants__product'
+            'variants__size',
+            'variants__color',
+            'variants__product',
+            'variants__stocks__location',
         )
 
         params = self.request.query_params
@@ -154,7 +157,12 @@ class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
 
         queryset = (
             Product.objects.select_related('category')
-            .prefetch_related('images__color', 'variants__size', 'variants__color')
+            .prefetch_related(
+                'images__color',
+                'variants__size',
+                'variants__color',
+                'variants__stocks__location',
+            )
             .annotate(total_stock=Coalesce(Subquery(stock), 0))
         )
 

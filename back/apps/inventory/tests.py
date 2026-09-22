@@ -6,6 +6,7 @@ from io import StringIO
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.catalog.models import Variant
 from apps.core.factories import (
@@ -15,8 +16,22 @@ from apps.core.factories import (
     create_product,
     receive_stock,
 )
-from apps.inventory.models import MovementReason, StockMovement
-from apps.inventory.services import create_write_off, moving_average, record_movement
+from apps.inventory.models import (
+    Location,
+    MovementReason,
+    StockCount,
+    StockCountLine,
+    StockMovement,
+    VariantStock,
+)
+from apps.inventory.services import (
+    confirm_stock_count,
+    create_transfer,
+    create_write_off,
+    moving_average,
+    record_movement,
+)
+from apps.sales.services import create_sale
 
 
 class MovingAverageTests(TestCase):
@@ -75,7 +90,10 @@ class MovementGuardTests(TestCase):
 
         with self.assertRaises(ValidationError):
             record_movement(
-                variant=self.variant, quantity=-3, reason=MovementReason.SALE
+                variant=self.variant,
+                location=Location.shop(),
+                quantity=-3,
+                reason=MovementReason.SALE,
             )
 
         self.assertEqual(Variant.objects.get(pk=self.variant.pk).stock_quantity, 2)
@@ -208,7 +226,10 @@ class MovementDocumentTests(TestCase):
         return response.json()['results']
 
     def test_purchase_movement_carries_document_number(self):
-        purchase = receive_stock(self.variant, 3, '100000', user=self.admin)
+        # Zalga ko'chirmaymiz: jurnalda faqat kirim yozuvi qolsin
+        purchase = receive_stock(
+            self.variant, 3, '100000', user=self.admin, location=Location.warehouse()
+        )
 
         [movement] = self.movements()
 
@@ -228,3 +249,213 @@ class MovementDocumentTests(TestCase):
         response = api_client(create_cashier()).get('/api/movements/')
 
         self.assertEqual(response.status_code, 403)
+
+
+class LocationStockTests(TestCase):
+    """Ombor va zal: qoldiq har joyda alohida yuritiladi.
+
+    Do'konga tovar avval omborga keladi, sotiladigani zalga chiqariladi.
+    Xaridor so'ragan narsa zalda tugagan bo'lsa, ombordan olib chiqiladi.
+    """
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.cashier = create_cashier()
+        self.variant = create_product(price='250000').variants.get()
+
+        self.warehouse = Location.warehouse()
+        self.shop = Location.shop()
+
+    def stock(self, location) -> int:
+        row = VariantStock.objects.filter(variant=self.variant, location=location).first()
+
+        return row.quantity if row else 0
+
+    def test_purchase_lands_in_the_warehouse(self):
+        receive_stock(self.variant, 5, '150000', location=self.warehouse)
+
+        self.assertEqual(self.stock(self.warehouse), 5)
+        self.assertEqual(self.stock(self.shop), 0)
+        self.assertEqual(Variant.objects.get(pk=self.variant.pk).stock_quantity, 5)
+
+    def test_transfer_moves_stock_and_keeps_the_total(self):
+        receive_stock(self.variant, 5, '150000', location=self.warehouse)
+
+        transfer = create_transfer(
+            source=self.warehouse,
+            target=self.shop,
+            lines=[{'variant': self.variant, 'quantity': 3}],
+            user=self.admin,
+        )
+
+        self.assertTrue(transfer.number.startswith('KCH-'))
+        self.assertEqual(self.stock(self.warehouse), 2)
+        self.assertEqual(self.stock(self.shop), 3)
+
+        # Umumiy qoldiq o'zgarmaydi — tovar do'kondan chiqmadi
+        self.assertEqual(Variant.objects.get(pk=self.variant.pk).stock_quantity, 5)
+
+        reasons = set(
+            StockMovement.objects.filter(document_type='transfer').values_list(
+                'reason', flat=True
+            )
+        )
+
+        self.assertEqual(
+            reasons, {MovementReason.TRANSFER_OUT, MovementReason.TRANSFER_IN}
+        )
+
+    def test_shop_cannot_sell_what_is_only_in_the_warehouse(self):
+        receive_stock(self.variant, 5, '150000', location=self.warehouse)
+
+        with self.assertRaises(ValidationError):
+            create_sale(
+                user=self.cashier,
+                lines=[{'variant': self.variant, 'quantity': 1}],
+                cash_amount=Decimal('250000'),
+            )
+
+        self.assertEqual(self.stock(self.warehouse), 5)
+
+    def test_sale_takes_from_the_shop(self):
+        receive_stock(self.variant, 5, '150000')  # standart: zalga chiqariladi
+
+        create_sale(
+            user=self.cashier,
+            lines=[{'variant': self.variant, 'quantity': 2}],
+            cash_amount=Decimal('500000'),
+        )
+
+        self.assertEqual(self.stock(self.shop), 3)
+        self.assertEqual(self.stock(self.warehouse), 0)
+
+    def test_transfer_cannot_exceed_the_source(self):
+        receive_stock(self.variant, 2, '150000', location=self.warehouse)
+
+        with self.assertRaises(ValidationError):
+            create_transfer(
+                source=self.warehouse,
+                target=self.shop,
+                lines=[{'variant': self.variant, 'quantity': 3}],
+                user=self.admin,
+            )
+
+        self.assertEqual(self.stock(self.warehouse), 2)
+        self.assertEqual(self.stock(self.shop), 0)
+
+    def test_transfer_to_the_same_place_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            create_transfer(
+                source=self.shop,
+                target=self.shop,
+                lines=[{'variant': self.variant, 'quantity': 1}],
+                user=self.admin,
+            )
+
+    def test_write_off_takes_from_its_location(self):
+        receive_stock(self.variant, 4, '150000', location=self.warehouse)
+
+        create_write_off(
+            variant=self.variant,
+            quantity=1,
+            reason='Yirtilgan',
+            location=self.warehouse,
+            user=self.admin,
+        )
+
+        self.assertEqual(self.stock(self.warehouse), 3)
+
+    def test_count_compares_only_its_own_location(self):
+        """Zal sanalganda ombordagi tovar farqqa tushmaydi."""
+        receive_stock(self.variant, 5, '150000', location=self.warehouse)
+
+        create_transfer(
+            source=self.warehouse,
+            target=self.shop,
+            lines=[{'variant': self.variant, 'quantity': 2}],
+            user=self.admin,
+        )
+
+        count = StockCount.objects.create(
+            number='INV-2026-000900',
+            date=timezone.localdate(),
+            location=self.shop,
+            created_by=self.admin,
+        )
+
+        # Zalda ikkita bor edi, sanoqda ikkitasi topildi — farq yo'q
+        StockCountLine.objects.create(
+            stock_count=count, variant=self.variant, counted_quantity=2
+        )
+
+        confirm_stock_count(count, user=self.admin)
+
+        line = count.lines.get()
+
+        self.assertEqual(line.expected_quantity, 2)
+        self.assertEqual(line.difference, 0)
+        self.assertEqual(self.stock(self.warehouse), 3)
+
+
+class TransferApiTests(TestCase):
+    """Ko'chirish API si: kassa ham, ombor ekrani ham shu yerga murojaat qiladi."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.variant = create_product().variants.get()
+        self.warehouse = Location.warehouse()
+        self.shop = Location.shop()
+
+        receive_stock(self.variant, 6, '100000', location=self.warehouse)
+
+    def payload(self, quantity=2):
+        return {
+            'source': self.warehouse.pk,
+            'target': self.shop.pk,
+            'lines': [{'variant': self.variant.pk, 'quantity': quantity}],
+        }
+
+    def test_admin_moves_stock_to_the_shop(self):
+        response = api_client(self.admin).post(
+            '/api/transfers/', self.payload(), format='json'
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        body = response.json()
+
+        self.assertTrue(body['number'].startswith('KCH-'))
+        self.assertEqual(body['source_name'], self.warehouse.name)
+        self.assertEqual(body['target_name'], self.shop.name)
+
+        self.assertEqual(
+            VariantStock.objects.get(variant=self.variant, location=self.shop).quantity, 2
+        )
+
+    def test_cashier_can_bring_goods_from_the_warehouse(self):
+        """Zalda tugagan tovarni kassir bir bosishda olib chiqadi."""
+        response = api_client(create_cashier()).post(
+            '/api/transfers/', self.payload(1), format='json'
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(
+            VariantStock.objects.get(variant=self.variant, location=self.shop).quantity, 1
+        )
+
+    def test_missing_stock_is_reported(self):
+        response = api_client(self.admin).post(
+            '/api/transfers/', self.payload(99), format='json'
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn('yetarli emas', ' '.join(response.json()['detail']))
+
+    def test_locations_are_listed(self):
+        response = api_client(self.admin).get('/api/locations/')
+
+        self.assertEqual(response.status_code, 200)
+
+        kinds = {item['kind'] for item in response.json()}
+
+        self.assertEqual(kinds, {'warehouse', 'shop'})

@@ -8,7 +8,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.catalog.models import Product
-from apps.inventory.models import MovementReason
+from apps.inventory.models import Location, MovementReason
 from apps.inventory.services import record_movement
 from apps.purchases.models import Purchase
 
@@ -50,7 +50,10 @@ def apply_new_sale_prices(lines) -> int:
 
 @transaction.atomic
 def confirm(purchase: Purchase, user=None) -> Purchase:
-    """Tovarni omborga kiritadi va o'rtacha tannarxni qayta hisoblaydi.
+    """Tovarni **omborga** kiritadi va o'rtacha tannarxni qayta hisoblaydi.
+
+    Kelgan tovar doim omborga tushadi; zalga chiqarish alohida amal
+    (`create_transfer`).
 
     Shu yerda yangi sotuv narxi ham kuchga kiradi: qoralamada u faqat
     yozib qo'yilgan bo'ladi, do'konda esa eski narx ishlaydi.
@@ -63,9 +66,12 @@ def confirm(purchase: Purchase, user=None) -> Purchase:
     if not lines:
         raise ValidationError('Kirimda birorta qator yo‘q')
 
+    warehouse = Location.warehouse()
+
     for line in lines:
         record_movement(
             variant=line.variant,
+            location=warehouse,
             quantity=line.quantity,
             reason=MovementReason.PURCHASE,
             unit_cost=line.unit_cost,
@@ -94,9 +100,12 @@ def cancel(purchase: Purchase, user=None) -> Purchase:
     if purchase.status != Purchase.Status.CONFIRMED:
         raise ValidationError('Faqat tasdiqlangan kirimni bekor qilish mumkin')
 
+    warehouse = Location.warehouse()
+
     for line in purchase.lines.select_related('variant'):
         record_movement(
             variant=line.variant,
+            location=warehouse,
             quantity=-line.quantity,
             reason=MovementReason.PURCHASE_CANCEL,
             unit_cost=line.unit_cost,

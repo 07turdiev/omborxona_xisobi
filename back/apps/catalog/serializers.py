@@ -69,6 +69,23 @@ class ProductImageSerializer(serializers.ModelSerializer):
         return image
 
 
+def location_stocks(variant) -> list[dict]:
+    """Variantning joylar bo'yicha qoldig'i.
+
+    Qatorlar oldindan olingan bo'lsa (`prefetch_related('stocks')`),
+    qo'shimcha so'rov bo'lmaydi.
+    """
+    return [
+        {
+            'location': stock.location_id,
+            'location_name': stock.location.name,
+            'kind': stock.location.kind,
+            'quantity': stock.quantity,
+        }
+        for stock in variant.stocks.all()
+    ]
+
+
 class VariantSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     """Variant. Tannarxni faqat administrator ko'radi."""
 
@@ -80,16 +97,22 @@ class VariantSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     label = serializers.CharField(read_only=True)
     price = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
 
+    #: Har joydagi qoldiq: «zalda 3, omborda 12»
+    stocks = serializers.SerializerMethodField()
+
     class Meta:
         model = Variant
         fields = (
             'id', 'product', 'product_name', 'size', 'size_name', 'color', 'color_name',
             'label', 'sku', 'barcode', 'sale_price', 'price', 'average_cost',
-            'stock_quantity', 'min_stock', 'is_active',
+            'stock_quantity', 'stocks', 'min_stock', 'is_active',
         )
         read_only_fields = (
             'id', 'product', 'size', 'color', 'sku', 'average_cost', 'stock_quantity',
         )
+
+    def get_stocks(self, variant) -> list[dict]:
+        return location_stocks(variant)
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -175,13 +198,17 @@ class CatalogVariantSerializer(HideFromCashierMixin, serializers.ModelSerializer
     size_name = serializers.CharField(source='size.name', read_only=True, default=None)
     color_name = serializers.CharField(source='color.name', read_only=True, default=None)
     price = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    stocks = serializers.SerializerMethodField()
 
     class Meta:
         model = Variant
         fields = (
-            'id', 'size', 'size_name', 'color', 'color_name', 'barcode',
+            'id', 'size', 'size_name', 'color', 'color_name', 'barcode', 'stocks',
             'price', 'average_cost', 'stock_quantity', 'is_active',
         )
+
+    def get_stocks(self, variant) -> list[dict]:
+        return location_stocks(variant)
 
 
 class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerializer):
@@ -193,6 +220,11 @@ class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerial
 
     category_name = serializers.CharField(source='category.name', read_only=True)
     total_stock = serializers.IntegerField(read_only=True)
+
+    #: Kassa va tovarlar ro'yxati uchun: qayerda nechta turibdi
+    shop_stock = serializers.SerializerMethodField()
+    warehouse_stock = serializers.SerializerMethodField()
+
     size_stock = serializers.SerializerMethodField()
     color_count = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
@@ -201,8 +233,8 @@ class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerial
         model = Product
         fields = (
             'id', 'name', 'slug', 'category', 'category_name', 'brand',
-            'sale_price', 'total_stock', 'size_stock', 'color_count',
-            'primary_image',
+            'sale_price', 'total_stock', 'shop_stock', 'warehouse_stock',
+            'size_stock', 'color_count', 'primary_image',
         )
 
     def get_size_stock(self, product):
@@ -227,6 +259,20 @@ class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerial
             entry['quantity'] += variant.stock_quantity
 
         return sorted(totals.values(), key=lambda entry: (entry['position'], entry['size_name']))
+
+    def _stock_of_kind(self, product, kind: str) -> int:
+        return sum(
+            stock.quantity
+            for variant in product.variants.all()
+            for stock in variant.stocks.all()
+            if stock.location.kind == kind
+        )
+
+    def get_shop_stock(self, product) -> int:
+        return self._stock_of_kind(product, 'shop')
+
+    def get_warehouse_stock(self, product) -> int:
+        return self._stock_of_kind(product, 'warehouse')
 
     def get_color_count(self, product) -> int:
         """Nechta rangda bor — kirim ekranidagi qisqa qator uchun."""

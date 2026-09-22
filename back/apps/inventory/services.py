@@ -1,9 +1,13 @@
 """Ombor xizmati.
 
 Qoldiqni o'zgartiradigan **yagona** joy — `record_movement`. U bitta
-tranzaksiyada jurnalga yozuv qo'shadi va variantdagi qoldiq keshini
-yangilaydi; variant qatori `select_for_update` bilan qulflanadi, ya'ni
-ikki kassir oxirgi donani bir vaqtda sota olmaydi.
+tranzaksiyada jurnalga yozuv qo'shadi va ikkita keshni yangilaydi:
+o'sha joydagi qoldiq (`VariantStock`) va variantning umumiy qoldig'i
+(`Variant.stock_quantity`). Qatorlar `select_for_update` bilan
+qulflanadi, ya'ni ikki kassir oxirgi donani bir vaqtda sota olmaydi.
+
+Har harakat **qaysi joyda** bo'lganini aytadi: tovar omborga keladi,
+zalga ko'chiriladi va zaldan sotiladi.
 """
 
 from decimal import ROUND_HALF_UP, Decimal
@@ -13,7 +17,17 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.catalog.models import Variant
-from apps.inventory.models import MovementReason, StockCount, StockMovement, WriteOff
+from apps.core.numbering import next_number
+from apps.inventory.models import (
+    Location,
+    MovementReason,
+    StockCount,
+    StockMovement,
+    Transfer,
+    TransferLine,
+    VariantStock,
+    WriteOff,
+)
 
 CENT = Decimal('0.01')
 
@@ -37,12 +51,19 @@ def moving_average(old_quantity: int, old_average: Decimal, in_quantity: int, in
 
 
 @transaction.atomic
-def record_movement(*, variant, quantity: int, reason: str, unit_cost=None, document=None, user=None) -> StockMovement:
+def record_movement(
+    *, variant, location, quantity: int, reason: str, unit_cost=None, document=None, user=None
+) -> StockMovement:
     """Jurnalga yozuv qo'shadi va qoldiqni yangilaydi.
 
+    `location` — harakat qaysi joyda bo'lgani. Yetarlilik **o'sha
+    joyning** qoldig'i bo'yicha tekshiriladi: omborda yigirmata bo'lsa
+    ham, zalda bo'lmagan tovarni zaldan sotib bo'lmaydi.
+
     Kirimda (`quantity > 0`) `unit_cost` berilsa, o'rtacha tannarx qayta
-    hisoblanadi. Chiqimda o'rtacha tannarx o'zgarmaydi — jurnalga o'sha
-    paytdagi tannarx nusxa sifatida yoziladi (hisobot uchun).
+    hisoblanadi (u joyga bog'liq emas — bitta tovarning tannarxi bitta).
+    Chiqimda o'rtacha tannarx o'zgarmaydi — jurnalga o'sha paytdagi
+    tannarx nusxa sifatida yoziladi (hisobot uchun).
     """
     quantity = int(quantity)
 
@@ -50,13 +71,20 @@ def record_movement(*, variant, quantity: int, reason: str, unit_cost=None, docu
         raise ValidationError('Miqdor nol bo‘lishi mumkin emas')
 
     locked = Variant.objects.select_for_update().get(pk=variant.pk)
-    new_quantity = locked.stock_quantity + quantity
 
-    if new_quantity < 0:
+    stock, _created = VariantStock.objects.select_for_update().get_or_create(
+        variant=locked, location=location
+    )
+
+    at_location = stock.quantity + quantity
+
+    if at_location < 0:
         raise ValidationError(
-            f'{locked} — omborda yetarli emas: mavjud {locked.stock_quantity}, '
-            f'kerak {abs(quantity)}'
+            f'{locked} — «{location.name}»da yetarli emas: '
+            f'mavjud {stock.quantity}, kerak {abs(quantity)}'
         )
+
+    new_quantity = locked.stock_quantity + quantity
 
     updated_fields = ['stock_quantity', 'updated_at']
 
@@ -71,6 +99,9 @@ def record_movement(*, variant, quantity: int, reason: str, unit_cost=None, docu
     locked.stock_quantity = new_quantity
     locked.save(update_fields=updated_fields)
 
+    stock.quantity = at_location
+    stock.save(update_fields=['quantity'])
+
     # Chaqiruvchidagi obyekt ham yangi qiymatlarni ko'rsin
     variant.stock_quantity = locked.stock_quantity
     variant.average_cost = locked.average_cost
@@ -79,6 +110,7 @@ def record_movement(*, variant, quantity: int, reason: str, unit_cost=None, docu
 
     return StockMovement.objects.create(
         variant=locked,
+        location=location,
         quantity=quantity,
         reason=reason,
         unit_cost=round_money(movement_cost),
@@ -90,10 +122,12 @@ def record_movement(*, variant, quantity: int, reason: str, unit_cost=None, docu
 
 @transaction.atomic
 def confirm_stock_count(stock_count: StockCount, user=None) -> StockCount:
-    """Inventarizatsiyani tasdiqlaydi: farqlar jurnalga yoziladi.
+    """Sanoqni tasdiqlaydi: farqlar jurnalga yoziladi.
 
     Kutilgan miqdor aynan tasdiqlash paytidagi qoldiqdan olinadi —
-    sanoq davomida savdo bo'lgan bo'lsa, farq haqiqiy bo'ladi.
+    sanoq davomida savdo bo'lgan bo'lsa, farq haqiqiy bo'ladi. Solish-
+    tirish **sanalgan joy** bo'yicha: zal sanalsa, ombordagi tovar
+    farqqa tushmaydi.
     """
     if stock_count.status != StockCount.Status.DRAFT:
         raise ValidationError('Faqat qoralama inventarizatsiyani tasdiqlash mumkin')
@@ -106,7 +140,11 @@ def confirm_stock_count(stock_count: StockCount, user=None) -> StockCount:
     for line in lines:
         locked = Variant.objects.select_for_update().get(pk=line.variant_id)
 
-        line.expected_quantity = locked.stock_quantity
+        stock = VariantStock.objects.filter(
+            variant=locked, location=stock_count.location
+        ).first()
+
+        line.expected_quantity = stock.quantity if stock else 0
         line.save(update_fields=['expected_quantity'])
 
         difference = line.counted_quantity - line.expected_quantity
@@ -114,6 +152,7 @@ def confirm_stock_count(stock_count: StockCount, user=None) -> StockCount:
         if difference:
             record_movement(
                 variant=locked,
+                location=stock_count.location,
                 quantity=difference,
                 reason=MovementReason.COUNT_ADJUSTMENT,
                 document=stock_count,
@@ -128,14 +167,21 @@ def confirm_stock_count(stock_count: StockCount, user=None) -> StockCount:
 
 
 @transaction.atomic
-def create_write_off(*, variant, quantity: int, reason: str, user=None) -> WriteOff:
-    """Hisobdan chiqarish: tovar omborni tark etadi, qiymati yo'qotish."""
+def create_write_off(*, variant, quantity: int, reason: str, location=None, user=None) -> WriteOff:
+    """Hisobdan chiqarish: tovar joyni tark etadi, qiymati yo'qotish."""
+    location = location or Location.shop()
+
     write_off = WriteOff.objects.create(
-        variant=variant, quantity=quantity, reason=reason, created_by=user
+        variant=variant,
+        location=location,
+        quantity=quantity,
+        reason=reason,
+        created_by=user,
     )
 
     record_movement(
         variant=variant,
+        location=location,
         quantity=-abs(int(quantity)),
         reason=MovementReason.WRITE_OFF,
         document=write_off,
@@ -145,12 +191,70 @@ def create_write_off(*, variant, quantity: int, reason: str, user=None) -> Write
     return write_off
 
 
-def stock_from_movements(variant_id: int) -> int:
-    """Jurnaldan hisoblangan haqiqiy qoldiq."""
+@transaction.atomic
+def create_transfer(*, source, target, lines, user=None, date=None, note='') -> Transfer:
+    """Tovarni bir joydan ikkinchisiga ko'chiradi.
+
+    Odatda ombordan zalga: sotiladigan tovar javonga chiqariladi.
+    Tasdiqlash bosqichi yo'q — ko'chirish bir harakatda bo'ladi.
+
+    `lines` — `{variant, quantity}` lug'atlari.
+    """
+    if source.pk == target.pk:
+        raise ValidationError('Bir joyning o‘ziga ko‘chirib bo‘lmaydi')
+
+    prepared = [
+        (item['variant'], int(item['quantity']))
+        for item in lines
+        if int(item.get('quantity') or 0) > 0
+    ]
+
+    if not prepared:
+        raise ValidationError('Ko‘chiriladigan tovar yo‘q')
+
+    transfer = Transfer.objects.create(
+        number=next_number('KCH', Transfer.objects, date),
+        date=date or timezone.localdate(),
+        source=source,
+        target=target,
+        note=note,
+        created_by=user,
+    )
+
+    for variant, quantity in prepared:
+        TransferLine.objects.create(transfer=transfer, variant=variant, quantity=quantity)
+
+        record_movement(
+            variant=variant,
+            location=source,
+            quantity=-quantity,
+            reason=MovementReason.TRANSFER_OUT,
+            document=transfer,
+            user=user,
+        )
+
+        record_movement(
+            variant=variant,
+            location=target,
+            quantity=quantity,
+            reason=MovementReason.TRANSFER_IN,
+            document=transfer,
+            user=user,
+        )
+
+    return transfer
+
+
+def stock_from_movements(variant_id: int, location_id: int | None = None) -> int:
+    """Jurnaldan hisoblangan haqiqiy qoldiq.
+
+    `location_id` berilsa — o'sha joydagi, bo'lmasa hamma joydagi.
+    """
     from django.db.models import Sum
 
-    total = StockMovement.objects.filter(variant_id=variant_id).aggregate(
-        total=Sum('quantity')
-    )['total']
+    movements = StockMovement.objects.filter(variant_id=variant_id)
 
-    return total or 0
+    if location_id is not None:
+        movements = movements.filter(location_id=location_id)
+
+    return movements.aggregate(total=Sum('quantity'))['total'] or 0

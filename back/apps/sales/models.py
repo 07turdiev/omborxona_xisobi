@@ -29,6 +29,14 @@ class Sale(TimeStampedModel):
 
     number = models.CharField(_('Raqami'), max_length=20, unique=True)
 
+    #: Qayerda sotildi. Tovar shu joyning qoldig'idan yechiladi.
+    location = models.ForeignKey(
+        'inventory.Location',
+        on_delete=models.PROTECT,
+        related_name='sales',
+        verbose_name=_('Joy'),
+    )
+
     #: Takroriy so'rovni ajratish uchun (idempotentlik)
     request_key = models.UUIDField(
         _('So‘rov kaliti'), null=True, blank=True, unique=True, help_text=REQUEST_KEY_HELP
