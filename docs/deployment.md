@@ -12,8 +12,25 @@ qarang. Tizim qanday ishlashi — [how-it-works.md](./how-it-works.md).
 | Server | 2 CPU, 2 GB RAM yetarli. Ubuntu 22.04 yoki 24.04 |
 | Docker + Docker Compose | Compose 2.x (`docker compose version`) |
 | **PostgreSQL 15+** | Serverning o'zida. 15-versiya majburiy: variantlar cheklovi `NULLS NOT DISTINCT` dan foydalanadi |
-| Domen | Masalan `dokon.example.uz`, `A` yozuvi serverning tashqi IP siga |
-| Caddy | HTTPS sertifikati uchun (5-bo'lim) |
+| Domen | Masalan `dokon.example.uz`, `A` yozuvi tashqi IP ga |
+| Reverse proxy | HTTPS sertifikati uchun (5-bo'lim) |
+
+Ikki tuzilma qo'llanadi:
+
+```
+A. Bitta server
+   Internet → Caddy :443 → konteyner 127.0.0.1:8080
+
+B. Alohida reverse proxy (ofis tarmog'ida odatda shunday)
+   Internet → proxy nginx :443 → app server nginx :80
+                                   → konteyner 127.0.0.1:3000
+```
+
+**B da konteyner nima uchun to'g'ridan-to'g'ri ochilmaydi.** Docker o'z
+portlarini UFW dan chetlab ochadi: `0.0.0.0` ga bog'lansa, ichki
+tarmoqdagi istalgan mashina ilovaga HTTPS'siz kira olardi. Shuning
+uchun konteyner faqat `127.0.0.1` da turadi, tashqariga esa app
+serverning o'z nginx'i chiqaradi.
 
 **Baza nima uchun konteynerda emas.** Do'kon bitta, baza kichik.
 Serverdagi PostgreSQL ni zaxiralash, yangilash va kuzatish oddiyroq,
@@ -146,7 +163,7 @@ sertifikat olinmaydi.
 ichki manziliga yo'naltiring (port forwarding). Let's Encrypt
 sertifikat berishdan oldin domen orqali 80-portga ulanadi.
 
-**3. Caddy:**
+### A varianti — bitta server, Caddy
 
 ```bash
 sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
@@ -171,9 +188,130 @@ sudo systemctl reload caddy
 sudo journalctl -u caddy -f      # "certificate obtained successfully"
 ```
 
-**Frontend porti nima uchun faqat `127.0.0.1` da.** Docker o'z
-portlarini UFW dan chetlab ochadi — `0.0.0.0:8080` bo'lsa firewall uni
-to'smaydi va saytga HTTPS'siz kirish mumkin bo'lardi.
+### B varianti — alohida reverse proxy (nginx + certbot)
+
+`.env.production` da: `WEB_BIND=127.0.0.1`, `WEB_PORT=3000`.
+
+**App serverda** `/etc/nginx/sites-available/dokon.example.uz`:
+
+```nginx
+# HTTPS proxyda tugaydi. X-Forwarded-Proto shu yerdan o'tishi shart:
+# usiz Django so'rovni HTTP deb o'ylab HTTPS ga qayta yo'naltiradi va
+# brauzer cheksiz aylanadi. Sarlavha kelmasa — o'zimizning sxema.
+map $http_x_forwarded_proto $dokon_proto {
+    default $http_x_forwarded_proto;
+    ''      $scheme;
+}
+
+server {
+    listen 80;
+    server_name dokon.example.uz www.dokon.example.uz;
+
+    # Tovar rasmlari. Konteynerdagi nginx 20M bilan cheklaydi.
+    client_max_body_size 25M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $dokon_proto;
+        proxy_read_timeout 120s;
+    }
+}
+```
+
+**Proxy serverda** avval faqat 80-port: sertifikat olinmaguncha
+`SECURE_SSL_REDIRECT=False` bo'lishi kerak, aks holda brauzer hali
+mavjud bo'lmagan HTTPS ga o'tadi.
+
+```nginx
+server {
+    listen 80;
+    server_name dokon.example.uz www.dokon.example.uz;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+    }
+
+    client_max_body_size 25M;
+
+    location / {
+        proxy_pass http://APP-SERVER-IP:80;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+    }
+}
+```
+
+Sertifikatdan oldin ikkala yo'lni sinang — Let's Encrypt muvaffaqiyatsiz
+urinishlarni cheklaydi:
+
+```bash
+curl -sI http://dokon.example.uz/ | head -1        # 200 OK
+echo ok | sudo tee /var/www/certbot/.well-known/acme-challenge/sinov
+curl -s http://dokon.example.uz/.well-known/acme-challenge/sinov   # ok
+```
+
+```bash
+sudo certbot certonly --webroot -w /var/www/certbot \
+    -d dokon.example.uz -d www.dokon.example.uz
+```
+
+Keyin 80-port HTTPS ga yo'naltiriladi, 443 esa app serverga uzatadi:
+
+```nginx
+server {
+    listen 80;
+    server_name dokon.example.uz www.dokon.example.uz;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name dokon.example.uz www.dokon.example.uz;
+
+    ssl_certificate     /etc/letsencrypt/live/dokon.example.uz/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dokon.example.uz/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 25M;
+
+    location / {
+        proxy_pass http://APP-SERVER-IP:80;
+        # ... sarlavhalar yuqoridagidek
+    }
+}
+```
+
+Oxirida Django HTTPS ga o'tkaziladi:
+
+```bash
+sed -i 's/^SECURE_SSL_REDIRECT=False/SECURE_SSL_REDIRECT=True/' .env.production
+sed -i 's/^SECURE_HSTS_SECONDS=0/SECURE_HSTS_SECONDS=3600/' .env.production
+docker compose up -d --force-recreate backend
+```
+
+**`client_max_body_size` uch joyda ham bo'lishi kerak.** nginx'ning
+standart chegarasi 1 MB: proxyda unutilsa, tovar rasmi yuklanganda
+413 xatosi chiqadi va sababi ilovada ko'rinmaydi.
 
 ---
 
@@ -237,6 +375,11 @@ Skript bo'sh yoki juda kichik fayl chiqsa **xato bilan tugaydi**.
 Sabab: eng xavfli holat — «zaxira bor» deb o'ylab yurish, aslida esa
 bo'sh fayl saqlanayotgan bo'lishi.
 
+Har yurishda ikkita fayl chiqadi: baza dumpi va **rasmlar arxivi**
+(`media-<sana>.tar.gz`). Rasmlar bazada emas, konteyner volume'ida
+yotadi va har tovarga rasm majburiy — ularsiz tiklangan baza bo'sh
+ramkalar bilan ochiladi.
+
 Nusxalar 30 kun saqlanadi (`KEEP_DAYS` bilan o'zgartiriladi).
 
 ### Serverdan tashqariga chiqaring
@@ -252,6 +395,8 @@ Server ishdan chiqsa, undagi zaxira ham yo'qoladi:
 ```bash
 ./scripts/restore.sh backups/dokon-20260916-030000.dump
 ```
+
+Yonida o'sha sanali `media-…tar.gz` bo'lsa, rasmlar ham tiklanadi.
 
 **Yiliga kamida bir marta sinang.** Tiklanmaydigan zaxira — zaxira
 emas. Skript tiklashdan oldin joriy holatning nusxasini oladi, ya'ni
@@ -310,6 +455,7 @@ haqiqat manbai.
 - [ ] `https://domen/admin/` — **404** qaytaradi
 - [ ] `https://domen/api/docs/` — **404** qaytaradi (`DEBUG=False`)
 - [ ] Zaxira cron ga qo'yilgan va **bir marta tiklab sinalgan**
+- [ ] Zaxirada baza dumpi ham, rasmlar arxivi ham bor
 - [ ] Zaxira boshqa serverga ko'chiriladi
 - [ ] Namuna ma'lumot yo'q (`seed_demo` serverda umuman ishlamaydi)
 - [ ] Haqiqiy xodimlar yaratilgan, parollari kuchli

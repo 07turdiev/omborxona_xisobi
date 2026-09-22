@@ -14,6 +14,10 @@
 # Nima uchun `pg_dump -Fc`: siqilgan ikkilik format. Oddiy SQL matndan
 # ~5 barobar kichik va `pg_restore` bilan tanlab tiklash mumkin —
 # masalan faqat bitta jadvalni.
+#
+# Rasmlar alohida arxivga tushadi: ular bazada emas, konteyner
+# volume'ida yotadi. Har tovarga rasm majburiy, ya'ni ularsiz tiklangan
+# baza bo'sh ramkalar bilan ochiladi.
 
 set -euo pipefail
 
@@ -54,3 +58,20 @@ if (( DELETED > 0 )); then
 fi
 
 echo "Jami nusxalar: $(find "$BACKUP_DIR" -name "${POSTGRES_DB}-*.dump" | wc -l)"
+
+# --- Rasmlar -------------------------------------------------------------
+
+MEDIA_TARGET="$BACKUP_DIR/media-${STAMP}.tar.gz"
+
+if docker compose ps --services --status running 2>/dev/null | grep -qx backend; then
+    echo
+    echo "Rasmlar zaxirasi: $MEDIA_TARGET"
+
+    docker compose exec -T backend tar czf - -C /app/media . > "$MEDIA_TARGET"
+
+    echo "Tayyor: $MEDIA_TARGET ($(du -h "$MEDIA_TARGET" | cut -f1))"
+
+    find "$BACKUP_DIR" -name 'media-*.tar.gz' -mtime "+$KEEP_DAYS" -delete
+else
+    echo "OGOHLANTIRISH: backend ishlamayapti, rasmlar zaxiralanmadi." >&2
+fi
