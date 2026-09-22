@@ -459,3 +459,46 @@ class TransferApiTests(TestCase):
         kinds = {item['kind'] for item in response.json()}
 
         self.assertEqual(kinds, {'warehouse', 'shop'})
+
+
+class WriteOffLocationApiTests(TestCase):
+    """Hisobdan chiqarish: joy so'rovda kelsa, o'sha joydan yechiladi."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.variant = create_product().variants.get()
+        self.warehouse = Location.warehouse()
+
+        receive_stock(self.variant, 4, '100000', location=self.warehouse)
+
+    def test_stock_is_taken_from_the_named_location(self):
+        response = api_client(self.admin).post(
+            '/api/write-offs/',
+            {
+                'variant': self.variant.pk,
+                'quantity': 1,
+                'reason': 'Omborda ho‘l bo‘lgan',
+                'location': self.warehouse.pk,
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(response.json()['location_name'], self.warehouse.name)
+        self.assertEqual(
+            VariantStock.objects.get(
+                variant=self.variant, location=self.warehouse
+            ).quantity,
+            3,
+        )
+
+    def test_without_a_location_it_comes_off_the_shop_floor(self):
+        """Joy ko'rsatilmasa zal olinadi — u yerda tovar yo'q, xato chiqadi."""
+        response = api_client(self.admin).post(
+            '/api/write-offs/',
+            {'variant': self.variant.pk, 'quantity': 1, 'reason': 'Yirtilgan'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn('yetarli emas', ' '.join(response.json()['detail']))

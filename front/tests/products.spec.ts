@@ -88,7 +88,7 @@ test('administrator: hisobdan chiqarish qoldiqni kamaytiradi', async ({ page }) 
   const row = variantRow(page, 0, 0)
 
   await row.click()
-  await expect(row.locator('td').nth(3)).toHaveText('2')
+  await expect(row.locator('td').nth(3)).toContainText('zal 2 · ombor 0')
 
   await page.getByRole('button', { name: 'Hisobdan chiqarish' }).click()
 
@@ -98,7 +98,7 @@ test('administrator: hisobdan chiqarish qoldiqni kamaytiradi', async ({ page }) 
   await dialog.getByRole('button', { name: 'Hisobdan chiqarish' }).click()
 
   await expect(dialog).toHaveCount(0)
-  await expect(row.locator('td').nth(3)).toHaveText('1')
+  await expect(row.locator('td').nth(3)).toContainText('zal 1 · ombor 0')
   await expect(page.getByTestId('stock-history')).toContainText('Hisobdan chiqarish')
 })
 

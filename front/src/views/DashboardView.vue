@@ -48,6 +48,12 @@ onMounted(async () => {
           <small>Yangi kelgan tovarni kiritib, yorlig‘ini chiqarasiz</small>
         </RouterLink>
 
+        <RouterLink class="action" to="/transfers">
+          <span class="action-icon"><svg><use href="#i-move" /></svg></span>
+          <strong>Zalga chiqarish</strong>
+          <small>Ombordagi tovarni javonga chiqarasiz</small>
+        </RouterLink>
+
         <RouterLink class="action" to="/products">
           <span class="action-icon"><svg><use href="#i-catalog" /></svg></span>
           <strong>Tovarlar va yorliqlar</strong>
@@ -57,7 +63,7 @@ onMounted(async () => {
         <RouterLink class="action" to="/stock-counts">
           <span class="action-icon"><svg><use href="#i-warehouse" /></svg></span>
           <strong>Sanoq</strong>
-          <small>Javondagi tovarni sanab, tizim bilan solishtirasiz</small>
+          <small>Zal yoki omborni sanab, tizim bilan solishtirasiz</small>
         </RouterLink>
       </nav>
 
@@ -154,9 +160,11 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
+/* Beshta amal: keng ekranda 3 + 2 bo'lib tushadi, bitta yolg'iz
+   karta qolmaydi */
 .actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }

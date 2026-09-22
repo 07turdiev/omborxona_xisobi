@@ -45,6 +45,8 @@ function product(overrides: Partial<CatalogProduct> = {}): CatalogProduct {
     brand: '',
     sale_price: '250000.00',
     total_stock: 8,
+    shop_stock: 3,
+    warehouse_stock: 5,
     size_stock: [],
     primary_image: null,
     description: '',

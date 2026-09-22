@@ -77,11 +77,7 @@
 
     /* Holat ranglari — faqat status uchun. Har biri o'zining
        och foni ustida AA dan o'tadigan darajada to'q. */
-    --blue: #166ab6;
-    --blue-soft: #ecf3f9;
 
-    --teal: #0b7a5a;
-    --teal-soft: #e7f5f0;
 
     --orange: #b34a09;
     --orange-soft: #fdf1e4;
@@ -618,36 +614,6 @@ svg {
 }
 
 
-.menu-badge {
-    margin-left: auto;
-
-    min-width: 20px;
-
-    padding:
-        2px 6px;
-
-    text-align: center;
-
-    border-radius: 999px;
-
-    color:
-        var(--text-secondary);
-
-    background:
-        var(--surface-hover);
-
-    font-size: 12px;
-    font-weight: 600;
-}
-
-
-.menu-item.active .menu-badge {
-    color:
-        var(--accent);
-
-    background:
-        var(--accent-soft-2);
-}
 
 
 /* =========================================================
@@ -1112,11 +1078,7 @@ svg {
 
 /* Asosiy amal — oltin gradient. Matni to'q jigarrang: oltin
    och rang, oq yozuv unda o'qilmaydi. */
-.button-gradient,
-.warehouse-gradient,
-.sales-gradient,
-.counterparty-gradient,
-.users-gradient {
+.button-gradient {
     color:
         var(--gradient-text);
 
@@ -1133,11 +1095,7 @@ svg {
 }
 
 
-.button-gradient:hover:not(:disabled),
-.warehouse-gradient:hover:not(:disabled),
-.sales-gradient:hover:not(:disabled),
-.counterparty-gradient:hover:not(:disabled),
-.users-gradient:hover:not(:disabled) {
+.button-gradient:hover:not(:disabled) {
     background:
         var(--gradient-hover);
 }
@@ -1165,41 +1123,8 @@ svg {
 }
 
 
-.button-soft {
-    color:
-        var(--accent);
-
-    background:
-        var(--accent-soft);
-}
 
 
-.button-soft:hover:not(:disabled) {
-    background:
-        var(--accent-soft-2);
-}
-
-
-.button-print {
-    color:
-        var(--text-secondary);
-
-    background:
-        var(--surface);
-
-    border:
-        1px solid
-        var(--border-strong);
-}
-
-
-.button-print:hover:not(:disabled) {
-    color:
-        var(--text);
-
-    background:
-        var(--surface-hover);
-}
 
 
 .button-danger {
@@ -1220,97 +1145,13 @@ svg {
    CARDS
 ========================================================= */
 
-.dashboard-layout {
-    margin-top: 12px;
-
-    display: grid;
-
-    grid-template-columns:
-        1.65fr 1fr;
-
-    gap: 12px;
-}
 
 
-.dashboard-bottom {
-    grid-template-columns:
-        1.55fr 1fr;
-}
 
 
-.business-card {
-    min-width: 0;
-
-    padding:
-        18px;
-
-    border-radius:
-        var(--radius-card);
-
-    background:
-        var(--surface);
-
-    border:
-        1px solid
-        var(--border);
-
-    box-shadow:
-        var(--shadow);
-}
 
 
-.card-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
 
-    gap: 12px;
-
-    margin-bottom: 16px;
-}
-
-
-.card-heading h3 {
-    font-size: 16px;
-    letter-spacing: -.2px;
-}
-
-
-.card-heading p {
-    margin-top: 4px;
-
-    color:
-        var(--text-muted);
-
-    font-size: 13px;
-}
-
-
-.small-pill {
-    min-width: 26px;
-
-    padding:
-        4px 6px;
-
-    text-align: center;
-
-    border-radius: var(--radius);
-
-    font-size: 12px;
-    font-weight: 700;
-}
-
-
-.purple-pill {
-    color: var(--accent);
-    background: var(--accent-soft);
-}
-
-
-.orange-pill {
-    color: var(--orange);
-    background: var(--orange-soft);
-}
 
 
 /* =========================================================
@@ -1407,8 +1248,7 @@ svg {
 }
 
 
-.search-field input,
-.global-search input {
+.search-field input {
     height: 100%;
     min-height: 0;
 
@@ -1552,96 +1392,22 @@ svg {
 }
 
 
-.money-value,
 .kpi-card > strong,
 .metric strong {
     font-variant-numeric: tabular-nums;
 }
 
 
-.table-main {
-    color:
-        var(--text);
-
-    font-weight: 500;
-}
-
-
-.document-number {
-    color:
-        var(--accent);
-
-    font-weight: 500;
-}
 
 
 /* =========================================================
    STATUS
 ========================================================= */
 
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-
-    gap: 4px;
-
-    padding:
-        3px 8px;
-
-    border-radius: 999px;
-
-    font-size: 13px;
-    font-weight: 500;
-}
 
 
-.status-badge::before {
-    content: "";
-
-    width: 4px;
-    height: 4px;
-
-    border-radius: 50%;
-
-    background:
-        currentColor;
-}
 
 
-.status-success {
-    color: var(--green);
-    background: var(--green-soft);
-}
-
-
-.status-warning {
-    color: var(--yellow);
-    background: var(--yellow-soft);
-}
-
-
-.status-danger {
-    color: var(--red);
-    background: var(--red-soft);
-}
-
-
-.type-badge {
-    display: inline-flex;
-
-    padding:
-        4px 6px;
-
-    border-radius: var(--radius);
-
-    color:
-        var(--text-secondary);
-
-    background:
-        var(--surface-hover);
-
-    font-size: 13px;
-}
 
 
 /* =========================================================
@@ -1724,54 +1490,8 @@ svg {
    SETTINGS
 ========================================================= */
 
-.settings-layout {
-    max-width: 950px;
-
-    display: grid;
-
-    grid-template-columns:
-        260px minmax(0,1fr);
-
-    gap: 12px;
-}
 
 
-.settings-info {
-    align-self: start;
-
-    padding:
-        18px;
-
-    border-radius:
-        var(--radius-card);
-
-    color:
-        var(--text);
-
-    background:
-        var(--surface);
-
-    border:
-        1px solid
-        var(--border);
-}
-
-
-.settings-info h2 {
-    font-size: 17px;
-    font-weight: 600;
-}
-
-
-.settings-info p {
-    margin-top: 6px;
-
-    color:
-        var(--text-muted);
-
-    font-size: 13px;
-    line-height: 1.6;
-}
 
 
 .settings-card {
@@ -1797,22 +1517,7 @@ svg {
    FORMS
 ========================================================= */
 
-.form-grid {
-    display: grid;
-    gap: 12px;
-}
 
-
-.form-grid.two {
-    grid-template-columns:
-        repeat(2,minmax(0,1fr));
-}
-
-
-.form-grid.three {
-    grid-template-columns:
-        repeat(3,minmax(0,1fr));
-}
 
 
 .field {
@@ -1901,32 +1606,7 @@ svg {
 }
 
 
-.suffix-input {
-    position: relative;
-}
 
-
-.suffix-input input {
-    padding-right: 52px;
-}
-
-
-.suffix-input span {
-    position: absolute;
-
-    right: 10px;
-    top: 50%;
-
-    transform:
-        translateY(-50%);
-
-    color:
-        var(--text-muted);
-
-    font-size: 13px;
-
-    pointer-events: none;
-}
 
 
 .form-actions {
@@ -2004,15 +1684,6 @@ svg {
 @media
 (max-width: 1000px) {
 
-    .dashboard-layout,
-    .dashboard-bottom {
-        grid-template-columns: 1fr;
-    }
-
-    .global-search {
-        width: 205px;
-    }
-
     .user-copy {
         display: none;
     }
@@ -2056,14 +1727,6 @@ svg {
     .content {
         padding:
             16px 16px 32px;
-    }
-
-    .global-search {
-        display: none;
-    }
-
-    .settings-layout {
-        grid-template-columns: 1fr;
     }
 
 }
@@ -2144,11 +1807,6 @@ svg {
     .toolbar-actions > .button,
     .modal-footer > .button {
         flex: 1 1 auto;
-    }
-
-    .form-grid.two,
-    .form-grid.three {
-        grid-template-columns: 1fr;
     }
 
     .field.full,

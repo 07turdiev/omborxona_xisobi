@@ -104,10 +104,16 @@ class Command(BaseCommand):
                     defaults={'quantity': quantity},
                 )
 
-            # Jurnalda qolmagan qatorlar nolga tushadi
-            VariantStock.objects.exclude(
-                variant_id__in=[key[0] for key in by_location],
-            ).update(quantity=0)
+            # Jurnalda qolmagan qatorlar nolga tushadi. Tekshiruv aynan
+            # «variant + joy» juftligi bo'yicha: variant ombordan zalga
+            # to'liq chiqarilgan bo'lsa, ombordagi eski qator qolib ketardi
+            stale = [
+                row.pk
+                for row in VariantStock.objects.all()
+                if (row.variant_id, row.location_id) not in by_location
+            ]
+
+            VariantStock.objects.filter(pk__in=stale).update(quantity=0)
 
             for variant in Variant.objects.order_by('id'):
                 expected = totals.get(variant.pk, 0)

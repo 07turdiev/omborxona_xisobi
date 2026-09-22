@@ -29,7 +29,7 @@ export const ADMIN_MENU: MenuItem[] = [
   { to: '/', icon: 'i-sale', label: 'Sotish', sections: ['pos', 'returns'] },
   { to: '/products', icon: 'i-catalog', label: 'Tovarlar', sections: ['products'] },
   { to: '/purchases', icon: 'i-import', label: 'Tovar qabul qilish', sections: ['purchases'] },
-  { to: '/transfers', icon: 'i-warehouse', label: 'Zalga chiqarish', sections: ['transfers'] },
+  { to: '/transfers', icon: 'i-move', label: 'Zalga chiqarish', sections: ['transfers'] },
   { to: '/stock-counts', icon: 'i-warehouse', label: 'Sanoq', sections: ['counts'] },
   { to: '/reports', icon: 'i-report', label: 'Hisobot', sections: ['reports'] },
   { to: '/settings', icon: 'i-settings', label: 'Sozlamalar', sections: ['settings'] },
@@ -40,7 +40,7 @@ export const CASHIER_MENU: MenuItem[] = [
   { to: '/returns', icon: 'i-import', label: 'Qaytarish', sections: ['returns'] },
   { to: '/products', icon: 'i-catalog', label: 'Tovarlar', sections: ['products'] },
   // Javonlarni to'ldirish — sotuvchining kundalik ishi
-  { to: '/transfers', icon: 'i-warehouse', label: 'Zalga chiqarish', sections: ['transfers'] },
+  { to: '/transfers', icon: 'i-move', label: 'Zalga chiqarish', sections: ['transfers'] },
 ]
 
 export const SECTION_TABS: Record<string, Tab[]> = {

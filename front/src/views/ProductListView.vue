@@ -357,13 +357,14 @@ onActivated(() => {
           <span class="card-category">{{ card.category_name }}</span>
           <span class="card-price">{{ formatSum(card.sale_price) }}</span>
 
-          <span class="card-stock" :class="card.total_stock ? 'in' : 'out'">
-            {{ card.total_stock ? `${card.total_stock} dona` : 'Tugagan' }}
+          <!-- Belgi zaldagi qoldiqqa qaraydi: omborda yotgan tovarni
+               javondan sotib bo'lmaydi -->
+          <span class="card-stock" :class="card.shop_stock ? 'in' : 'out'">
+            {{ card.shop_stock ? `${card.shop_stock} dona` : 'Zalda yo‘q' }}
           </span>
 
-          <!-- Qayerda turibdi: zalda sotiladi, ombordagisi zaxira -->
-          <span v-if="card.total_stock" class="card-places">
-            Zalda {{ card.shop_stock ?? 0 }} · omborda {{ card.warehouse_stock ?? 0 }}
+          <span class="card-places">
+            Zalda {{ card.shop_stock }} · omborda {{ card.warehouse_stock }}
           </span>
 
           <!-- "Qaysi o'lcham qoldi" — mahsulotni ochmasdan ko'rinadi -->

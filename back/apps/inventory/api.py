@@ -85,6 +85,9 @@ class StockMovementViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         if variant := params.get('variant'):
             queryset = queryset.filter(variant_id=variant)
 
+        if location := params.get('location'):
+            queryset = queryset.filter(location_id=location)
+
         if reason := params.get('reason'):
             queryset = queryset.filter(reason=reason)
 
@@ -99,7 +102,7 @@ class StockCountViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
-        return StockCount.objects.select_related('category').prefetch_related(
+        return StockCount.objects.select_related('category', 'location').prefetch_related(
             'lines__variant__product', 'lines__variant__size', 'lines__variant__color'
         )
 
@@ -132,7 +135,7 @@ class WriteOffViewSet(
 
     def get_queryset(self):
         return WriteOff.objects.select_related(
-            'variant', 'variant__product', 'variant__size', 'variant__color'
+            'variant', 'variant__product', 'variant__size', 'variant__color', 'location'
         )
 
     def create(self, request, *args, **kwargs):
@@ -144,6 +147,7 @@ class WriteOffViewSet(
                 variant=serializer.validated_data['variant'],
                 quantity=serializer.validated_data['quantity'],
                 reason=serializer.validated_data['reason'],
+                location=serializer.validated_data.get('location'),
                 user=request.user,
             )
         except DjangoValidationError as exc:
@@ -178,7 +182,7 @@ class TransferViewSet(
 
     def get_queryset(self):
         return Transfer.objects.select_related('source', 'target', 'created_by').prefetch_related(
-            'lines__variant__product'
+            'lines__variant__product', 'lines__variant__size', 'lines__variant__color'
         )
 
     def create(self, request, *args, **kwargs):

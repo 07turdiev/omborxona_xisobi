@@ -28,6 +28,7 @@ const saving = ref(false)
 
 /** Zalda tugagan, lekin omborda bor tovar — olib chiqish taklifi */
 const fetchFromWarehouse = ref<Variant | null>(null)
+const fetchNeeded = ref(1)
 const bringing = ref(false)
 
 const paymentMethod = ref<'cash' | 'card' | 'mixed'>('cash')
@@ -91,9 +92,7 @@ function clearMessages() {
  */
 function addToCart(variant: Variant) {
   if (shopStock(variant) < 1 && warehouseStock(variant) > 0) {
-    fetchFromWarehouse.value = variant
-    notice.value = ''
-    error.value = ''
+    offer(variant, 1)
     return
   }
 
@@ -101,6 +100,34 @@ function addToCart(variant: Variant) {
 
   if (!result.ok) error.value = result.message ?? 'Tovar qo‘shilmadi.'
   else notice.value = `${variant.product_name} ${variant.label} qo‘shildi`
+}
+
+/** Olib chiqish taklifini ko'rsatadi. */
+function offer(variant: Variant, needed: number) {
+  fetchFromWarehouse.value = variant
+  fetchNeeded.value = needed
+  notice.value = ''
+  error.value = ''
+}
+
+/**
+ * Zalda yetmadi: ombordagi zaxira yetsa taklif ko'rsatiladi.
+ *
+ * Qoldiq savatdagi nusxada eskirgan bo'lishi mumkin, shuning uchun
+ * variant shtrix-kod bo'yicha qaytadan olinadi.
+ */
+async function offerFromWarehouse(barcode: string, needed: number): Promise<boolean> {
+  try {
+    const fresh = await catalogApi.byBarcode(barcode)
+
+    if (warehouseStock(fresh) < needed) return false
+
+    offer(fresh, needed)
+
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** «Ombordan olib chiqish»: ko'chirish yoziladi va tovar savatga tushadi. */
@@ -124,18 +151,19 @@ async function bringFromWarehouse() {
       source: warehouse.id,
       target: shop.id,
       note: 'Kassada so‘raldi',
-      lines: [{ variant: variant.id, quantity: 1 }],
+      lines: [{ variant: variant.id, quantity: fetchNeeded.value }],
     })
 
     // Qoldiq o'zgardi — variantni yangilab olamiz
     const fresh = await catalogApi.byBarcode(variant.barcode)
+    const needed = fetchNeeded.value
 
     fetchFromWarehouse.value = null
 
-    const result = pos.add(fresh)
+    const result = pos.add(fresh, needed)
 
     if (!result.ok) error.value = result.message ?? 'Tovar qo‘shilmadi.'
-    else notice.value = `${fresh.product_name} ${fresh.label} ombordan olib chiqildi`
+    else notice.value = `${fresh.product_name} ${fresh.label}: ${needed} dona ombordan olib chiqildi`
   } catch (err) {
     error.value = errorMessage(err, 'Ombordan olib chiqib bo‘lmadi.')
   } finally {
@@ -165,23 +193,33 @@ function onPick(variant: Variant) {
   focusScanner()
 }
 
-function onQuantity(variantId: number, value: string) {
+async function onQuantity(variantId: number, value: string) {
   clearMessages()
 
-  const result = pos.setQuantity(variantId, Number.parseInt(value, 10) || 0)
+  const line = pos.lines.find((item) => item.variantId === variantId)
+  const wanted = Number.parseInt(value, 10) || 0
 
-  if (!result.ok) error.value = result.message ?? ''
-
-  focusScanner()
+  await changeQuantity(line, wanted)
 }
 
 /** Bittaga ko'paytirish yoki kamaytirish — barmoq uchun katta tugmalar. */
-function step(line: CartLine, delta: number) {
+async function step(line: CartLine, delta: number) {
   clearMessages()
 
-  const result = pos.setQuantity(line.variantId, line.quantity + delta)
+  await changeQuantity(line, line.quantity + delta)
+}
 
-  if (!result.ok) error.value = result.message ?? ''
+/** Miqdorni o'zgartiradi; zalda yetmasa ombordan olib chiqish taklif qilinadi. */
+async function changeQuantity(line: CartLine | undefined, wanted: number) {
+  if (!line) return
+
+  const result = pos.setQuantity(line.variantId, wanted)
+
+  if (!result.ok) {
+    const brought = await offerFromWarehouse(line.barcode, wanted - line.stock)
+
+    if (!brought) error.value = result.message ?? ''
+  }
 
   focusScanner()
 }
@@ -360,7 +398,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         <div>
           <strong>{{ fetchFromWarehouse.product_name }} {{ fetchFromWarehouse.label }}</strong>
           <small>
-            Zalda qolmagan. Omborda {{ warehouseStock(fetchFromWarehouse) }} dona bor.
+            Zalda yetmadi. Omborda {{ warehouseStock(fetchFromWarehouse) }} dona bor.
           </small>
         </div>
 
@@ -370,7 +408,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           :disabled="bringing"
           @click="bringFromWarehouse"
         >
-          {{ bringing ? 'Olib chiqilmoqda…' : 'Ombordan olib chiqish' }}
+          {{
+            bringing
+              ? 'Olib chiqilmoqda…'
+              : `Ombordan ${fetchNeeded} dona olib chiqish`
+          }}
         </button>
       </div>
 

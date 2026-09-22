@@ -182,7 +182,7 @@ test('zalda qolmagan tovar bir bosishda ombordan olib chiqiladi', async ({ page,
   // Savatga hali tushmagan: avval ombordan olib chiqiladi
   await expect(page.locator('.cart-table .empty-state')).toBeVisible()
 
-  await offer.getByRole('button', { name: 'Ombordan olib chiqish' }).click()
+  await offer.getByRole('button', { name: /Ombordan .* olib chiqish/ }).click()
 
   await expect(offer).toBeHidden()
 

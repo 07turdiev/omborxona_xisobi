@@ -47,9 +47,11 @@ test.beforeAll(async ({ request }) => {
 
   const catalog = await response.json()
 
-  expect(catalog.results.length, 'qoldig‘i bor tovar kerak — seed_demo').toBeGreaterThan(0)
+  // Zalda qoldig'i borini tanlaymiz: faqat omborda turgan tovar bosilsa,
+  // kassa savatga qo'shmay, «Ombordan olib chiqish» taklifini ko'rsatadi
+  product = catalog.results.find((card: { shop_stock: number }) => card.shop_stock > 0)
 
-  product = catalog.results[0]
+  expect(product, 'zalda qoldig‘i bor tovar kerak — seed_demo').toBeTruthy()
 
   if (ALBUM) mkdirSync(ALBUM_DIR, { recursive: true })
 })
@@ -70,12 +72,21 @@ async function fillCart(page: Page) {
   // Varianti bitta bo'lsa savatga o'zi tushadi, aks holda katakcha ochiladi
   const grid = page.locator('.variant-grid')
   const row = page.locator('.cart-table tbody tr:not(:has(.empty-state))')
+  const offer = page.getByTestId('from-warehouse')
 
-  await expect(grid.or(row).first()).toBeVisible()
+  await expect(grid.or(row).or(offer).first()).toBeVisible()
 
-  // Zalda turgan katakcha: ombordagisi bosilsa, avval olib chiqish so'raladi
   if (await grid.isVisible()) {
-    await grid.locator('.variant-cell:not([disabled]):not(.from-warehouse)').first().click()
+    // Zalda turgani afzal: ombordagisi bosilsa, avval olib chiqish so'raladi
+    const inShop = grid.locator('.variant-cell:not([disabled]):not(.from-warehouse)')
+    const any = grid.locator('.variant-cell:not([disabled])')
+
+    await ((await inShop.count()) ? inShop : any).first().click()
+  }
+
+  // Zalda qolmagan bo'lsa — bir bosishda ombordan
+  if (await offer.isVisible()) {
+    await offer.getByRole('button', { name: /Ombordan/ }).click()
   }
 
   await expect(row.first()).toBeVisible()

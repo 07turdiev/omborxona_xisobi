@@ -129,6 +129,8 @@ class ReportViewSet(ViewSet):
             Column('label', 'O‘lcham / rang', TEXT),
             Column('category', 'Kategoriya', TEXT),
             Column('quantity', 'Qoldiq', NUMBER),
+            Column('shop_quantity', 'Zalda', NUMBER),
+            Column('warehouse_quantity', 'Omborda', NUMBER),
             Column('average_cost', 'O‘rtacha tannarx', MONEY),
             Column('cost_value', 'Tannarx qiymati', MONEY),
             Column('price', 'Sotuv narxi', MONEY),
@@ -146,7 +148,7 @@ class ReportViewSet(ViewSet):
         start, end = local_bounds(date_from, date_to)
 
         movements = (
-            StockMovement.objects.select_related('variant__product', 'user')
+            StockMovement.objects.select_related('variant__product', 'location', 'user')
             .filter(created_at__gte=start, created_at__lt=end)
             .order_by('created_at')
         )
@@ -156,6 +158,7 @@ class ReportViewSet(ViewSet):
             Column('variant.sku', 'Artikul', TEXT, width=14),
             Column('variant.product.name', 'Mahsulot', TEXT, width=30),
             Column('quantity', 'Miqdor', NUMBER),
+            Column('location.name', 'Joy', TEXT, width=12),
             Column('reason', 'Sabab', TEXT),
             Column('unit_cost', 'Tannarx', MONEY),
             Column('user.username', 'Xodim', TEXT),

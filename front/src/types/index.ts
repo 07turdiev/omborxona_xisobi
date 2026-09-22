@@ -72,8 +72,8 @@ export interface CatalogCard {
   sale_price: string
   total_stock: number
   /** Savdo zalidagi va ombordagi qoldiq */
-  shop_stock?: number
-  warehouse_stock?: number
+  shop_stock: number
+  warehouse_stock: number
   size_stock: SizeStock[]
   /** Nechta rangda bor — kirim ekranidagi qisqa qator */
   color_count?: number
@@ -96,6 +96,7 @@ export interface CatalogVariant {
   color_name: string | null
   barcode: string
   price: string
+  /** Faqat administrator javobida bo'ladi */
   average_cost?: string
   stock_quantity: number
   stocks?: StockAtLocation[]
@@ -376,6 +377,9 @@ export interface WriteOff {
   variant_label: string
   sku: string
   quantity: number
+  /** Qaysi joydan yechildi */
+  location: number
+  location_name: string
   reason: string
   unit_cost: string
   created_at: string

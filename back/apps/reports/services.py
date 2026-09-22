@@ -21,10 +21,11 @@ from django.db.models import Count, DecimalField, F, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from apps.catalog.models import LOW_STOCK, Variant
+from apps.catalog.models import Product, Variant
 from apps.core.dates import local_bounds
 from apps.expenses.models import Expense
-from apps.inventory.models import MovementReason, StockMovement
+from apps.inventory.models import Location, MovementReason, StockMovement
+from apps.inventory.queries import low_stock_variants
 from apps.purchases.models import Purchase, Supplier
 from apps.sales.models import Sale, SaleLine, SaleReturn, SaleReturnLine
 
@@ -240,14 +241,16 @@ def expense_summary(date_from, date_to) -> dict:
 
 
 def stock_report(category=None, low_stock=False) -> dict:
-    """Joriy qoldiq: tannarx va chakana qiymati bilan."""
-    queryset = Variant.objects.select_related('product', 'product__category', 'size', 'color')
+    """Joriy qoldiq: qaysi joyda nechta, tannarx va chakana qiymati bilan."""
+    queryset = Variant.objects.select_related(
+        'product', 'product__category', 'size', 'color'
+    ).prefetch_related('stocks__location')
 
     if category:
         queryset = queryset.filter(product__category_id=category)
 
     if low_stock:
-        queryset = queryset.filter(LOW_STOCK)
+        queryset = low_stock_variants(queryset)
 
     rows = []
     cost_value = ZERO
@@ -263,6 +266,12 @@ def stock_report(category=None, low_stock=False) -> dict:
         retail_value += row_retail
         units += variant.stock_quantity
 
+        shop = sum(
+            stock.quantity
+            for stock in variant.stocks.all()
+            if stock.location.kind == Location.Kind.SHOP
+        )
+
         rows.append({
             'variant_id': variant.pk,
             'sku': variant.sku,
@@ -271,6 +280,9 @@ def stock_report(category=None, low_stock=False) -> dict:
             'category': variant.product.category.name,
             'label': variant.label,
             'quantity': variant.stock_quantity,
+            # Qayerda turibdi: javondagisi sotiladi, qolgani zaxira
+            'shop_quantity': shop,
+            'warehouse_quantity': variant.stock_quantity - shop,
             'min_stock': variant.min_stock,
             'average_cost': variant.average_cost,
             'price': price,
@@ -339,7 +351,16 @@ def dashboard() -> dict:
             'gross_profit': net_revenue - (cost - returns_cost),
         }
 
-    low_stock = Variant.objects.filter(LOW_STOCK, is_active=True).count()
+    # Panelda mahsulot sanaladi: bosilganda ochiladigan ro'yxat ham
+    # mahsulotlar ro'yxati (bitta ko'ylakning uch o'lchami — bitta karta)
+    low_stock = (
+        Product.objects.filter(
+            is_active=True,
+            id__in=low_stock_variants(
+                Variant.objects.filter(is_active=True)
+            ).values('product'),
+        ).count()
+    )
 
     return {
         'today': period(today, today),

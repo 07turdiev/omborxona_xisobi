@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import ScanField from '@/components/ScanField.vue'
 import { catalogApi } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
+import { shopStock, warehouseStock } from '@/utils/stock'
 import { salesApi } from '@/api/sales'
 import { addMoney, compareMoney, formatMoney, formatSum, multiplyMoney, subtractMoney } from '@/utils/money'
 import { uuid } from '@/utils/uuid'
@@ -106,15 +107,21 @@ async function onScanProduct(code: string) {
     const existing = exchangeLines.value.find((item) => item.variant.id === variant.id)
 
     if (existing) {
-      if (existing.quantity + 1 > variant.stock_quantity) {
-        error.value = `Omborda ${variant.stock_quantity} dona qolgan.`
+      // Almashtirish ham sotuv: tovar savdo zalidan olinadi
+      if (existing.quantity + 1 > shopStock(variant)) {
+        error.value = `Zalda ${shopStock(variant)} dona qolgan.`
         return
       }
 
       existing.quantity += 1
     } else {
-      if (variant.stock_quantity < 1) {
-        error.value = `${variant.product_name} — omborda qolmagan.`
+      if (shopStock(variant) < 1) {
+        const inWarehouse = warehouseStock(variant)
+
+        error.value = inWarehouse
+          ? `${variant.product_name} — zalda qolmagan, omborda ${inWarehouse} dona bor.`
+          : `${variant.product_name} — qolmagan.`
+
         return
       }
 

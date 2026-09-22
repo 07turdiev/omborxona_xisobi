@@ -50,14 +50,14 @@ def sale_payload(sale) -> dict:
                 line.variant, line.quantity, line.unit_price,
                 line.discount_amount, line.line_total,
             )
-            for line in sale.lines.select_related('variant__product__category')
+            for line in sale.lines.select_related('variant__product')
         ],
     }
 
 
 def return_payload(sale_return) -> dict:
     """Qaytarish bo'yicha ma'lumot. Qatorlar asl chekdan olinadi."""
-    lines = sale_return.lines.select_related('sale_line__variant__product__category')
+    lines = sale_return.lines.select_related('sale_line__variant__product')
 
     return {
         'document': 'return',

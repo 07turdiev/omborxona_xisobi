@@ -220,7 +220,7 @@ class Variant(TimeStampedModel):
     #: O'rtacha tannarx — kirim va qaytarishda qayta hisoblanadi
     average_cost = MoneyField(_('O‘rtacha tannarx'), default=0)
 
-    #: Jurnal asosidagi qoldiq keshi. Faqat `apps.inventory.services` yozadi.
+    #: Jurnal asosidagi qoldiq keshi. Faqat `apps.inventory.services` va `recompute_stock` yozadi.
     stock_quantity = models.IntegerField(_('Qoldiq'), default=0)
 
     min_stock = models.PositiveIntegerField(_('Minimal qoldiq'), default=0)
@@ -262,6 +262,5 @@ class Variant(TimeStampedModel):
         return self.sale_price if self.sale_price is not None else self.product.sale_price
 
 
-#: Tugayotgan variant: minimal qoldiq belgilangan va qoldiq unga yetgan.
-#: Qoldiq ro'yxati ham, katalog ham shu bitta qoidaga qaraydi.
-LOW_STOCK = models.Q(min_stock__gt=0, stock_quantity__lte=models.F('min_stock'))
+# Tugayotgan variant qoidasi `apps.inventory.queries` da: u savdo
+# zalidagi qoldiqqa qaraydi, `stock_quantity` esa ikki joyning yig'indisi.

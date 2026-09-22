@@ -194,7 +194,7 @@ function take(variant: Variant | undefined) {
         <span class="tile-name">{{ card.name }}</span>
         <span class="tile-price">{{ formatMoney(card.sale_price) }}</span>
         <span class="tile-stock">
-          Zalda {{ card.shop_stock ?? card.total_stock }}
+          Zalda {{ card.shop_stock }}
           <template v-if="card.warehouse_stock"> · omborda {{ card.warehouse_stock }}</template>
         </span>
       </button>
@@ -463,9 +463,4 @@ function take(variant: Variant | undefined) {
   cursor: not-allowed;
 }
 
-.variant-hint {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 13px;
-}
 </style>

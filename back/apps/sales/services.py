@@ -195,7 +195,7 @@ def create_sale(
 
 @transaction.atomic
 def void_sale(sale: Sale, user=None) -> Sale:
-    """Chekni bekor qiladi: tovar omborga qaytadi.
+    """Chekni bekor qiladi: tovar sotilgan joyga qaytadi.
 
     Faqat o'sha kuni — mahalliy sana bo'yicha. Eski chek uchun qaytarish
     ishlatiladi, chunki kunlik kassa allaqachon yopilgan bo'ladi.
@@ -232,15 +232,17 @@ def void_sale(sale: Sale, user=None) -> Sale:
 
 
 def returned_quantity(sale_line: SaleLine) -> int:
-    """Shu qator bo'yicha allaqachon qaytarilgan miqdor."""
-    total = sale_line.return_lines.aggregate(total=Sum('quantity'))['total']
+    """Shu qator bo'yicha allaqachon qaytarilgan miqdor.
 
-    return total or 0
+    Qatorlar Pythonda yig'iladi: `aggregate()` har chaqiruvda bazaga
+    borardi va cheklar ro'yxatidagi `prefetch_related` ni behuda qilardi.
+    """
+    return sum(line.quantity for line in sale_line.return_lines.all())
 
 
 @transaction.atomic
 def create_return(*, sale: Sale, items, refund_method, user=None, request_key=None) -> SaleReturn:
-    """Qaytarish: tovar asl tannarxi bilan omborga qaytadi.
+    """Qaytarish: tovar asl tannarxi bilan sotilgan joyga qaytadi.
 
     Qaytariladigan summa qator summasidan olinadi, ya'ni chegirma
     hisobga olinadi. Qator to'liq qaytarilganda qoldiq tiyinlar ham
@@ -351,8 +353,11 @@ def exchange(
         request_key=request_key,
     )
 
+    # Yangi sotuv ham o'sha joydan: almashtirishda tovar javondan
+    # olinadi, qaytarilgani esa javonga qaytadi
     new_sale = create_sale(
         user=user,
+        location=sale.location,
         lines=lines,
         discount_amount=discount_amount,
         discount_percent=discount_percent,

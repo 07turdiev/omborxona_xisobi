@@ -46,7 +46,7 @@ export const inventoryApi = {
     return data
   },
 
-  /** Ombordan zalga (yoki teskari) ko'chiradi. */
+  /** Joydan joyga ko'chiradi. Interfeysda hozir ombordan zalga. */
   async transfer(payload: TransferInput) {
     const { data } = await api.post<Transfer>('/transfers/', payload)
     return data
@@ -88,16 +88,18 @@ export const inventoryApi = {
     return data
   },
 
-  async removeCount(id: number) {
-    await api.delete(`/stock-counts/${id}/`)
-  },
 
   async writeOffs(page = 1) {
     const { data } = await api.get<Paginated<WriteOff>>('/write-offs/', { params: { page } })
     return data
   },
 
-  async createWriteOff(payload: { variant: number; quantity: number; reason: string }) {
+  async createWriteOff(payload: {
+    variant: number
+    quantity: number
+    reason: string
+    location?: number | null
+  }) {
     const { data } = await api.post<WriteOff>('/write-offs/', payload)
     return data
   },

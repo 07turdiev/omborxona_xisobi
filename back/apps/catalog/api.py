@@ -6,7 +6,6 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
 from apps.catalog.models import (
-    LOW_STOCK,
     Category,
     Color,
     Product,
@@ -26,6 +25,7 @@ from apps.catalog.serializers import (
 )
 from apps.catalog.services import add_variant, remove_product_image, reorder_images
 from apps.core.permissions import IsAdmin, IsAdminOrReadOnly
+from apps.inventory.queries import low_stock_variants
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -184,7 +184,7 @@ class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(total_stock__gt=0)
 
         if params.get('low_stock') == 'true':
-            queryset = queryset.filter(Exists(variants.filter(LOW_STOCK)))
+            queryset = queryset.filter(Exists(low_stock_variants(variants)))
 
         if params.get('active') != 'false':
             queryset = queryset.filter(is_active=True)
@@ -268,7 +268,7 @@ class VariantViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(product__category_id=category)
 
         if params.get('low_stock') == 'true':
-            queryset = queryset.filter(LOW_STOCK)
+            queryset = low_stock_variants(queryset)
 
         if params.get('active') == 'true':
             queryset = queryset.filter(is_active=True)

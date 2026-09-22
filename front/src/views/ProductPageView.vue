@@ -23,8 +23,8 @@ import {
 } from '@/utils/catalog'
 import { documentLabel, documentLink } from '@/utils/documents'
 import { formatMoney, formatSum } from '@/utils/money'
-import { stockLine } from '@/utils/stock'
-import type { CatalogProduct, Product, StockMovement, Variant } from '@/types'
+import { shopStock, stockLine, warehouseStock } from '@/utils/stock'
+import type { CatalogProduct, Location, Product, StockMovement, Variant } from '@/types'
 
 /**
  * Mahsulot sahifasi — tovar haqida hamma narsa bir joyda.
@@ -131,8 +131,9 @@ function selectRow(row: Variant) {
   sizeId.value = row.size
 }
 
+/** Zalda tugayapti: omborda zaxira bo'lsa ham javon bo'sh qolmasin. */
 function isLow(row: Variant) {
-  return row.min_stock > 0 && row.stock_quantity <= row.min_stock
+  return row.min_stock > 0 && shopStock(row) <= row.min_stock
 }
 
 function goBack() {
@@ -180,9 +181,18 @@ function printLabels() {
 const writeOffOpen = ref(false)
 const writeOffSaving = ref(false)
 const writeOffError = ref('')
-const writeOff = ref({ variant: 0, quantity: 1, reason: '' })
+const writeOff = ref({ variant: 0, quantity: 1, reason: '', location: 0 })
+
+const locations = ref<Location[]>([])
 
 const writeOffRow = computed(() => rows.value.find((row) => row.id === writeOff.value.variant))
+
+/** Tanlangan joydagi qoldiq — shundan ortig'ini yechib bo'lmaydi */
+const writeOffAvailable = computed(() =>
+  (writeOffRow.value?.stocks ?? [])
+    .filter((stock) => stock.location === writeOff.value.location)
+    .reduce((sum, stock) => sum + stock.quantity, 0),
+)
 
 function openWriteOff() {
   writeOffError.value = ''
@@ -190,8 +200,26 @@ function openWriteOff() {
     variant: variant.value?.id ?? rows.value.find((row) => row.stock_quantity > 0)?.id ?? 0,
     quantity: 1,
     reason: '',
+    location: shopLocation(),
   }
   writeOffOpen.value = true
+
+  // Joylar bir marta olinadi. Shakl darhol to'ldirilgan: so'rov javobi
+  // kutilsa, xodim yozgan sabab ustiga yozilib ketardi.
+  if (!locations.value.length) void loadLocations()
+}
+
+function shopLocation(): number {
+  return locations.value.find((place) => place.kind === 'shop')?.id ?? 0
+}
+
+async function loadLocations() {
+  try {
+    locations.value = await inventoryApi.locations()
+    writeOff.value.location = shopLocation()
+  } catch (err) {
+    writeOffError.value = errorMessage(err, 'Joylarni yuklab bo‘lmadi.')
+  }
 }
 
 async function submitWriteOff() {
@@ -209,6 +237,7 @@ async function submitWriteOff() {
       variant: payload.variant,
       quantity: payload.quantity,
       reason: payload.reason.trim(),
+      location: payload.location,
     })
 
     writeOffOpen.value = false
@@ -442,6 +471,9 @@ function when(value: string) {
                 <td class="barcode-cell">{{ row.barcode }}</td>
                 <td class="num">
                   <span :class="{ low: isLow(row) }">{{ row.stock_quantity }}</span>
+                  <small class="cell-sub">
+                    zal {{ shopStock(row) }} · ombor {{ warehouseStock(row) }}
+                  </small>
                 </td>
                 <td class="num">{{ row.min_stock || '—' }}</td>
                 <td v-if="auth.isAdmin" class="num">{{ formatMoney(row.average_cost ?? null) }}</td>
@@ -539,7 +571,16 @@ function when(value: string) {
           <label>Variant</label>
           <select v-model.number="writeOff.variant">
             <option v-for="row in rows" :key="row.id" :value="row.id" :disabled="!row.stock_quantity">
-              {{ row.label || product?.name }} — {{ row.stock_quantity }} dona
+              {{ row.label || product?.name }} — {{ stockLine(row).toLowerCase() }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Qayerdan</label>
+          <select v-model.number="writeOff.location">
+            <option v-for="place in locations" :key="place.id" :value="place.id">
+              {{ place.name }}
             </option>
           </select>
         </div>
@@ -550,8 +591,9 @@ function when(value: string) {
             v-model.number="writeOff.quantity"
             type="number"
             min="1"
-            :max="writeOffRow?.stock_quantity ?? 1"
+            :max="writeOffAvailable || 1"
           />
+          <small class="field-hint">Bu joyda {{ writeOffAvailable }} dona bor.</small>
         </div>
 
         <div class="field">

@@ -76,7 +76,7 @@ async function load() {
     categories.value = categoryList
     locations.value = places
   } catch (err) {
-    error.value = errorMessage(err, 'Inventarizatsiyalarni yuklab bo‘lmadi.')
+    error.value = errorMessage(err, 'Sanoqlarni yuklab bo‘lmadi.')
   } finally {
     loading.value = false
   }
@@ -96,6 +96,14 @@ function expectedAt(variant: Variant): number {
  * to'ldirilsa, sanalmagan tovar «bor» bo'lib qolar va kamomad umuman
  * ko'rinmasdi.
  */
+async function refillLines() {
+  try {
+    await fillLines()
+  } catch (err) {
+    error.value = errorMessage(err, 'Tovarlar ro‘yxatini yuklab bo‘lmadi.')
+  }
+}
+
 async function fillLines() {
   lines.value = []
 
@@ -344,7 +352,13 @@ onMounted(async () => {
 
   const id = Number(route.query.open)
 
-  if (id) await onOpen({ id } as StockCount)
+  if (id) {
+    try {
+      await onOpen({ id } as StockCount)
+    } catch (err) {
+      error.value = errorMessage(err, 'Sanoqni ochib bo‘lmadi.')
+    }
+  }
 })
 
 // Sahifadan chiqishda saqlanmagan o'zgarish qolmasin
@@ -360,7 +374,7 @@ onBeforeUnmount(() => {
 
       <button class="button button-gradient" type="button" @click="openEditor">
         <svg><use href="#i-plus" /></svg>
-        <span>Yangi inventarizatsiya</span>
+        <span>Yangi sanoq</span>
       </button>
     </div>
 
@@ -382,7 +396,7 @@ onBeforeUnmount(() => {
 
         <div class="field">
           <label>Qayerni sanayapsiz?</label>
-          <select v-model="draft.location" :disabled="draftId !== null" @change="fillLines">
+          <select v-model="draft.location" :disabled="draftId !== null" @change="refillLines">
             <option v-for="place in locations" :key="place.id" :value="place.id">
               {{ place.name }}
             </option>
@@ -391,7 +405,7 @@ onBeforeUnmount(() => {
 
         <div class="field">
           <label>Kategoriya</label>
-          <select v-model="draft.category" :disabled="draftId !== null" @change="fillLines">
+          <select v-model="draft.category" :disabled="draftId !== null" @change="refillLines">
             <option :value="null">Hammasi</option>
             <option v-for="item in categories" :key="item.id" :value="item.id">
               {{ item.name }}
@@ -505,7 +519,7 @@ onBeforeUnmount(() => {
             </tr>
 
             <tr v-else-if="!counts.length">
-              <td colspan="6" class="empty-state">Inventarizatsiya o‘tkazilmagan.</td>
+              <td colspan="6" class="empty-state">Sanoq o‘tkazilmagan.</td>
             </tr>
 
             <tr v-for="count in counts" v-else :key="count.id">

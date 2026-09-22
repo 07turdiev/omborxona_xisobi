@@ -145,7 +145,7 @@ const routes: RouteRecordRaw[] = [
       title: 'Sanoq',
       section: 'counts',
       admin: true,
-      description: 'Javondagi tovarni sanab, tizimdagi son bilan solishtirasiz',
+      description: 'Zal yoki omborni sanab, tizimdagi son bilan solishtirasiz',
     },
   },
   {
@@ -180,7 +180,7 @@ const routes: RouteRecordRaw[] = [
       title: 'Hisobot',
       section: 'reports',
       admin: true,
-      description: 'Ombordagi tovar tannarxda va sotuv narxida qancha turadi',
+      description: 'Butun qoldiq tannarxda va sotuv narxida qancha turadi',
     },
   },
   {

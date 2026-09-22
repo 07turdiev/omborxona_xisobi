@@ -55,7 +55,7 @@ test('ombordagi tovar zalga chiqariladi va hujjat yoziladi', async ({ page, requ
   // Hujjat ro'yxatda ko'rinadi
   const history = page.locator('.table-card').last()
 
-  await expect(history.locator('tbody tr').first()).toContainText('Ombor → Do‘kon')
+  await expect(history.locator('tbody tr').first()).toContainText('Ombor → Savdo zali')
   await expect(history.locator('tbody tr').first()).toContainText(product.name)
 })
 

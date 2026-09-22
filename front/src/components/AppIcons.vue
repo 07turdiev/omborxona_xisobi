@@ -25,11 +25,6 @@
           <path d="M3 9H21"/>
       </symbol>
   
-      <symbol id="i-stock" viewBox="0 0 24 24">
-          <path d="M4 7L12 3L20 7L12 11L4 7Z"/>
-          <path d="M4 7V17L12 21L20 17V7"/>
-          <path d="M12 11V21"/>
-      </symbol>
   
       <symbol id="i-import" viewBox="0 0 24 24">
           <path d="M12 3V16"/>
@@ -37,20 +32,19 @@
           <path d="M4 21H20"/>
       </symbol>
   
+      <!-- Ombordan zalga: javondan javonga o'tish -->
+      <symbol id="i-move" viewBox="0 0 24 24">
+          <path d="M3 20V9L8 5L13 9V20"/>
+          <path d="M16 12H22"/>
+          <path d="M19 9L22 12L19 15"/>
+      </symbol>
+
       <symbol id="i-sale" viewBox="0 0 24 24">
           <path d="M12 21V8"/>
           <path d="M7 13L12 8L17 13"/>
           <path d="M4 3H20"/>
       </symbol>
   
-      <symbol id="i-company" viewBox="0 0 24 24">
-          <path d="M4 21V6L12 3L20 6V21"/>
-          <path d="M8 9H10"/>
-          <path d="M14 9H16"/>
-          <path d="M8 13H10"/>
-          <path d="M14 13H16"/>
-          <path d="M9 21V17H15V21"/>
-      </symbol>
   
       <symbol id="i-report" viewBox="0 0 24 24">
           <path d="M5 20V12"/>
@@ -123,10 +117,6 @@
           <circle cx="12" cy="12" r="3"/>
       </symbol>
 
-      <symbol id="i-bag" viewBox="0 0 24 24">
-          <path d="M5 8H19L20 21H4L5 8Z"/>
-          <path d="M9 11V7A3 3 0 0 1 15 7V11"/>
-      </symbol>
 
       <symbol id="i-close" viewBox="0 0 24 24">
           <path d="M6 6L18 18"/>

@@ -163,7 +163,7 @@ export const usePosStore = defineStore('pos', () => {
     }
 
     if (quantity > line.stock) {
-      return { ok: false, message: `Zalda ${line.stock} dona qolgan` }
+      return { ok: false, message: `${line.name} — zalda ${line.stock} dona qolgan` }
     }
 
     line.quantity = quantity

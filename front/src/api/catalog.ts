@@ -63,10 +63,6 @@ export const catalogApi = {
     return data
   },
 
-  async updateCategory(id: number, payload: Partial<Category>) {
-    const { data } = await api.patch<Category>(`/categories/${id}/`, payload)
-    return data
-  },
 
   async removeCategory(id: number) {
     await api.delete(`/categories/${id}/`)

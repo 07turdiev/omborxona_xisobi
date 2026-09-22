@@ -19,7 +19,7 @@ from apps.core.factories import (
     receive_stock,
 )
 from apps.core.models import ShopSettings
-from apps.inventory.models import MovementReason, StockMovement
+from apps.inventory.models import Location, MovementReason, StockMovement, VariantStock
 from apps.reports.services import sales_report
 from apps.sales import fiscal
 from apps.sales.models import Sale, SaleReturn
@@ -312,6 +312,17 @@ class ExchangeTests(TestCase):
 
         self.assertEqual(Variant.objects.get(pk=medium.pk).stock_quantity, 3)
         self.assertEqual(Variant.objects.get(pk=large.pk).stock_quantity, 2)
+
+        # Ikkala harakat ham savdo zalida: qaytgani javonga qaytdi,
+        # yangisi javondan olindi
+        shop = Location.shop()
+
+        self.assertEqual(
+            VariantStock.objects.get(variant=medium, location=shop).quantity, 3
+        )
+        self.assertEqual(
+            VariantStock.objects.get(variant=large, location=shop).quantity, 2
+        )
 
 
 class VoidTests(TestCase):

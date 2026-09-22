@@ -36,6 +36,9 @@ const notice = ref('')
 
 let timer: ReturnType<typeof setTimeout> | undefined
 
+/** Kechikkan javob yangisining ustiga yozilmasin */
+let request = 0
+
 const warehouse = computed(() => locations.value.find((item) => item.kind === 'warehouse'))
 const shop = computed(() => locations.value.find((item) => item.kind === 'shop'))
 
@@ -65,16 +68,18 @@ async function runSearch() {
     return
   }
 
+  const current = ++request
+
   searching.value = true
 
   try {
     const page = await catalogApi.products({ search: text })
 
-    results.value = page.results.slice(0, 8)
+    if (current === request) results.value = page.results.slice(0, 8)
   } catch {
-    results.value = []
+    if (current === request) results.value = []
   } finally {
-    searching.value = false
+    if (current === request) searching.value = false
   }
 }
 
@@ -88,17 +93,21 @@ function choose(product: Product) {
   search.value = ''
   results.value = []
   notice.value = ''
+  error.value = ''
+  request += 1
 
   if (chosen.value.some((item) => item.product === product.id)) return
 
-  const variants = product.variants.filter((variant) => warehouseStock(variant) > 0)
+  // Savdodan chiqarilgan variant zalga chiqarilmaydi
+  const variants = product.variants.filter(
+    (variant) => variant.is_active && warehouseStock(variant) > 0,
+  )
 
   if (!variants.length) {
     error.value = `«${product.name}» omborda qolmagan.`
     return
   }
 
-  error.value = ''
   chosen.value.push({
     product: product.id,
     name: product.name,
@@ -113,14 +122,20 @@ function setQuantity(item: Chosen, variant: Variant, value: string) {
 
   if (!value.trim() || Number.isNaN(wanted) || wanted <= 0) {
     delete item.quantities[variant.id]
+    error.value = ''
     return
   }
+
+  // Ombordagidan ortig'ini chiqarib bo'lmaydi — nega tuzatilgani aytiladi
+  error.value =
+    wanted > limit ? `${variant.label || item.name}: omborda ${limit} dona bor.` : ''
 
   item.quantities[variant.id] = Math.min(wanted, limit)
 }
 
 function remove(product: number) {
   chosen.value = chosen.value.filter((item) => item.product !== product)
+  error.value = ''
 }
 
 async function moveToShop() {
@@ -164,35 +179,47 @@ onMounted(load)
 
 <template>
   <section class="app-section active">
-    <p v-if="error" class="load-error">{{ error }}</p>
+    <p v-if="error" class="load-error" role="alert">{{ error }}</p>
     <p v-if="notice" class="notice">{{ notice }}</p>
 
     <div class="table-card card-padded stage">
       <h3 class="card-title">Qaysi tovarni zalga chiqarasiz?</h3>
 
       <div class="search-wrap">
-        <div class="scan-field">
+        <div class="search-field">
           <svg aria-hidden="true"><use href="#i-search" /></svg>
 
           <input
             v-model="search"
             type="text"
             autocomplete="off"
+            role="combobox"
+            aria-controls="transfer-results"
+            :aria-expanded="results.length > 0"
             placeholder="Tovar nomini yozing"
             aria-label="Tovar nomi"
             @input="onSearchInput"
+            @keydown.enter.prevent="results[0] && choose(results[0])"
           />
 
           <span v-if="searching" class="search-state">Qidirilmoqda…</span>
         </div>
 
-        <ul v-if="results.length" class="results" role="listbox">
+        <ul
+          v-if="results.length"
+          id="transfer-results"
+          class="results"
+          role="listbox"
+          aria-label="Topilgan tovarlar"
+        >
           <li
             v-for="product in results"
             :key="product.id"
             role="option"
             :aria-selected="false"
+            tabindex="0"
             @mousedown.prevent="choose(product)"
+            @keydown.enter="choose(product)"
           >
             <span>{{ product.name }}</span>
             <small>{{ product.category_name }}</small>
@@ -331,33 +358,11 @@ onMounted(load)
   margin-bottom: 14px;
 }
 
-.scan-field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 12px;
-  border: 2px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.scan-field svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2;
-}
-
-.scan-field input {
+/* Ko'rinishi `app.css` dagi umumiy `.search-field` dan; bu yerda
+   faqat kengligi — ekranning boshlanish maydoni kengroq bo'lsin */
+.search-field {
   width: 100%;
-  min-height: 0;
-  border: 0;
-  background: none;
-  box-shadow: none;
-  font-size: 16px;
+  padding-right: 12px;
 }
 
 .search-state {

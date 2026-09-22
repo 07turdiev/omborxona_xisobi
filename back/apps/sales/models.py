@@ -198,7 +198,7 @@ class SaleReturnLine(models.Model):
 
     quantity = models.PositiveIntegerField(_('Miqdor'))
 
-    #: Asl qatordagi tannarx — tovar shu qiymat bilan omborga qaytadi
+    #: Asl qatordagi tannarx — tovar shu qiymat bilan qoldiqqa qaytadi
     unit_cost = MoneyField(_('Birlik tannarxi'), default=0)
 
     #: Chegirma hisobga olingan qaytariladigan summa

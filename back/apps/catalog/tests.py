@@ -24,6 +24,8 @@ from apps.core.factories import (
     create_product,
     receive_stock,
 )
+from apps.inventory.models import Location
+from apps.inventory.services import create_transfer
 
 
 def image_upload(name='rasm.jpg', size=(1200, 900), orientation=None) -> SimpleUploadedFile:
@@ -517,6 +519,26 @@ class CatalogListTests(TestCase):
             variant.save(update_fields=['min_stock'])
 
         self.assertEqual(self.names('?low_stock=true'), ['Tugayapti'])
+
+    def test_low_stock_looks_at_the_shop_not_the_warehouse(self):
+        """Omborda to'la bo'lsa ham, javon bo'sh bo'lsa — ogohlantirish."""
+        variant = create_product(name='Zalda tugadi').variants.get()
+
+        receive_stock(variant, 20, '100000', location=Location.warehouse())
+
+        variant.min_stock = 3
+        variant.save(update_fields=['min_stock'])
+
+        self.assertEqual(self.names('?low_stock=true'), ['Zalda tugadi'])
+
+        # Zalga chiqarilgandan keyin ogohlantirish yo'qoladi
+        create_transfer(
+            source=Location.warehouse(),
+            target=Location.shop(),
+            lines=[{'variant': variant, 'quantity': 10}],
+        )
+
+        self.assertEqual(self.names('?low_stock=true'), [])
 
 
 class SlugTests(TestCase):

@@ -35,14 +35,14 @@ class MovementReason(models.TextChoices):
 class Location(TimeStampedModel):
     """Tovar turadigan joy.
 
-    Do'konda ikkitasi bor: tovar keladigan **Ombor** va sotiladigan
-    **Do'kon** (savdo zali). Ro'yxat ochiq: ikkinchi do'kon ochilsa,
-    yangi qator qo'shiladi va qolgan kod o'zgarmaydi.
+    Ikkitasi bor: tovar keladigan **Ombor** va sotiladigan **Savdo
+    zali**. Ro'yxat ochiq: ikkinchi do'kon ochilsa, yangi qator
+    qo'shiladi va qolgan kod o'zgarmaydi.
     """
 
     class Kind(models.TextChoices):
         WAREHOUSE = 'warehouse', _('Ombor')
-        SHOP = 'shop', _('Do‘kon')
+        SHOP = 'shop', _('Savdo zali')
 
     name = models.CharField(_('Nomi'), max_length=80, unique=True)
     kind = models.CharField(_('Turi'), max_length=10, choices=Kind.choices)
@@ -64,10 +64,16 @@ class Location(TimeStampedModel):
         ular hech qachon yo'q bo'lmasligi kerak, aks holda tovar
         qabul qilish ham, sotish ham to'xtab qolardi.
         """
-        location = cls.objects.filter(kind=kind, is_active=True).order_by('pk').first()
+        location = cls.objects.filter(kind=kind).order_by('-is_active', 'pk').first()
 
         if location is None:
-            location = cls.objects.create(kind=kind, name=cls.Kind(kind).label)
+            return cls.objects.create(kind=kind, name=cls.Kind(kind).label)
+
+        # Tasodifan o'chirilgan bo'lsa qaytariladi: nomi yagona, ya'ni
+        # yangisini yaratish `IntegrityError` bilan tugardi
+        if not location.is_active:
+            location.is_active = True
+            location.save(update_fields=['is_active'])
 
         return location
 
@@ -106,6 +112,11 @@ class VariantStock(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['variant', 'location'], name='unique_variant_location'
+            ),
+            # Oxirgi himoya: qo'lda yozilgan SQL ham joydagi qoldiqni
+            # manfiyga tushira olmasin
+            models.CheckConstraint(
+                condition=models.Q(quantity__gte=0), name='location_stock_not_negative'
             ),
         ]
         indexes = [models.Index(fields=['location', 'variant'])]
