@@ -207,9 +207,13 @@ Ish tartibi:
 
 2. **Tovarni kiriting** (1-qadam). Nomi, brendi, kategoriyasi va
    **qaysi o'lcham, qaysi ranglarda kelgani** belgilanadi; tannarx va
-   ustama shu yerda yoziladi, sotuv narxi o'zi hisoblanadi (rasm
-   ixtiyoriy). Bitta o'lcham va bitta rang belgilansa, jadval bitta
-   katakdan iborat bo'ladi.
+   ustama shu yerda yoziladi, sotuv narxi o'zi hisoblanadi. Bitta
+   o'lcham va bitta rang belgilansa, jadval bitta katakdan iborat
+   bo'ladi.
+
+   **Rasm majburiy.** Rasmsiz tovarni ro'yxatda ham, kassa
+   tanlagichida ham tanib bo'lmaydi — nom hamma ko'ylakda o'xshash.
+   Telefondan suratga olish ham, fayl tanlash ham mumkin.
 
    Shu nomli tovar do'konda allaqachon bo'lsa, ekran ogohlantiradi va
    «Shu tovar yana keldi» tugmasini beradi — bir tovar ikki marta
