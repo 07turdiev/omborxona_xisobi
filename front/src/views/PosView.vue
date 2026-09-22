@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import AmountField from '@/components/AmountField.vue'
 import ProductPicker from '@/components/ProductPicker.vue'
 import ReceiptPrint from '@/components/ReceiptPrint.vue'
 import ScanField from '@/components/ScanField.vue'
@@ -245,7 +246,7 @@ function onClear() {
 
 /** Mijoz aynan kerakli summani berdi. */
 function exactCash() {
-  cashReceived.value = cashPart.value
+  cashReceived.value = formatMoney(cashPart.value)
   focusScanner()
 }
 
@@ -532,10 +533,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
               <option value="amount">so‘m</option>
             </select>
 
-            <input
+            <AmountField
               v-model="pos.discountValue"
-              type="text"
-              inputmode="decimal"
+              suffix=""
+              :grouped="pos.discountMode !== 'percent'"
               aria-label="Chegirma"
             />
           </div>
@@ -573,7 +574,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
         <div v-if="paymentMethod === 'mixed'" class="field">
           <label>Kartadan</label>
-          <input v-model="cardPart" type="text" inputmode="decimal" />
+          <AmountField v-model="cardPart" aria-label="Kartadan" />
           <small class="field-hint">Naqd qismi: {{ formatSum(cashPart) }}</small>
         </div>
 
@@ -581,7 +582,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           <label>Mijoz berdi</label>
 
           <div class="cash-row">
-            <input v-model="cashReceived" type="text" inputmode="decimal" placeholder="0" />
+            <AmountField v-model="cashReceived" aria-label="Mijoz berdi" placeholder="0" />
 
             <button class="button button-outline exact" type="button" @click="exactCash">
               Aniq summa
@@ -891,7 +892,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   gap: 6px;
 }
 
-.cash-row input {
+.cash-row .amount-field {
   flex: 1;
   min-width: 0;
 }

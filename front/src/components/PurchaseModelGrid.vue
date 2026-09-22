@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
+import AmountField from '@/components/AmountField.vue'
 import { catalogApi } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
@@ -233,26 +234,23 @@ onMounted(async () => {
     <div class="model-prices">
       <label class="price-field">
         <span>Tannarx (model uchun)</span>
-        <input
-          v-model="model.cost"
-          type="text"
-          inputmode="decimal"
-          aria-label="Model tannarxi"
-          placeholder="0"
-        />
+        <AmountField v-model="model.cost" aria-label="Model tannarxi" placeholder="0" />
       </label>
 
       <label class="price-field narrow">
-        <span>Ustama %</span>
-        <input v-model="model.markup" type="text" inputmode="decimal" aria-label="Ustama foizi" />
+        <span>Ustama</span>
+        <AmountField
+          v-model="model.markup"
+          suffix="%"
+          :grouped="false"
+          aria-label="Ustama foizi"
+        />
       </label>
 
       <label class="price-field">
         <span>Yangi sotuv narxi</span>
-        <input
+        <AmountField
           v-model="model.newPrice"
-          type="text"
-          inputmode="decimal"
           aria-label="Yangi sotuv narxi"
           :placeholder="formatMoney(model.currentPrice)"
         />
@@ -406,14 +404,11 @@ onMounted(async () => {
           <td>{{ row.variant.label }}</td>
           <td class="num">{{ row.quantity }}</td>
           <td class="num">
-            <input
-              class="cart-number wide"
-              type="text"
-              inputmode="decimal"
+            <AmountField
+              :model-value="model.overrides[row.variant.id] ?? ''"
               :aria-label="`${row.variant.label}: tannarx`"
-              :value="model.overrides[row.variant.id] ?? ''"
               :placeholder="formatMoney(model.cost || '0')"
-              @input="setOverride(row.variant.id, ($event.target as HTMLInputElement).value)"
+              @update:model-value="setOverride(row.variant.id, $event)"
             />
           </td>
         </tr>

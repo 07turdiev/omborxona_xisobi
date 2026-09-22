@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import AmountField from '@/components/AmountField.vue'
 import { catalogApi } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
@@ -351,29 +352,22 @@ async function onSave() {
 
             <label class="field">
               <span>Tannarx</span>
-              <input
-                v-model="form.cost"
-                type="text"
-                inputmode="decimal"
-                aria-label="Tannarx"
-                placeholder="0"
-              />
+              <AmountField v-model="form.cost" aria-label="Tannarx" placeholder="0" />
             </label>
 
             <label class="field narrow">
-              <span>Ustama %</span>
-              <input v-model="form.markup" type="text" inputmode="decimal" aria-label="Ustama foizi" />
+              <span>Ustama</span>
+              <AmountField
+                v-model="form.markup"
+                suffix="%"
+                :grouped="false"
+                aria-label="Ustama foizi"
+              />
             </label>
 
             <label class="field">
               <span>Sotuv narxi</span>
-              <input
-                v-model="form.sale_price"
-                type="text"
-                inputmode="decimal"
-                aria-label="Sotuv narxi"
-                placeholder="0"
-              />
+              <AmountField v-model="form.sale_price" aria-label="Sotuv narxi" placeholder="0" />
             </label>
           </div>
 

@@ -182,10 +182,12 @@ onMounted(load)
 </template>
 
 <style scoped>
+/* Ro'yxatlar qisqa — keng ekranda cho'zilib ketmasin */
 .attributes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 12px;
+  max-width: 1080px;
 }
 
 .attributes .wide {
@@ -196,6 +198,18 @@ onMounted(load)
   display: flex;
   gap: 6px;
   margin: 10px 0;
+}
+
+/* Matn maydoni qisqaradi, tugma butun qoladi: aks holda tor kartada
+   «Qo'shish» chetga chiqib kesilardi */
+.add-row input[type='text'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-row .button,
+.add-row .color-input {
+  flex: none;
 }
 
 

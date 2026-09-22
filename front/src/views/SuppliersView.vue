@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
+import AmountField from '@/components/AmountField.vue'
 import { errorMessage } from '@/api/client'
 import { purchasesApi } from '@/api/purchases'
 import { formatDate, todayIso } from '@/utils/date'
@@ -161,7 +162,7 @@ onMounted(load)
 
           <div class="field">
             <label>Summa</label>
-            <input v-model="payment.amount" type="text" inputmode="decimal" />
+            <AmountField v-model="payment.amount" />
           </div>
 
           <div class="field">

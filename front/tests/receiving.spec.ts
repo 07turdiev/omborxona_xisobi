@@ -151,7 +151,7 @@ test('yangi tovar: kiritiladi, soni yoziladi, yorliq chiqadi', async ({ page, re
 
   // 2-qadam: tannarx birinchi qadamdan ko'chadi
   await expect(page.getByTestId('step-quantities')).toBeVisible()
-  await expect(grid(page).getByLabel('Model tannarxi')).toHaveValue('200000')
+  await expect(grid(page).getByLabel('Model tannarxi')).toHaveValue(/^200\s000$/)
 
   await grid(page).getByLabel(`${first} ${color}: nechta`).fill('3')
   await grid(page).getByLabel(`${second} ${color}: nechta`).fill('2')

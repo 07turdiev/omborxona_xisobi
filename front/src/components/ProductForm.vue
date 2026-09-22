@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import AmountField from '@/components/AmountField.vue'
 import { catalogApi, type ProductInput } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { normalizeMoneyInput } from '@/utils/money'
@@ -191,7 +192,7 @@ async function onSave() {
 
       <div class="field">
         <label>Sotuv narxi</label>
-        <input v-model="form.sale_price" type="text" inputmode="decimal" />
+        <AmountField v-model="form.sale_price" />
       </div>
 
       <div class="field">

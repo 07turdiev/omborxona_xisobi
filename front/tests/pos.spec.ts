@@ -109,7 +109,8 @@ test('miqdor tugmalari va "Aniq summa"', async ({ page }) => {
   await expect(quantity).toHaveValue('1')
 
   await page.getByRole('button', { name: 'Aniq summa' }).click()
-  await expect(page.locator('.cash-row input')).toHaveValue('250000.00')
+  // Raqamlar uchtadan ajratilgan holda ko'rinadi
+  await expect(page.locator('.cash-row input')).toHaveValue(/^250\s000$/)
   await expect(page.locator('.scan-field input')).toBeFocused()
 })
 

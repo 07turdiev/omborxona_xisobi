@@ -7,6 +7,7 @@ import NewProductPanel from '@/components/NewProductPanel.vue'
 import PurchaseDocument from '@/components/PurchaseDocument.vue'
 import PurchaseModelGrid from '@/components/PurchaseModelGrid.vue'
 import { catalogApi } from '@/api/catalog'
+import AmountField from '@/components/AmountField.vue'
 import { errorMessage } from '@/api/client'
 import { purchasesApi } from '@/api/purchases'
 import { formatDayMonth, formatTime, todayIso } from '@/utils/date'
@@ -429,7 +430,7 @@ onMounted(async () => {
 
           <div class="field">
             <label>To‘langan summa</label>
-            <input v-model="draft.amount_paid" type="text" inputmode="decimal" placeholder="0" />
+            <AmountField v-model="draft.amount_paid" placeholder="0" />
           </div>
 
           <div class="field">

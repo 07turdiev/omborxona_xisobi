@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 
 import { settingsApi } from '@/api/accounts'
+import AmountField from '@/components/AmountField.vue'
 import { errorMessage } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import type { ShopSettings } from '@/types'
@@ -93,8 +94,8 @@ async function onSave() {
       </div>
 
       <div class="field">
-        <label>Kassir bera oladigan eng katta chegirma (%)</label>
-        <input v-model="form.max_discount_percent" type="text" inputmode="decimal" />
+        <label>Kassir bera oladigan eng katta chegirma</label>
+        <AmountField v-model="form.max_discount_percent" suffix="%" :grouped="false" />
       </div>
 
       <button class="button button-gradient" type="button" :disabled="saving" @click="onSave">
