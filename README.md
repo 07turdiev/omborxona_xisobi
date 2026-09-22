@@ -93,7 +93,7 @@ Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
 ## Testlar
 
 ```bash
-cd back && .venv/Scripts/python.exe manage.py test    # 159 ta
+cd back && .venv/Scripts/python.exe manage.py test    # 161 ta
 cd front && npm run test:unit                         # 93 ta
 cd front && npm run build                             # type-check + build
 cd agent && npm test                                  # 85 ta

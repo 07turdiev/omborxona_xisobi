@@ -1,8 +1,22 @@
 """Foydalanuvchi va uning roli."""
 
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+
+class ShopUserManager(UserManager):
+    """`createsuperuser` administrator rolini beradi.
+
+    Standart rol — kassir. Usiz serverda yaratilgan birinchi
+    foydalanuvchi kassa interfeysini ko'rardi: `is_admin` unga ruxsat
+    bersa ham, interfeys `role` ga qaraydi.
+    """
+
+    def create_superuser(self, *args, **kwargs):
+        kwargs.setdefault('role', User.Role.ADMIN)
+
+        return super().create_superuser(*args, **kwargs)
 
 
 class User(AbstractUser):
@@ -25,6 +39,8 @@ class User(AbstractUser):
     )
 
     phone = models.CharField(_('Telefon'), max_length=20, blank=True)
+
+    objects = ShopUserManager()
 
     class Meta:
         verbose_name = _('Xodim')

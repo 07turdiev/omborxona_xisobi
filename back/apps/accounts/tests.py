@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.test import TestCase
 
+from apps.accounts.models import User
 from apps.core.factories import (
     PASSWORD,
     api_client,
@@ -245,3 +246,18 @@ class UserManagementTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+
+class SuperuserRoleTests(TestCase):
+    """Serverda yaratilgan birinchi foydalanuvchi administrator bo'ladi."""
+
+    def test_createsuperuser_gives_the_admin_role(self):
+        user = User.objects.create_superuser(username='boshliq', password='x')
+
+        self.assertEqual(user.role, User.Role.ADMIN)
+        self.assertTrue(user.is_admin)
+
+    def test_ordinary_user_stays_a_cashier(self):
+        user = User.objects.create_user(username='sotuvchi', password='x')
+
+        self.assertEqual(user.role, User.Role.CASHIER)
