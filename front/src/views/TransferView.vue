@@ -200,9 +200,7 @@ onMounted(load)
         </ul>
       </div>
 
-      <div v-if="!chosen.length" class="empty-state">
-        Ombordagi tovarni toping va nechtasini zalga chiqarishni yozing.
-      </div>
+      <div v-if="!chosen.length" class="empty-state">Tovar tanlanmagan.</div>
 
       <div v-for="item in chosen" :key="item.product" class="model" data-testid="transfer-model">
         <div class="model-head">
