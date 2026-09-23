@@ -42,8 +42,9 @@ async function load() {
     const data = await catalogApi.catalog({
       search: search.value.trim() || undefined,
       category: category.value || undefined,
-      // Kassada faqat sotiladigan tovar kerak
-      in_stock: 'true',
+      // Kassada faqat savdo zalidagi tovar ko'rinadi. Omborda yotgani
+      // sotuvga tayyor emas: u avval javonga chiqarilishi kerak.
+      location: 'shop',
       ordering: 'name',
     })
 

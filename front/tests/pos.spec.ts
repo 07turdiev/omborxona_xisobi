@@ -10,6 +10,7 @@ import { expect, test, type Page } from '@playwright/test'
 import {
   createTestProduct,
   login,
+  moveToWarehouse,
   openApp,
   stockInWarehouseOnly,
   type Session,
@@ -199,6 +200,22 @@ test('zalda qolmagan tovar bir bosishda ombordan olib chiqiladi', async ({ page,
   await expect(
     page.getByRole('button', { name: `${hidden.size} ${hidden.color}: 1 dona, omborda 2` }),
   ).toBeVisible()
+})
+
+test('butunlay omborda yotgan tovar kassada ko‘rinmaydi', async ({ page, request }) => {
+  const stored = await createTestProduct(request, admin)
+
+  await moveToWarehouse(request, admin, stored)
+
+  await openPos(page)
+
+  const picker = page.locator('.pos-picker')
+
+  await picker.getByRole('searchbox', { name: 'Tovar qidirish' }).fill(stored.name)
+
+  // Javonda yo'q tovar sotuvga tayyor emas — avval zalga chiqariladi
+  await expect(picker.locator('.tile')).toHaveCount(0)
+  await expect(picker).toContainText('topilmadi')
 })
 
 test.describe('kassa ekrani 1366×768', () => {

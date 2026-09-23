@@ -96,7 +96,9 @@ kirim → Ombor → (ko'chirish) → Savdo zali → sotuv
   «Qayerga tushsin?» tanlovi bor: kichik partiyani ombordan o'tkazmay
   to'g'ridan-to'g'ri javonga qo'yish mumkin.
 - **Sotuv faqat zaldagi qoldiqdan** bo'ladi. Omborda 20 dona bo'lsa-yu
-  zalda nol bo'lsa, kassa uni sota olmaydi.
+  zalda nol bo'lsa, kassa uni sota olmaydi. Kassa tanlagichi ham faqat
+  **zalda qoldig'i bor** tovarni ko'rsatadi: butunlay omborda yotgan
+  tovar sotuvga tayyor emas.
 - **Ko'chirish** (`Transfer`, `KCH-` raqami) ikki yozuv qiladi:
   ombordan `TRANSFER_OUT`, zalga `TRANSFER_IN`. Do'konning umumiy
   qoldig'i o'zgarmaydi — tovar joyini almashtirdi, xolos.
