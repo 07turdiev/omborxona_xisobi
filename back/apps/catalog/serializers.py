@@ -86,6 +86,28 @@ def location_stocks(variant) -> list[dict]:
     ]
 
 
+def variant_thumb(variant, request=None) -> str | None:
+    """Variantning kichik rasmi.
+
+    Rangiga biriktirilgani afzal: qora ko'ylakni qidirayotgan odam oq
+    ko'ylakning suratini ko'rmasin. Bo'lmasa mahsulotning asosiy rasmi.
+    """
+    images = list(variant.product.images.all())
+
+    if not images:
+        return None
+
+    chosen = (
+        next((image for image in images if image.color_id == variant.color_id), None)
+        or next((image for image in images if image.is_primary), None)
+        or images[0]
+    )
+
+    url = chosen.thumb.url
+
+    return request.build_absolute_uri(url) if request else url
+
+
 class VariantSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     """Variant. Tannarxni faqat administrator ko'radi."""
 
@@ -100,10 +122,16 @@ class VariantSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     #: Har joydagi qoldiq: «zalda 3, omborda 12»
     stocks = serializers.SerializerMethodField()
 
+    #: Rang doirachasi va kichik rasm: kassa savati va ko'chirish
+    #: ro'yxati tovarni matndan emas, ko'rinishidan tanisin
+    color_hex = serializers.CharField(source='color.hex_code', read_only=True, default='')
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = Variant
         fields = (
             'id', 'product', 'product_name', 'size', 'size_name', 'color', 'color_name',
+            'color_hex', 'image',
             'label', 'sku', 'barcode', 'sale_price', 'price', 'average_cost',
             'stock_quantity', 'stocks', 'min_stock', 'is_active',
         )
@@ -113,6 +141,9 @@ class VariantSerializer(HideFromCashierMixin, serializers.ModelSerializer):
 
     def get_stocks(self, variant) -> list[dict]:
         return location_stocks(variant)
+
+    def get_image(self, variant) -> str | None:
+        return variant_thumb(variant, self.context.get('request'))
 
 
 class ProductSerializer(serializers.ModelSerializer):

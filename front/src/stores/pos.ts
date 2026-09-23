@@ -12,6 +12,9 @@ export interface CartLine {
   barcode: string
   name: string
   label: string
+  /** Kassir tovarni matndan emas, ko'rinishidan taniydi */
+  image: string | null
+  colorHex: string
   price: string
   quantity: number
   stock: number
@@ -142,6 +145,8 @@ export const usePosStore = defineStore('pos', () => {
         barcode: variant.barcode,
         name: variant.product_name,
         label: variant.label,
+        image: variant.image ?? null,
+        colorHex: variant.color_hex ?? '',
         price: variant.price,
         quantity,
         stock: available,

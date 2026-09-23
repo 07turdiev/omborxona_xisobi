@@ -139,6 +139,10 @@ export interface Variant {
   size_name: string | null
   color: number | null
   color_name: string | null
+  /** Rang doirachasi uchun: #RRGGBB */
+  color_hex?: string
+  /** Kichik rasm — rangiga biriktirilgani, bo'lmasa asosiysi */
+  image?: string | null
   label: string
   sku: string
   barcode: string

@@ -64,6 +64,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             'variants__color',
             'variants__product',
             'variants__stocks__location',
+            'images',
         )
 
         params = self.request.query_params
@@ -267,7 +268,7 @@ class VariantViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Variant.objects.select_related(
             'product', 'product__category', 'size', 'color'
-        ).prefetch_related('stocks__location')
+        ).prefetch_related('stocks__location', 'product__images')
 
         params = self.request.query_params
 
@@ -299,7 +300,7 @@ class VariantViewSet(viewsets.ModelViewSet):
 
         variant = (
             Variant.objects.select_related('product', 'size', 'color')
-            .prefetch_related('stocks__location')
+            .prefetch_related('stocks__location', 'product__images')
             .filter(barcode=code)
             .first()
         )

@@ -268,7 +268,14 @@ onMounted(load)
 
           <tbody>
             <tr v-for="variant in item.variants" :key="variant.id">
-              <td>{{ variant.label || item.name }}</td>
+              <td>
+                <span
+                  v-if="variant.color_hex"
+                  class="color-dot"
+                  :style="{ background: variant.color_hex }"
+                />
+                {{ variant.label || item.name }}
+              </td>
               <td class="num">{{ warehouseStock(variant) }}</td>
               <td class="num">{{ shopStock(variant) }}</td>
 
@@ -479,6 +486,17 @@ onMounted(load)
 
 .model-head strong {
   font-size: 16px;
+}
+
+/* Rang doirachasi — javondagi tovarni ko'z bilan solishtirish uchun */
+.color-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border: 1px solid rgb(0 0 0 / 20%);
+  border-radius: 50%;
+  vertical-align: baseline;
 }
 
 .quantity {

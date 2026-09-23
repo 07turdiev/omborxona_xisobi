@@ -440,10 +440,22 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
             <tr v-for="(line, index) in pos.lines" :key="line.variantId">
               <td>
-                <strong>{{ line.name }}</strong>
-                <small class="cell-sub">
-                  {{ line.label || line.sku }} · {{ formatMoney(line.price) }} so‘m
-                </small>
+                <div class="cart-item">
+                  <img v-if="line.image" class="cart-photo" :src="line.image" alt="" />
+
+                  <div>
+                    <strong>{{ line.name }}</strong>
+
+                    <small class="cell-sub">
+                      <span
+                        v-if="line.colorHex"
+                        class="cart-dot"
+                        :style="{ background: line.colorHex }"
+                      />
+                      {{ line.label || line.sku }} · {{ formatMoney(line.price) }} so‘m
+                    </small>
+                  </div>
+                </div>
               </td>
 
               <td class="num">
@@ -655,7 +667,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
    iloji boricha tor, qolgani savatga beriladi */
 .pos {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(280px, 320px);
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(270px, 310px);
   gap: 10px;
   height: calc(100vh - var(--topbar-height) - 56px);
 }
@@ -728,6 +740,42 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   background: var(--surface);
 }
 
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-photo {
+  flex: none;
+  width: 32px;
+  height: 40px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+/* Tovar ustuni eng keng bo'lsin: nom va rang bir qatorga sig'sin */
+.cart-table td:first-child,
+.cart-table th:first-child {
+  width: 100%;
+}
+
+.cart-item strong {
+  display: block;
+  line-height: 1.25;
+}
+
+/* Rang doirachasi: oq va bej ranglar fonda yo'qolmasin */
+.cart-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 2px;
+  border: 1px solid rgb(0 0 0 / 20%);
+  border-radius: 50%;
+  vertical-align: baseline;
+}
+
 .cart-table th {
   position: sticky;
   top: 0;
@@ -774,8 +822,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   overflow-wrap: anywhere;
 }
 
+.cart-table td:not(:first-child),
+.cart-table th:not(:first-child) {
+  white-space: nowrap;
+}
+
 .cart-number {
-  width: 52px;
+  width: 48px;
   text-align: center;
 }
 
