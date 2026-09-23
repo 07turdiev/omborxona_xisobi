@@ -218,6 +218,33 @@ test('butunlay omborda yotgan tovar kassada ko‘rinmaydi', async ({ page, reque
   await expect(picker).toContainText('topilmadi')
 })
 
+test('ustunlar surilib kengayadi va kenglik eslab qolinadi', async ({ page }) => {
+  await openPos(page)
+
+  const picker = page.locator('.pos-picker')
+  const handle = page.locator('.pos-resizer').first()
+
+  const before = (await picker.boundingBox())!.width
+  const grip = (await handle.boundingBox())!
+
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(grip.x + 120, grip.y + grip.height / 2, { steps: 10 })
+  await page.mouse.up()
+
+  const after = (await picker.boundingBox())!.width
+
+  expect(after, 'tanlagich kengaymadi').toBeGreaterThan(before + 80)
+
+  // Kassa kompyuteri har xil — kenglik brauzerda saqlanadi
+  await page.reload()
+  await expect(picker).toBeVisible()
+
+  const restored = (await picker.boundingBox())!.width
+
+  expect(Math.abs(restored - after), 'kenglik eslab qolinmadi').toBeLessThan(2)
+})
+
 test.describe('kassa ekrani 1366×768', () => {
   test.use({ viewport: { width: 1366, height: 768 } })
 

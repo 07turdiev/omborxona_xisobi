@@ -41,6 +41,74 @@ const lastSale = ref<Sale | null>(null)
 /** Tor ekranda tanlagich panel bo'lib ochiladi */
 const pickerOpen = ref(false)
 
+/**
+ * Ustun kengliklari — xodim o'zi suradi va brauzerda saqlanadi.
+ *
+ * Kassa kompyuterlari har xil: kimdadir keng monitor, kimdadir 1366 px
+ * noutbuk. Bitta o'lcham hammaga to'g'ri kelmaydi.
+ */
+const PICKER_RANGE = [180, 560] as const
+const SUMMARY_RANGE = [240, 620] as const
+
+const pickerWidth = ref(storedWidth('pos-picker-width', 240, PICKER_RANGE))
+const summaryWidth = ref(storedWidth('pos-summary-width', 310, SUMMARY_RANGE))
+
+function storedWidth(key: string, fallback: number, [min, max]: readonly [number, number]) {
+  try {
+    const saved = Number(localStorage.getItem(key))
+
+    if (saved) return Math.min(max, Math.max(min, saved))
+  } catch {
+    // Saqlash yopiq bo'lsa standart kenglik ishlatiladi
+  }
+
+  return fallback
+}
+
+function remember(key: string, value: number) {
+  try {
+    localStorage.setItem(key, String(value))
+  } catch {
+    // e'tiborsiz
+  }
+}
+
+/** Ajratgichni sichqoncha bilan surish. */
+function startResize(side: 'picker' | 'summary', event: PointerEvent) {
+  const target = side === 'picker' ? pickerWidth : summaryWidth
+  const [min, max] = side === 'picker' ? PICKER_RANGE : SUMMARY_RANGE
+
+  const startX = event.clientX
+  const startWidth = target.value
+
+  // O'ng ustun teskari yo'nalishda kengayadi
+  const direction = side === 'picker' ? 1 : -1
+
+  function move(moving: PointerEvent) {
+    const next = startWidth + (moving.clientX - startX) * direction
+
+    target.value = Math.min(max, Math.max(min, Math.round(next)))
+  }
+
+  function stop() {
+    window.removeEventListener('pointermove', move)
+    remember(side === 'picker' ? 'pos-picker-width' : 'pos-summary-width', target.value)
+  }
+
+  window.addEventListener('pointermove', move)
+  window.addEventListener('pointerup', stop, { once: true })
+}
+
+/** Klaviatura bilan: o'q tugmalari 20 px dan suradi. */
+function nudge(side: 'picker' | 'summary', step: number) {
+  const target = side === 'picker' ? pickerWidth : summaryWidth
+  const [min, max] = side === 'picker' ? PICKER_RANGE : SUMMARY_RANGE
+  const direction = side === 'picker' ? 1 : -1
+
+  target.value = Math.min(max, Math.max(min, target.value + step * direction))
+  remember(side === 'picker' ? 'pos-picker-width' : 'pos-summary-width', target.value)
+}
+
 /** Qaytim katta harflarda — kassir yopmaguncha turadi */
 const changeOpen = ref(false)
 const lastChange = ref('0')
@@ -361,7 +429,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <section class="pos">
+  <section
+    class="pos"
+    :style="{ '--picker-width': `${pickerWidth}px`, '--summary-width': `${summaryWidth}px` }"
+  >
     <!-- Tanlagich: yorliq o'qilmasa yoki skaner ishlamasa shu yerdan sotiladi -->
     <aside class="pos-picker" :class="{ open: pickerOpen }">
       <div class="picker-head">
@@ -379,6 +450,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
       <ProductPicker @pick="onPick" />
     </aside>
+
+    <!-- Ustunlar kengligini xodimning o'zi sozlaydi -->
+    <div
+      class="pos-resizer"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Tanlagich kengligi"
+      tabindex="0"
+      @pointerdown.prevent="startResize('picker', $event)"
+      @keydown.left.prevent="nudge('picker', -20)"
+      @keydown.right.prevent="nudge('picker', 20)"
+    />
 
     <!-- Savat -->
     <div class="pos-cart">
@@ -522,6 +605,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         </table>
       </div>
     </div>
+
+    <div
+      class="pos-resizer"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Hisob ustuni kengligi"
+      tabindex="0"
+      @pointerdown.prevent="startResize('summary', $event)"
+      @keydown.left.prevent="nudge('summary', -20)"
+      @keydown.right.prevent="nudge('summary', 20)"
+    />
 
     <!-- Hisob va to'lov -->
     <aside class="pos-summary">
@@ -667,7 +761,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
    iloji boricha tor, qolgani savatga beriladi */
 .pos {
   display: grid;
-  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(270px, 310px);
+  grid-template-columns:
+    var(--picker-width, 240px) 5px
+    minmax(0, 1fr)
+    5px var(--summary-width, 310px);
   gap: 10px;
   height: calc(100vh - var(--topbar-height) - 56px);
 }
@@ -754,6 +851,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   object-fit: cover;
 }
 
+/* Ustunlarni ajratib turuvchi tutqich */
+.pos-resizer {
+  align-self: stretch;
+  border-radius: 3px;
+  background: var(--border);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.pos-resizer:hover,
+.pos-resizer:focus-visible {
+  background: var(--accent);
+}
+
 /* Tovar ustuni eng keng bo'lsin: nom va rang bir qatorga sig'sin */
 .cart-table td:first-child,
 .cart-table th:first-child {
@@ -763,6 +874,28 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .cart-item strong {
   display: block;
   line-height: 1.25;
+}
+
+/* Keng monitorda savat qatori kattalashadi: 1366 px da bunga joy yo'q,
+   kassa kompyuteri keng bo'lsa esa qator uzoqdan ham o'qilsin */
+@media (min-width: 1400px) {
+  .cart-photo {
+    width: 56px;
+    height: 72px;
+  }
+
+  .cart-item strong {
+    font-size: 18px;
+  }
+
+  .cart-item .cell-sub {
+    font-size: 15px;
+  }
+
+  .cart-table td {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
 }
 
 /* Rang doirachasi: oq va bej ranglar fonda yo'qolmasin */
@@ -1053,7 +1186,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 /* Planshet va tor ekran: tanlagich panel bo'lib ochiladi */
 @media (max-width: 1280px) {
   .pos {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) 5px var(--summary-width, 310px);
+  }
+
+  /* Tanlagich panel bo'lgani uchun uning ajratgichi keraksiz */
+  .pos-resizer:first-of-type {
+    display: none;
   }
 
   .pos-picker {
@@ -1078,6 +1216,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   .pos {
     grid-template-columns: 1fr;
     height: auto;
+  }
+
+  .pos-resizer {
+    display: none;
   }
 
   .cart-table-wrap {

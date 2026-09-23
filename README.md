@@ -101,7 +101,7 @@ cd agent && npm test                                  # 85 ta
 
 ### Interfeys testlari — alohida bazada
 
-Playwright haqiqiy brauzerda ilovani tekshiradi (72 ta): navigatsiya va
+Playwright haqiqiy brauzerda ilovani tekshiradi (73 ta): navigatsiya va
 tuzilma, tovarlar sahifasi, sotish, tovar qabul qilish (uch qadam: yangi
 tovar, o'lcham × rang katakchasi, yorliq), ombordan zalga chiqarish,
 telefon o'lchami, chop etish (sahifalar soni va o'lchami chiqqan PDF dan
