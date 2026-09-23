@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
-import { loadConfig } from '../src/config.js'
+import { findConfig, loadConfig } from '../src/config.js'
 
 /** Vaqtinchalik `config.json` yozib, uni o'qiydi va ogohlantirishlarni ushlaydi. */
 function load(content) {
@@ -71,5 +71,48 @@ describe('loadConfig', () => {
     assert.equal(messages.length, 1)
     assert.match(messages[0], /"barcodeheight"/)
     assert.match(messages[0], /"barcodeHeight"/)
+  })
+})
+
+describe('findConfig', () => {
+  /** Agent papkasi va uning ustki papkasi */
+  function tree() {
+    const parent = mkdtempSync(join(tmpdir(), 'agent-tree-'))
+    const root = join(parent, 'agent')
+
+    mkdirSync(root)
+
+    return { parent, root }
+  }
+
+  it('agent papkasidagi fayl birinchi o‘rinda', () => {
+    const { parent, root } = tree()
+
+    writeFileSync(join(root, 'config.json'), '{}')
+    writeFileSync(join(parent, 'config.json'), '{}')
+
+    assert.equal(findConfig(root), join(root, 'config.json'))
+
+    rmSync(parent, { recursive: true, force: true })
+  })
+
+  it('ustki papkadagi fayl ham topiladi', () => {
+    // Agent yangilanganda papkasi almashtiriladi — sozlama tashqarida
+    // qolsa, uni qayta yozish shart bo'lmaydi
+    const { parent, root } = tree()
+
+    writeFileSync(join(parent, 'config.json'), '{}')
+
+    assert.equal(findConfig(root), join(parent, 'config.json'))
+
+    rmSync(parent, { recursive: true, force: true })
+  })
+
+  it('hech qayerda bo‘lmasa agent papkasi qaytariladi', () => {
+    const { parent, root } = tree()
+
+    assert.equal(findConfig(root), join(root, 'config.json'))
+
+    rmSync(parent, { recursive: true, force: true })
   })
 })

@@ -96,7 +96,7 @@ Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
 cd back && .venv/Scripts/python.exe manage.py test    # 165 ta
 cd front && npm run test:unit                         # 93 ta
 cd front && npm run build                             # type-check + build
-cd agent && npm test                                  # 87 ta
+cd agent && npm test                                  # 90 ta
 ```
 
 ### Interfeys testlari — alohida bazada

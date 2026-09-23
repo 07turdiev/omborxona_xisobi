@@ -66,7 +66,13 @@ Set-Printer -Name "Xprinter XP-365B" -Shared $true -ShareName "XP365B"
 ```
 
 **3. Agentni ko'chiring.** GitHub'dan `Code → Download ZIP`, ichidan
-faqat `agent` papkasini oling va masalan `C:\dokon\agent` ga qo'ying.
+faqat `agent` papkasini oling. Tavsiya etilgan joylashuv:
+
+```
+C:\dokon\
+  config.json     ← sozlama shu yerda qoladi
+  agent\          ← yangilanganda butunlay almashtiriladi
+```
 
 **4. Sozlang.** `config.example.json` dan nusxa olib `config.json`
 yarating va uchta narsani to'g'rilang:
@@ -84,6 +90,11 @@ yarating va uchta narsani to'g'rilang:
 `origins` da **do'konning haqiqiy manzili** bo'lishi shart: agent
 boshqa manzildan kelgan so'rovni rad etadi va chek brauzer oynasi
 orqali chiqib ketadi.
+
+Faylni agent papkasining **ustiga** qo'ysangiz, agentni yangilaganda
+uni qayta yozish shart bo'lmaydi: agent avval o'z papkasidan, keyin
+ustki papkadan qidiradi. Boshqa joyda saqlash uchun `AGENT_CONFIG`
+o'zgaruvchisiga to'liq yo'lni bering.
 
 **5. Avtomatik ishga tushishini yoqing.** Kassir kompyuterga kirishi
 bilan agent ko'tariladi, oyna ochilmaydi:

@@ -5,7 +5,7 @@
  * Namuna: `config.example.json`.
  */
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -59,7 +59,28 @@ function checkPrinter(name, printer) {
   }
 }
 
-export function loadConfig(path = join(ROOT, 'config.json')) {
+/**
+ * Sozlama fayli qayerdan izlanadi.
+ *
+ * Tartib: `AGENT_CONFIG` o'zgaruvchisi → agent papkasi → uning ustki
+ * papkasi. Ustki papka ataylab: agent yangilanganda papka butunlay
+ * almashtiriladi, sozlama esa o'z joyida qolishi kerak.
+ *
+ *     C:\dokon\
+ *       config.json   ← shu yerda qoladi
+ *       agent\        ← yangilanganda almashtiriladi
+ */
+export function findConfig(root = ROOT) {
+  const candidates = [
+    process.env.AGENT_CONFIG,
+    join(root, 'config.json'),
+    join(root, '..', 'config.json'),
+  ].filter(Boolean)
+
+  return candidates.find((path) => existsSync(path)) ?? join(root, 'config.json')
+}
+
+export function loadConfig(path = findConfig()) {
   let file = {}
 
   try {

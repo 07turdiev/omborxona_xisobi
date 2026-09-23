@@ -49,7 +49,35 @@ Drayver sozlamalarida (Printer → Printing preferences):
 | Speed | past yoki o'rta — kichik shriftlar aniqroq chiqadi |
 | Darkness / Density | o'rta; chiziqlar oqarib chiqsa oshiring |
 
-### 2.2. Yorliqlar orasidagi oraliqni kalibrlash
+### 2.2. Yorliq hira chiqsa
+
+Ikki sozlama hal qiladi, ikkalasi ham `agent/config.json` da:
+
+```json
+"label": { "density": 12, "speed": 2 }
+```
+
+| Sozlama | Oraliq | Nima qiladi |
+|---|---|---|
+| `density` | 0–15 (standart 8) | Qoraligi. Hira chiqsa **oshiring** |
+| `speed` | dyuym/soniya (standart 4) | Tezlik. **Pasaytirilsa** chiziqlar aniqroq |
+
+10–12 oralig'idan boshlang. Juda oshirib yuborilsa qora joylar yoyilib
+ketadi va shtrix-kod o'qilmay qoladi — kodni skaner bilan tekshiring.
+
+Agar yorliq **brauzer orqali** chiqayotgan bo'lsa (chop etish oynasi
+ochilsa), hiralikning sababi boshqa: Chrome shtrix-kodni rasm qilib
+chizadi va termal printerda u kulrang bo'lib qoladi. Bunday holda avval
+agentni ishga tushiring (`agent/README.md`) — kodni printerning o'zi
+chizadi va chiziqlar nuqtalarga aniq tushadi.
+
+Qog'ozning o'zi ham sabab bo'ladi: termal yorliq eskirsa yoki teskari
+tomoni bilan qo'yilsa oqarib chiqadi. Tirnoq bilan chizib ko'ring — iz
+qoladigan tomoni ustida bo'lishi kerak.
+
+---
+
+### 2.3. Yorliqlar orasidagi oraliqni kalibrlash
 
 Rulon almashtirilganda printer yorliq chegarasini "yo'qotishi" mumkin —
 u holda chop etish siljib boradi.
@@ -59,13 +87,13 @@ u holda chop etish siljib boradi.
    chiqarib, oraliqni o'lchaydi va to'xtaydi.
 3. Yoki drayverdagi **Calibrate / Gap sensor** tugmasini bosing.
 
-### 2.3. Self-test
+### 2.4. Self-test
 
 Printer yoqilgandan keyin **FEED** ni bosib turib o'chirib-yoqish —
 printer o'z sozlamalarini (zichlik, tezlik, sensor turi) yorliqqa
 bosadi. Shu varaq drayver bilan mos kelishini tekshiring.
 
-### 2.4. Dasturdan tekshirish
+### 2.5. Dasturdan tekshirish
 
 **Sozlamalar → Qurilmalarni sinash → Sinov yorlig'i.**
 
@@ -75,7 +103,7 @@ bosadi. Shu varaq drayver bilan mos kelishini tekshiring.
 - Yorliq **ramkasi to'liq** ko'rinsin, chetlari kesilmasin.
 - Chiqqan shtrix-kodni skanerlang — o'qilishi shart.
 
-### 2.5. Agent uchun ulashish
+### 2.6. Agent uchun ulashish
 
 XP-365B da faqat USB bor. Chop etish agenti unga raw baytlarni yuborishi
 uchun printer **ulashilgan** bo'lishi kerak — agent `\\127.0.0.1\NOM`
