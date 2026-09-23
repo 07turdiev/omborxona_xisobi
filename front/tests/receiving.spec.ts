@@ -267,6 +267,64 @@ test('rasm majburiy, narx ustamadan taklif qilinadi', async ({ page, request }) 
   expect(saved.images).toHaveLength(1)
 })
 
+test('har rangga alohida rasm biriktiriladi', async ({ page, request }) => {
+  const name = `Ikki rangli ${Date.now()}`
+  const [first, second] = [colors[0]!.name, colors[1]!.name]
+
+  await openApp(page, admin, '/purchases')
+
+  const form = panel(page)
+
+  await form.getByLabel('Mahsulot nomi').fill(name)
+  await form.getByTestId('file-input').setInputFiles(testPhoto())
+
+  for (const color of [first, second]) {
+    await form
+      .getByRole('group', { name: 'Ranglar' })
+      .getByRole('button', { name: color, exact: true })
+      .click()
+  }
+
+  // Rang tanlangach, har biriga rasm katakchasi chiqadi
+  await form.getByRole('button', { name: `${first}: rasm tanlash` }).click()
+  await form.getByTestId('color-file-input').setInputFiles(testPhoto())
+
+  await form.getByRole('button', { name: 'Davom etish' }).click()
+  await expect(grid(page)).toContainText(name)
+
+  const saved = await findProduct(request, name)
+  const colorIds = saved.images.map((image: { color: number | null }) => image.color)
+
+  // Umumiy rasm va birinchi rangning rasmi
+  expect(colorIds).toHaveLength(2)
+  expect(colorIds).toContain(null)
+  expect(colorIds.filter(Boolean)).toHaveLength(1)
+})
+
+test('o‘lchamsiz tovar: sumka faqat ranglar bilan kiritiladi', async ({ page, request }) => {
+  const name = `Sumka ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+
+  // O'lcham tanlanmaydi — sumkada o'lcham yo'q
+  await fillNewProduct(page, name, { colors: [colors[0]!.name] })
+
+  await expect(grid(page).locator('.cell')).toHaveCount(1)
+
+  await grid(page).getByLabel('Model tannarxi').fill('90000')
+
+  // O'lchamsiz ustun «—» deb ataladi
+  await grid(page).getByLabel(`— ${colors[0]!.name}: nechta`).fill('4')
+
+  await confirmButton(page).click()
+  await expect(page.getByTestId('purchase-summary')).toBeVisible()
+
+  const saved = await findProduct(request, name)
+
+  expect(saved.variants).toHaveLength(1)
+  expect(saved.variants[0].size).toBeNull()
+})
+
 test('shu nomli tovar bor: yangisi yaratilmaydi', async ({ page, request }) => {
   const name = `Takror kurtka ${Date.now()}`
 

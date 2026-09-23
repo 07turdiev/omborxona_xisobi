@@ -225,6 +225,15 @@ Ish tartibi:
    tanlagichida ham tanib bo'lmaydi — nom hamma ko'ylakda o'xshash.
    Telefondan suratga olish ham, fayl tanlash ham mumkin.
 
+   Rang tanlangach **har rangga o'z surati** biriktiriladi. Keyin
+   kassa savatida, tanlagichda va zalga chiqarish ro'yxatida aynan
+   o'sha rangning surati ko'rinadi: qora ko'ylakni sotayotgan xodim
+   oq ko'ylakning suratini ko'rmaydi.
+
+   **O'lcham majburiy emas.** Sumka, ro'mol va taqinchoqda o'lcham
+   bo'lmaydi — o'lcham tanlanmasa, katakcha bitta ustundan iborat
+   bo'ladi va har rangga bitta shtrix-kod chiqadi.
+
    Shu nomli tovar do'konda allaqachon bo'lsa, ekran ogohlantiradi va
    «Shu tovar yana keldi» tugmasini beradi — bir tovar ikki marta
    yaratilib, qoldiq ikkiga bo'linib ketmasin. Avval kelgan tovarni

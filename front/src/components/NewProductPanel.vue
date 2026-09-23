@@ -19,6 +19,10 @@ import type { Category, Color, Product, Size } from '@/types'
  * Chap tomonda rasmlar, o'ng tomonda ma'lumot. Kamida bitta rasm
  * majburiy: rasmsiz tovarni na javonda, na ro'yxatda tanib bo'ladi.
  *
+ * Har rangga o'z rasmini biriktirish mumkin. Qora ko'ylakni
+ * qidirayotgan xodim oq ko'ylakning suratini ko'rmasin: kassa savati
+ * va tanlagich variantning o'z rangidagi rasmni ko'rsatadi.
+ *
  * Nom yozilganda shu nomli tovar bor-yo'qligi tekshiriladi: bir tovar
  * ikki marta yaratilsa, qoldiq ikkiga bo'linib ketardi.
  */
@@ -50,6 +54,12 @@ const camera = ref<HTMLInputElement | null>(null)
 
 /** Tanlangan rasmlar — mahsulot yaratilgandan keyin yuklanadi */
 const photos = ref<{ file: File; url: string }[]>([])
+
+/** Rang bo'yicha rasm: `{ rang id: fayl }` */
+const colorPhotos = ref<Record<number, { file: File; url: string }>>({})
+
+const colorPicker = ref<HTMLInputElement | null>(null)
+const pickingColor = ref<number | null>(null)
 const dragging = ref(false)
 
 const MAX_PHOTOS = 5
@@ -132,13 +142,54 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   for (const photo of photos.value) URL.revokeObjectURL(photo.url)
+  for (const photo of Object.values(colorPhotos.value)) URL.revokeObjectURL(photo.url)
 })
+
+/** Tanlangan ranglar — ular uchun rasm so'raladi. */
+const chosenColors = computed(() =>
+  colors.value.filter((item) => form.value.color_ids.includes(item.id)),
+)
 
 function toggle(list: number[], id: number) {
   const index = list.indexOf(id)
 
   if (index === -1) list.push(id)
   else list.splice(index, 1)
+}
+
+/** Rang bekor qilinsa, unga biriktirilgan rasm ham keraksiz bo'ladi. */
+function toggleColor(id: number) {
+  toggle(form.value.color_ids, id)
+
+  if (!form.value.color_ids.includes(id)) removeColorPhoto(id)
+}
+
+function pickColorPhoto(id: number) {
+  pickingColor.value = id
+  colorPicker.value?.click()
+}
+
+function onColorPick(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  const id = pickingColor.value
+
+  input.value = ''
+  pickingColor.value = null
+
+  if (!file?.type.startsWith('image/') || id === null) return
+
+  removeColorPhoto(id)
+  colorPhotos.value[id] = { file, url: URL.createObjectURL(file) }
+}
+
+function removeColorPhoto(id: number) {
+  const photo = colorPhotos.value[id]
+
+  if (!photo) return
+
+  URL.revokeObjectURL(photo.url)
+  delete colorPhotos.value[id]
 }
 
 function addPhotos(list: FileList | null) {
@@ -197,14 +248,22 @@ async function onSave() {
     // Rasmlar mahsulot yaratilgandan keyin yuklanadi: yuklashga
     // mahsulot `id` si kerak. Bittasi yuklanmasa ham mahsulot qoladi —
     // suratni tovar sahifasidan qo'shish mumkin.
-    if (photos.value.length) {
+    const uploads: { file: File; color: number | null }[] = [
+      ...photos.value.map((photo) => ({ file: photo.file, color: null })),
+      ...Object.entries(colorPhotos.value).map(([id, photo]) => ({
+        file: photo.file,
+        color: Number(id),
+      })),
+    ]
+
+    if (uploads.length) {
       uploading.value = true
 
       let failed = 0
 
-      for (const photo of photos.value) {
+      for (const upload of uploads) {
         try {
-          await catalogApi.uploadImage(product.id, photo.file, null)
+          await catalogApi.uploadImage(product.id, upload.file, upload.color)
         } catch {
           failed += 1
         }
@@ -401,12 +460,56 @@ async function onSave() {
                   :class="{ active: form.color_ids.includes(item.id) }"
                   type="button"
                   :aria-pressed="form.color_ids.includes(item.id)"
-                  @click="toggle(form.color_ids, item.id)"
+                  @click="toggleColor(item.id)"
                 >
                   <span class="swatch-dot" :style="{ background: item.hex_code }" />
                   <small>{{ item.name }}</small>
                 </button>
               </div>
+            </div>
+
+            <!-- Har rangning o'z surati: kassada aynan o'sha ko'rinadi -->
+            <div v-if="chosenColors.length" class="field">
+              <span class="field-label">Rang bo‘yicha rasm (ixtiyoriy)</span>
+
+              <ul class="color-photos">
+                <li v-for="item in chosenColors" :key="item.id">
+                  <button
+                    type="button"
+                    :aria-label="`${item.name}: rasm tanlash`"
+                    @click="pickColorPhoto(item.id)"
+                  >
+                    <img v-if="colorPhotos[item.id]" :src="colorPhotos[item.id]!.url" alt="" />
+                    <span v-else class="color-photo-empty">
+                      <svg aria-hidden="true"><use href="#i-image" /></svg>
+                    </span>
+
+                    <span class="color-photo-name">
+                      <span class="swatch-dot" :style="{ background: item.hex_code }" />
+                      {{ item.name }}
+                    </span>
+                  </button>
+
+                  <button
+                    v-if="colorPhotos[item.id]"
+                    class="icon-button delete"
+                    type="button"
+                    :aria-label="`${item.name}: rasmni olib tashlash`"
+                    @click="removeColorPhoto(item.id)"
+                  >
+                    <svg><use href="#i-trash" /></svg>
+                  </button>
+                </li>
+              </ul>
+
+              <input
+                ref="colorPicker"
+                type="file"
+                accept="image/*"
+                hidden
+                data-testid="color-file-input"
+                @change="onColorPick"
+              />
             </div>
           </template>
         </section>
@@ -447,6 +550,72 @@ async function onSave() {
   color: var(--accent);
   font-size: 11px;
   letter-spacing: 2px;
+}
+
+/* Rang bo'yicha rasm: har rang uchun bitta katakcha */
+.color-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.color-photos li {
+  position: relative;
+}
+
+.color-photos li > button:first-child {
+  display: flex;
+  width: 96px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.color-photos li > button:first-child:hover {
+  border-color: var(--accent);
+}
+
+.color-photos img,
+.color-photo-empty {
+  width: 100%;
+  height: 96px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.color-photo-empty {
+  display: grid;
+  place-items: center;
+  background: var(--surface-soft);
+}
+
+.color-photo-empty svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.6;
+}
+
+.color-photo-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.color-photos .icon-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--surface);
 }
 
 /* --- Rasmlar --- */
