@@ -223,7 +223,9 @@ Ish tartibi:
 
    **Rasm majburiy.** Rasmsiz tovarni ro'yxatda ham, kassa
    tanlagichida ham tanib bo'lmaydi — nom hamma ko'ylakda o'xshash.
-   Telefondan suratga olish ham, fayl tanlash ham mumkin.
+   Rasm fayldan tanlanadi. Alohida «Kamera» tugmasi yo'q: kassa
+   kompyuterida kamera bo'lmaydi, telefonda esa fayl tanlash oynasining
+   o'zi suratga olishni taklif qiladi.
 
    Rang tanlangach **har rangga o'z surati** biriktiriladi. Keyin
    kassa savatida, tanlagichda va zalga chiqarish ro'yxatida aynan

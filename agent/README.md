@@ -45,6 +45,62 @@ ko'rinadi: versiya, printerlar, oxirgi xatolar va sinov tugmalari.
 
 ---
 
+## Kassa kompyuteriga o'rnatish
+
+Bu ish bir marta qilinadi. Administrator huquqi faqat printerni
+ulashish uchun kerak (2-qadam), qolganiga shart emas.
+
+**1. Node.js.** <https://nodejs.org> dan LTS versiyasini o'rnating yoki:
+
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
+
+Tekshirish: yangi oynada `node --version` → `v20` yoki yuqorisi.
+
+**2. Yorliq printerini ulashing.** XP-365B da faqat USB bor, agent unga
+ulashuv orqali yozadi. Administrator PowerShell'da:
+
+```powershell
+Set-Printer -Name "Xprinter XP-365B" -Shared $true -ShareName "XP365B"
+```
+
+**3. Agentni ko'chiring.** GitHub'dan `Code → Download ZIP`, ichidan
+faqat `agent` papkasini oling va masalan `C:\dokon\agent` ga qo'ying.
+
+**4. Sozlang.** `config.example.json` dan nusxa olib `config.json`
+yarating va uchta narsani to'g'rilang:
+
+```json
+{
+  "origins": ["https://dokon.example.uz"],
+  "printers": {
+    "receipt": { "transport": "tcp", "host": "CHEK-PRINTER-IP", "port": 9100 },
+    "label": { "transport": "windows", "share": "\\\\127.0.0.1\\XP365B" }
+  }
+}
+```
+
+`origins` da **do'konning haqiqiy manzili** bo'lishi shart: agent
+boshqa manzildan kelgan so'rovni rad etadi va chek brauzer oynasi
+orqali chiqib ketadi.
+
+**5. Avtomatik ishga tushishini yoqing.** Kassir kompyuterga kirishi
+bilan agent ko'tariladi, oyna ochilmaydi:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install-service.ps1
+```
+
+O'chirish: `uninstall-service.ps1`. Xabarlar `agent.log` ga yoziladi.
+
+**6. Tekshiring.** <http://127.0.0.1:7777/health> printerlar ro'yxatini
+qaytarsin. Keyin dasturda **Sozlamalar → Qurilmalarni sinash** dan
+sinov cheki va sinov yorlig'ini chiqaring — brauzerning chop etish
+oynasi **ochilmasligi** kerak.
+
+---
+
 ## Sozlama — `config.json`
 
 Bu fayl repoga kirmaydi: unda printerning tarmoqdagi manzili bo'ladi.
@@ -56,6 +112,12 @@ Namuna: `config.example.json`.
 | `origins` | 5173 portlari | Qaysi manzildagi ilova murojaat qila oladi |
 | `codePage` | `cp1252` | Chek printerining kod sahifasi |
 | `token` | yo'q | Ixtiyoriy. Bitta kompyuterli o'rnatmada **kerak emas** |
+
+> **`origins` da do'konning domeni bo'lishi shart.** Ilova serverga
+> chiqarilgach u `https://dokon.example.uz` manzilidan ochiladi —
+> ro'yxatda faqat `5173` portlari qolsa, agent so'rovni rad etadi va
+> chek brauzerning chop etish oynasi orqali chiqadi. Sozlamani
+> o'zgartirgach agent qayta ishga tushiriladi.
 
 ### Chek printeri — `printers.receipt`
 

@@ -154,23 +154,80 @@ async function onSaved() {
 
 // --- Yorliq -----------------------------------------------------------------
 
+const labelOpen = ref(false)
+
+/** Har variantga nechta yorliq: `{ shtrix-kod: soni }` */
+const labelCounts = ref<Record<string, number>>({})
+
+/**
+ * Yorliq chiqariladigan variantlar — oyna tasdiqlanishini kutadi.
+ *
+ * Bu yerda ikki xil variant uchraydi: jadvaldagi to'liq `Variant` va
+ * katalogdagi yengil `CatalogVariant`. Yorliqqa ikkalasida ham bor
+ * maydonlargina kerak.
+ */
+type LabelTarget = Pick<
+  Variant,
+  'barcode' | 'size_name' | 'color_name' | 'price' | 'stock_quantity'
+>
+
+const labelTargets = ref<LabelTarget[]>([])
+
+/**
+ * Jami nechta yorliq chiqadi.
+ *
+ * Har variantning o'z soni bor: ular turli shtrix-kod, ya'ni bitta
+ * songa birlashtirib bo'lmaydi. Boshlang'ich qiymat — qoldiq: yorliq
+ * jismoniy tovarga yopishtiriladi, nechta tovar bo'lsa shuncha kerak.
+ */
+const labelTotal = computed(() =>
+  labelTargets.value.reduce(
+    (sum, item) => sum + Math.max(0, labelCounts.value[item.barcode] ?? 0),
+    0,
+  ),
+)
+
+function setLabelCount(barcode: string, value: string) {
+  const wanted = Number.parseInt(value, 10)
+
+  labelCounts.value[barcode] = Number.isNaN(wanted) || wanted < 0 ? 0 : wanted
+}
+
 /** Tanlangan variantga yoki tanlangan rangning hamma variantlariga yorliq. */
+function openLabels() {
+  const data = product.value
+
+  if (!data) return
+
+  labelTargets.value = variant.value
+    ? [variant.value]
+    : data.variants.filter((item) => colorId.value === null || item.color === colorId.value)
+
+  // Qoldiq nol bo'lsa ham bitta: tovar kelishidan oldin yorliq
+  // tayyorlab qo'yish kerak bo'ladi
+  labelCounts.value = Object.fromEntries(
+    labelTargets.value.map((item) => [item.barcode, Math.max(1, item.stock_quantity)]),
+  )
+
+  labelOpen.value = true
+}
+
 function printLabels() {
   const data = product.value
 
   if (!data) return
 
-  const items = variant.value
-    ? [variant.value]
-    : data.variants.filter((item) => colorId.value === null || item.color === colorId.value)
+  labelItems.value = labelTargets.value
+    .filter((item) => (labelCounts.value[item.barcode] ?? 0) > 0)
+    .map((item) => ({
+      barcode: item.barcode,
+      name: data.name,
+      label: [item.size_name, item.color_name].filter(Boolean).join(' / '),
+      price: item.price,
+      quantity: labelCounts.value[item.barcode]!,
+    }))
 
-  labelItems.value = items.map((item) => ({
-    barcode: item.barcode,
-    name: data.name,
-    label: [item.size_name, item.color_name].filter(Boolean).join(' / '),
-    price: item.price,
-    quantity: 1,
-  }))
+  labelOpen.value = false
 
   // Ro'yxat DOM ga chiqishi uchun keyingi kadrda
   setTimeout(() => labels.value?.printLabels(), 50)
@@ -335,7 +392,7 @@ function when(value: string) {
               Tahrirlash
             </button>
 
-            <button class="button button-outline" type="button" @click="printLabels">
+            <button class="button button-outline" type="button" @click="openLabels">
               <svg><use href="#i-print" /></svg>
               <span>
                 {{
@@ -612,10 +669,69 @@ function when(value: string) {
           <button
             class="button button-danger"
             type="button"
-            :disabled="!writeOff.variant || !writeOff.reason.trim() || writeOffSaving"
+            :disabled="
+              !writeOff.variant || !writeOff.location || !writeOff.reason.trim() || writeOffSaving
+            "
             @click="submitWriteOff"
           >
             {{ writeOffSaving ? 'Saqlanmoqda…' : 'Hisobdan chiqarish' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Yorliq soni: nechta tovar bo'lsa shuncha yorliq kerak -->
+    <div
+      v-if="labelOpen"
+      class="overlay"
+      @click.self="labelOpen = false"
+      @keydown.esc="labelOpen = false"
+    >
+      <div
+        class="overlay-card narrow"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Yorliq chop etish"
+        data-testid="label-dialog"
+      >
+        <h3>Yorliq chop etish</h3>
+
+        <p class="dialog-note">
+          Har variantning o‘z shtrix-kodi bor — nechtadan kerakligini
+          alohida yozasiz. Boshida qoldiq turadi.
+        </p>
+
+        <ul class="label-rows">
+          <li v-for="item in labelTargets" :key="item.barcode">
+            <span>{{ [item.size_name, item.color_name].filter(Boolean).join(' / ') || '—' }}</span>
+
+            <input
+              type="number"
+              min="0"
+              :aria-label="`${[item.size_name, item.color_name].filter(Boolean).join(' / ') || 'Yorliq'}: nechta`"
+              :value="labelCounts[item.barcode]"
+              @input="setLabelCount(item.barcode, ($event.target as HTMLInputElement).value)"
+              @keydown.enter="printLabels"
+            />
+          </li>
+        </ul>
+
+        <p class="label-total">
+          Jami: <strong data-testid="label-total">{{ labelTotal }}</strong> ta yorliq
+        </p>
+
+        <div class="form-actions">
+          <button class="button button-outline" type="button" @click="labelOpen = false">
+            Bekor qilish
+          </button>
+
+          <button
+            class="button button-gradient"
+            type="button"
+            :disabled="!labelTotal"
+            @click="printLabels"
+          >
+            Chop etish
           </button>
         </div>
       </div>
@@ -626,6 +742,43 @@ function when(value: string) {
 </template>
 
 <style scoped>
+.overlay-card.narrow {
+  max-width: 420px;
+}
+
+.dialog-note {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.label-rows {
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.label-rows li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.label-rows input {
+  width: 84px;
+  text-align: right;
+}
+
+.label-total {
+  margin: 12px 0 0;
+  font-size: 15px;
+}
+
 .back-link {
   display: inline-flex;
   align-items: center;

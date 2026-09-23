@@ -1,6 +1,6 @@
 {
   "port": 7777,
-  "origins": ["http://127.0.0.1:5173", "http://localhost:5173"],
+  "origins": ["https://madlensen.uz", "http://127.0.0.1:5173"],
   "codePage": "cp1252",
   "token": "",
   "printers": {

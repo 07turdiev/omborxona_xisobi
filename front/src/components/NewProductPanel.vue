@@ -50,7 +50,6 @@ const ready = ref(false)
 
 const nameInput = ref<HTMLInputElement | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
-const camera = ref<HTMLInputElement | null>(null)
 
 /** Tanlangan rasmlar — mahsulot yaratilgandan keyin yuklanadi */
 const photos = ref<{ file: File; url: string }[]>([])
@@ -342,15 +341,6 @@ async function onSave() {
               <span>Rasm tanlash</span>
             </button>
 
-            <button
-              class="button button-outline"
-              type="button"
-              :disabled="photos.length >= MAX_PHOTOS"
-              @click="camera?.click()"
-            >
-              <svg><use href="#i-camera" /></svg>
-              <span>Kamera</span>
-            </button>
           </div>
 
           <input
@@ -363,15 +353,6 @@ async function onSave() {
             @change="onPick"
           />
 
-          <input
-            ref="camera"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            data-testid="camera-input"
-            @change="onPick"
-          />
         </aside>
 
         <!-- Ma'lumot -->

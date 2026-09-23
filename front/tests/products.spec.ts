@@ -110,6 +110,31 @@ test('administrator: amallar va qoldiq tarixi hujjatga olib boradi', async ({ pa
   await expect(page.getByTestId('opened-purchase')).toContainText(product.purchase.number)
 })
 
+test('yorliq soni so‘raladi: bo‘sh qoldirilsa qoldiq bo‘yicha chiqadi', async ({ page }) => {
+  await openApp(page, admin, `/products/${product.id}`)
+
+  // Bitta variant tanlanadi: uning qoldig'i 2 dona
+  await variantRow(page, 0, 0).click()
+  await page.getByRole('button', { name: /yorliq/i }).click()
+
+  const dialog = page.getByTestId('label-dialog')
+  const total = dialog.getByTestId('label-total')
+
+  await expect(dialog).toBeVisible()
+
+  // Boshida qoldiq turadi: bu variantda 2 dona
+  await expect(total).toHaveText('2')
+
+  // Yozilgan son — aynan shuncha yorliq, ko'paytirilmaydi
+  const label = `${product.sizes[0]!.name} / ${product.colors[0]!.name}`
+
+  await dialog.getByLabel(`${label}: nechta`).fill('5')
+  await expect(total).toHaveText('5')
+
+  await dialog.getByRole('button', { name: 'Bekor qilish' }).click()
+  await expect(dialog).toHaveCount(0)
+})
+
 test('administrator: hisobdan chiqarish qoldiqni kamaytiradi', async ({ page }) => {
   await openApp(page, admin, `/products/${product.id}`)
 

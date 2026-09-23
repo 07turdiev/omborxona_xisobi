@@ -150,13 +150,23 @@ export function createServer(config, deps = {}) {
     }
 
     if (request.method === 'OPTIONS') {
-      response.writeHead(204, {
+      const headers = {
         'Access-Control-Allow-Origin': allowedOrigin ?? '',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': `Content-Type, ${TOKEN_HEADER}`,
         'Access-Control-Max-Age': '600',
         Vary: 'Origin',
-      })
+      }
+
+      // Ilova internetdagi domenda, agent esa shu kompyuterda. Chrome
+      // bunday so'rovni «Private Network Access» qoidasi bo'yicha
+      // tekshiradi va ruxsatni aynan shu sarlavhada kutadi. Usiz chek
+      // brauzer oynasi orqali chiqib ketardi.
+      if (request.headers['access-control-request-private-network'] === 'true') {
+        headers['Access-Control-Allow-Private-Network'] = 'true'
+      }
+
+      response.writeHead(204, headers)
       response.end()
       return
     }

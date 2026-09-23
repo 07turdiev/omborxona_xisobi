@@ -42,7 +42,6 @@ const busy = ref(false)
 const dragging = ref(false)
 
 const picker = ref<HTMLInputElement | null>(null)
-const camera = ref<HTMLInputElement | null>(null)
 
 let nextKey = 1
 let running = false
@@ -246,38 +245,20 @@ function colorLabel(id: number | null) {
       @dragleave.prevent="dragging = false"
       @drop.prevent="onDrop"
     >
-      <!-- Bitta bosish: telefonda kamera darhol ochiladi -->
+      <!-- Kamera tugmasi yo'q: kassa kompyuterida kamera bo'lmaydi,
+           telefonda esa fayl oynasining o'zi suratga olishni taklif qiladi -->
       <button
         class="button button-gradient"
-        type="button"
-        :disabled="slotsLeft <= 0"
-        @click="camera?.click()"
-      >
-        <svg><use href="#i-camera" /></svg>
-        <span>Suratga olish</span>
-      </button>
-
-      <button
-        class="button button-outline"
         type="button"
         :disabled="slotsLeft <= 0"
         @click="picker?.click()"
       >
         <svg><use href="#i-plus" /></svg>
-        <span>Fayldan tanlash</span>
+        <span>Rasm tanlash</span>
       </button>
 
       <span class="drop-hint">yoki rasmni shu yerga tashlang</span>
 
-      <input
-        ref="camera"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        hidden
-        data-testid="camera-input"
-        @change="onPick"
-      />
       <input
         ref="picker"
         type="file"

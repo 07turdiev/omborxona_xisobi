@@ -116,6 +116,32 @@ describe('HTTP xizmat', () => {
     assert.equal(response.headers.get('access-control-allow-origin'), ORIGIN)
   })
 
+  it('lokal tarmoqqa murojaatga ruxsat beradi (Private Network Access)', async () => {
+    // Ilova HTTPS domenda, agent esa shu kompyuterda: Chrome ruxsatni
+    // aynan shu sarlavhada kutadi, aks holda so'rov to'xtatiladi
+    const response = await fetch(`${base}/health`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: ORIGIN,
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Private-Network': 'true',
+      },
+    })
+
+    assert.equal(response.status, 204)
+    assert.equal(response.headers.get('access-control-allow-private-network'), 'true')
+  })
+
+  it('so‘ralmasa lokal tarmoq sarlavhasi qo‘shilmaydi', async () => {
+    const response = await fetch(`${base}/health`, {
+      method: 'OPTIONS',
+      headers: { Origin: ORIGIN, 'Access-Control-Request-Method': 'POST' },
+    })
+
+    assert.equal(response.status, 204)
+    assert.equal(response.headers.get('access-control-allow-private-network'), null)
+  })
+
   it('begona manzildan kelgan so‘rovni rad etadi', async () => {
     const response = await fetch(`${base}/health`, {
       headers: { Origin: 'http://zararli.example' },

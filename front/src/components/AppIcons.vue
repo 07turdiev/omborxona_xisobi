@@ -78,10 +78,6 @@
           <rect x="13" y="13" width="7" height="7" rx="1"/>
       </symbol>
 
-      <symbol id="i-camera" viewBox="0 0 24 24">
-          <path d="M4 8h3l2-3h6l2 3h3v11H4z"/>
-          <circle cx="12" cy="13" r="3.5"/>
-      </symbol>
 
       <symbol id="i-image" viewBox="0 0 24 24">
           <rect x="3" y="5" width="18" height="14" rx="2"/>

@@ -8,8 +8,8 @@
  *   2. Mahsulot sahifasida rang tanlanganda o'lcham tugmalari faqat shu
  *      rangning qoldig'ini ko'rsatadi, tugagan o'lcham o'chirilgan holda
  *      ro'yxatda qoladi, hamma ranglar bo'yicha jami esa ko'rinib turadi.
- *   3. Kameradan rasm bitta bosishda olinadi, yuklash jarayoni ko'rinadi
- *      va yuklash davomida sahifa to'silmaydi.
+ *   3. Rasm fayldan tanlanadi, yuklash jarayoni ko'rinadi va yuklash
+ *      davomida sahifa to'silmaydi.
  *   4. Kassa ekranida (1366×768) kartalar bir necha ustunda.
  *
  * Ishga tushirish:  npm run test:print
@@ -182,13 +182,14 @@ test('telefondan rasm: yuklash ko‘rinadi, sahifa to‘silmaydi', async ({ page
 
   await openApp(page, admin, `/products/${product.id}`)
 
-  // Bitta bosish — telefonda to'g'ridan-to'g'ri orqa kamera ochiladi
-  const camera = page.getByTestId('camera-input')
+  // Kamera tugmasi yo'q: kassa kompyuterida kamera bo'lmaydi, telefonda
+  // esa fayl oynasining o'zi suratga olishni taklif qiladi
+  const picker = page.getByTestId('file-input')
 
-  await expect(camera).toHaveAttribute('capture', 'environment')
-  await expect(camera).toHaveAttribute('accept', 'image/*')
+  await expect(picker).toHaveAttribute('accept', 'image/*')
+  await expect(page.getByRole('button', { name: /Kamera|Suratga olish/ })).toHaveCount(0)
 
-  await camera.setInputFiles({ name: 'surat.jpg', mimeType: 'image/jpeg', buffer: photo() })
+  await picker.setInputFiles({ name: 'surat.jpg', mimeType: 'image/jpeg', buffer: photo() })
 
   const uploading = page.locator('.image-item.uploading')
 

@@ -319,6 +319,28 @@ harflarini yuboradi.
 
 ## 5. Chrome sozlamalari
 
+### Chop etish oynasi umuman ochilmasligi kerak
+
+Chek va yorliq chop etish agenti orqali to'g'ridan-to'g'ri printerga
+ketadi (`agent/README.md`). Brauzerning chop etish oynasi ochilsa —
+agent javob bermayapti degani. Ikki sabab bo'ladi:
+
+1. **Agent ishlamayapti.** Tekshiring:
+   <http://127.0.0.1:7777/health> — printerlar ro'yxati JSON bo'lib
+   chiqishi kerak.
+2. **`origins` da do'kon domeni yo'q.** `agent/config.json` da
+   ilovaning haqiqiy manzili turishi shart:
+
+   ```json
+   "origins": ["https://madlensen.uz"]
+   ```
+
+   Aks holda agent so'rovni rad etadi va ilova jimgina brauzerga
+   qaytadi. Sozlamani o'zgartirgach agentni qayta ishga tushiring.
+
+Agent ishlamay qolgan kunda ham savdo to'xtamaydi — quyidagi
+sozlamalar bilan brauzerdan ham chop etish mumkin.
+
 Chop etish oynasida (Ctrl+P):
 
 | Sozlama | Qiymat |
