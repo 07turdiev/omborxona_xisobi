@@ -232,9 +232,19 @@ Ish tartibi:
    o'sha rangning surati ko'rinadi: qora ko'ylakni sotayotgan xodim
    oq ko'ylakning suratini ko'rmaydi.
 
-   **O'lcham majburiy emas.** Sumka, ro'mol va taqinchoqda o'lcham
-   bo'lmaydi — o'lcham tanlanmasa, katakcha bitta ustundan iborat
-   bo'ladi va har rangga bitta shtrix-kod chiqadi.
+   **O'lcham ham, rang ham majburiy emas.** Do'konda kiyimdan tashqari
+   sumka, oyoq kiyim, bosh kiyim, ro'mol va taqinchoq sotiladi:
+
+   | Tovar | Nima tanlanadi | Nechta shtrix-kod |
+   |---|---|---|
+   | Ko'ylak | o'lcham × rang | har juftlikka bitta |
+   | Sumka | faqat rang | har rangga bitta |
+   | Oyoq kiyim | faqat o'lcham (36, 37…) | har o'lchamga bitta |
+   | Taqinchoq | hech biri | bitta |
+
+   Hech narsa tanlanmasa katakcha bitta katakdan iborat bo'ladi.
+   Bunday tovar kassada ham qulay: tanlagichda bosilgan zahoti
+   savatga tushadi, o'lcham va rang so'ralmaydi.
 
    Shu nomli tovar do'konda allaqachon bo'lsa, ekran ogohlantiradi va
    «Shu tovar yana keldi» tugmasini beradi — bir tovar ikki marta

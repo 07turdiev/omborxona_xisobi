@@ -8,6 +8,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import {
+  createSimpleProduct,
   createTestProduct,
   login,
   moveToWarehouse,
@@ -243,6 +244,26 @@ test('ustunlar surilib kengayadi va kenglik eslab qolinadi', async ({ page }) =>
   const restored = (await picker.boundingBox())!.width
 
   expect(Math.abs(restored - after), 'kenglik eslab qolinmadi').toBeLessThan(2)
+})
+
+test('o‘lchamsiz va rangsiz tovar bir bosishda savatga tushadi', async ({ page, request }) => {
+  const ring = await createSimpleProduct(request, admin)
+
+  await openPos(page)
+
+  const picker = page.locator('.pos-picker')
+
+  await picker.getByRole('searchbox', { name: 'Tovar qidirish' }).fill(ring.name)
+  await expect(picker.locator('.tile')).toHaveCount(1)
+
+  // Varianti bitta — o'lcham × rang katakchasi umuman ochilmaydi
+  await picker.locator('.tile').first().click()
+
+  const row = page.locator('.cart-table tbody tr')
+
+  await expect(row).toHaveCount(1)
+  await expect(row.first()).toContainText(ring.name)
+  await expect(page.locator('.variant-grid')).toHaveCount(0)
 })
 
 test.describe('kassa ekrani 1366×768', () => {

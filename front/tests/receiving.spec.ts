@@ -325,6 +325,35 @@ test('o‘lchamsiz tovar: sumka faqat ranglar bilan kiritiladi', async ({ page, 
   expect(saved.variants[0].size).toBeNull()
 })
 
+test('taqinchoq: o‘lcham ham, rang ham yo‘q', async ({ page, request }) => {
+  const name = `Uzuk ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+
+  const form = panel(page)
+
+  await form.getByLabel('Mahsulot nomi').fill(name)
+  await form.getByLabel('Tannarx').fill('50000')
+  await form.getByTestId('file-input').setInputFiles(testPhoto())
+
+  // Na o'lcham, na rang tanlanadi
+  await form.getByRole('button', { name: 'Davom etish' }).click()
+
+  // Katakcha bitta katakdan iborat
+  await expect(grid(page).locator('.cell')).toHaveCount(1)
+  await grid(page).locator('.cell').first().fill('6')
+
+  await confirmButton(page).click()
+  await expect(page.getByTestId('purchase-summary')).toBeVisible()
+
+  const saved = await findProduct(request, name)
+
+  expect(saved.variants).toHaveLength(1)
+  expect(saved.variants[0].size).toBeNull()
+  expect(saved.variants[0].color).toBeNull()
+  expect(saved.variants[0].barcode).toMatch(/^\d{13}$/)
+})
+
 test('shu nomli tovar bor: yangisi yaratilmaydi', async ({ page, request }) => {
   const name = `Takror kurtka ${Date.now()}`
 

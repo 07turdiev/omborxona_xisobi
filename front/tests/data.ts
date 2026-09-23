@@ -327,6 +327,35 @@ export async function stockInWarehouseOnly(
   }
 }
 
+/**
+ * O'lchamsiz va rangsiz tovar — taqinchoq, ro'mol va shunga o'xshash.
+ *
+ * Bitta variant, bitta shtrix-kod. Qoldiq savdo zalida.
+ */
+export async function createSimpleProduct(
+  request: APIRequestContext,
+  session: Session,
+): Promise<{ id: number; name: string; variant: number; barcode: string }> {
+  const categories = await (
+    await request.get(`${API}/api/categories/`, { headers: headers(session.access) })
+  ).json()
+
+  const name = `Uzuk ${Date.now()}`
+
+  const created = await (
+    await request.post(`${API}/api/products/`, {
+      headers: headers(session.access),
+      data: { category: categories[0].id, name, sale_price: '150000' },
+    })
+  ).json()
+
+  const variant = created.variants[0]
+
+  await receive(request, session.access, [{ variant: variant.id, quantity: 3 }])
+
+  return { id: created.id, name, variant: variant.id, barcode: variant.barcode }
+}
+
 /** Bitta qatorli, naqd to'langan sotuv. Chek raqamini qaytaradi. */
 export async function createSale(request: APIRequestContext, session: Session): Promise<string> {
   const [variant] = await stockedVariants(request, API, session.access, 1)
