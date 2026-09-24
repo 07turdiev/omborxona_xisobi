@@ -20,6 +20,8 @@ Holat: **2026-09-18**.
 | **Xodimlar** | Qo'shish, rol, parolni almashtirish, bloklash |
 | **Sozlamalar** | Do'kon nomi, yorliq o'lchami, kassir chegirma chegarasi |
 | **Chop etish agenti** | Chek va yorliq to'g'ridan-to'g'ri printerga: oyna ochilmaydi, qog'oz bo'shga ketmaydi |
+| **Ombor va savdo zali** | Qoldiq ikki joyda alohida; ko'chirish hujjati; kassa faqat zaldagini sotadi |
+| **Mahsulot rasmi** | Har tovarga majburiy, har rangga alohida surat; kassa savatida va ro'yxatlarda ko'rinadi |
 
 Testlar: **backend 95, frontend 44, agent 85, chop etish 10** — hammasi
 o'tadi.
@@ -45,27 +47,34 @@ murakkablik bo'lardi.
 
 ## Qolgan ish
 
-### Ishga tushirishga to'sqinlik qiladigan yagona narsa: fiskal modul
+**Dastur tayyor, o'rnatish tugallanmagan.** Kod yozilgan va sinalgan,
+server ishlayapti — lekin do'konni shu tizimda ochishdan oldin
+quyidagilar bajarilishi kerak. Tartib muhim: yuqoridagisi pastdagisiga
+to'sqinlik qiladi.
 
-Qolgan hamma narsa tayyor. Chek soliq tizimida ro'yxatdan o'tmasa,
-do'kon qonuniy ishlay olmaydi — shuning uchun **birinchi navbatda shu
-qaror qabul qilinishi kerak**:
-
-| Variant | Nimani anglatadi |
+| Nima | Nega kerak |
 |---|---|
-| **Ro'yxatdan o'tgan virtual kassa provayderi (API bilan)** | Dastur chekni provayder API siga yuboradi. Ulash nuqtasi tayyor: `apps/sales/fiscal.py` dagi `FiscalProvider` ni amalga oshirish kifoya. Soliq tasnifi kodi (MXIK) olib tashlangan — provayder ulanadigan bo'lsa, u qaytariladi |
-| **Alohida onlayn-NKM apparati** | Kassir chekni alohida qurilmada ham chiqaradi. Dasturga o'zgarish kam, lekin kassir har sotuvni ikki marta kiritadi |
+| **Chop etish agentini kassa kompyuteriga o'rnatish** | Usiz har chek va yorliqda brauzer oynasi ochiladi, kassir qo'lda **Print** bosadi. Yorliq ham hira chiqadi: brauzer shtrix-kodni rasm qilib chizadi. Tartib: `agent/README.md` |
+| **`kassa` foydalanuvchisi** | `createsuperuser` bilan yaratilgani uchun u **administrator** — tannarx, foyda va hisobotlarni ko'radi. Roli kassirga o'zgartirilsin, paroli kuchli bo'lsin: sayt ochiq internetda |
+| **Zaxirani serverdan tashqariga chiqarish** | Hozir nusxa serverning o'zida yotadi. Server ishdan chiqsa zaxira ham u bilan ketadi (`docs/deployment.md`, 7-bo'lim) |
+| **Skanerni uchidan-uchiga sinash** | Rus klaviaturasi yoqilganda ham kod to'g'ri o'qilishi tekshirilsin (`docs/hardware.md`, 4-bo'lim) |
+| **Qayta yuklashni sinash** | `sudo reboot` dan keyin hammasi o'zi ko'tarilishi kerak: konteynerlar, baza, agent |
+| **Boshlang'ich ma'lumot** | Kategoriya, o'lcham, rang, xodimlar; keyin birinchi kirim |
 
-Birinchi variant afzal: kassir bitta ish qiladi va xato kamayadi.
-Lekin provayder tanlash — texnik emas, tashkiliy qaror (shartnoma,
-narx, qo'llab-quvvatlash).
+### Fiskal modul
 
-### Boshqa qolgan ishlar
+Do'kon soliq tizimi bilan integratsiya qilmaydi — bu buyurtmachining
+qarori. Ulash nuqtasi kodda qoldirilgan (`apps/sales/fiscal.py` dagi
+`FiscalProvider`): kerak bo'lsa provayder ulanadi va soliq tasnifi
+kodi (MXIK) qaytariladi.
+
+### Keyinroq foydali bo'lishi mumkin
 
 | Nima | Izoh |
 |---|---|
-| **Mahsulot rasmi** | Model tayyor (`Product.photo`), interfeysda yuklash yo'q |
 | **Excel'dan mahsulot import qilish** | Do'konda yuzlab pozitsiya bo'lsa qo'l bilan kiritish uzoq |
+| **Ombor strukturasi** (javon, polka) | Hozir kerak emas: ombor kichik va unda tovar ko'p saqlanmaydi |
+| **O'lchamlarni kategoriya bo'yicha ajratish** | Kiyim (S, M, L) va oyoq kiyim (36–41) bitta ro'yxatda. Ro'yxat uzayib ketsa kerak bo'ladi |
 
 ---
 

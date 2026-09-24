@@ -918,7 +918,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 /* Savat tor ustunda: katakchalar orasidagi bo'shliq kamaytirildi */
 .cart-table th,
 .cart-table td {
-  padding-right: 6px;
+  padding-right: 9px;
+  padding-left: 9px;
+}
+
+/* Tovar ustuni qolgan joyni oladi: nom qatorga bo'linmasin */
+.cart-table td:first-child {
+  padding-right: 2px;
   padding-left: 6px;
 }
 
@@ -966,14 +972,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .cart-number.discount {
-  width: 56px;
+  width: 50px;
 }
 
 
+/* Tugmalar orasi barmoq uchun: bir-biriga tegib turmasin */
 .quantity {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 /* Barmoq uchun katta nishon */

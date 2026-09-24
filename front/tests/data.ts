@@ -71,8 +71,22 @@ export async function login(request: APIRequestContext, username = 'admin'): Pro
   return { access: body.access, refresh: body.refresh }
 }
 
-/** Tokenlarni brauzerga qo'yib, sahifani ochadi. */
-export async function openApp(page: Page, session: Session, path: string) {
+/** Chop etish agentining manzili — brauzerdan shu yerga murojaat qilinadi */
+const AGENT = 'http://127.0.0.1:7777/**'
+
+/**
+ * Tokenlarni brauzerga qo'yib, sahifani ochadi.
+ *
+ * Standart holda chop etish agenti «yo'q» deb javob beradi: testlarning
+ * ko'pi chop etishga aloqador emas. Agent bilan ishlaydigan test
+ * `agent: 'fake'` beradi va marshrutni o'zi belgilaydi.
+ */
+export async function openApp(
+  page: Page,
+  session: Session,
+  path: string,
+  { agent = 'off' }: { agent?: 'off' | 'fake' } = {},
+) {
   await page.addInitScript(
     ([access, refresh]) => {
       localStorage.setItem('access_token', access as string)
@@ -81,10 +95,41 @@ export async function openApp(page: Page, session: Session, path: string) {
     [session.access, session.refresh],
   )
 
-  // Chop etish agenti bu testlarga aloqasi yo'q
-  await page.route('http://127.0.0.1:7777/**', (route) => route.abort('connectionrefused'))
+  if (agent === 'off') {
+    await page.route(AGENT, (route) => route.abort('connectionrefused'))
+  }
 
   await page.goto(path)
+}
+
+/**
+ * Ishlayotgan chop etish agentini taqlid qiladi.
+ *
+ * `openApp` dan OLDIN chaqiriladi va unga `agent: 'fake'` beriladi.
+ * Qaytgan ro'yxatga agent qabul qilgan yo'llar tushadi: `/health`,
+ * `/receipt`, `/labels`.
+ */
+export async function fakeAgent(page: Page, { upFrom = 0 } = {}): Promise<string[]> {
+  const calls: string[] = []
+
+  await page.route(AGENT, async (route) => {
+    // `upFrom` — agent shuncha so'rovdan keyin ko'tariladi. Kun boshida
+    // brauzer agentdan oldin ochilgan holatni shunday sinaymiz.
+    if (calls.length < upFrom) {
+      calls.push('yiqilgan')
+      return route.abort('connectionrefused')
+    }
+
+    calls.push(new URL(route.request().url()).pathname)
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ version: 'sinov', codePage: 'cp1252', printers: [] }),
+    })
+  })
+
+  return calls
 }
 
 function headers(access: string) {

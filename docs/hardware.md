@@ -355,7 +355,8 @@ agent javob bermayapti degani. Ikki sabab bo'ladi:
 
 1. **Agent ishlamayapti.** Tekshiring:
    <http://127.0.0.1:7777/health> — printerlar ro'yxati JSON bo'lib
-   chiqishi kerak.
+   chiqishi kerak. Agentni kechroq ishga tushirsangiz sahifani
+   yangilash shart emas: ilova har chop etishdan oldin qayta so'raydi.
 2. **`origins` da do'kon domeni yo'q.** `agent/config.json` da
    ilovaning haqiqiy manzili turishi shart:
 

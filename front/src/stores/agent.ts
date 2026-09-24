@@ -37,7 +37,12 @@ export const useAgentStore = defineStore('agent', () => {
    * `false` qaytadi: chek yo'qolmasin, brauzer orqali chiqsin.
    */
   async function trySend(send: () => Promise<void>, done: string): Promise<boolean> {
-    if (!available.value) return false
+    // Agent brauzerdan keyin ko'tarilgan bo'lishi mumkin: kompyuter
+    // yoqilganda brauzer avval ochiladi, printer esa sug'urilib-ulanadi.
+    // Shuning uchun «yo'q» degan javob oxirgi so'z emas — har chop
+    // etishdan oldin bir marta qayta so'raymiz. Usiz kun boshida bitta
+    // muvaffaqiyatsiz tekshiruv butun kunni brauzer oynasiga bog'lardi.
+    if (!available.value && !(await probe())) return false
 
     const toast = useToastStore()
 

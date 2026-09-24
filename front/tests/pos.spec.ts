@@ -10,6 +10,7 @@ import { expect, test, type Page } from '@playwright/test'
 import {
   createSimpleProduct,
   createTestProduct,
+  fakeAgent,
   login,
   moveToWarehouse,
   openApp,
@@ -264,6 +265,64 @@ test('o‘lchamsiz va rangsiz tovar bir bosishda savatga tushadi', async ({ page
   await expect(row).toHaveCount(1)
   await expect(row.first()).toContainText(ring.name)
   await expect(page.locator('.variant-grid')).toHaveCount(0)
+})
+
+test.describe('chop etish agenti', () => {
+  /** Brauzer oynasi ochilganini sanaydi */
+  async function countPrints(page: Page) {
+    await page.addInitScript(() => {
+      Object.assign(window, { __printed: 0 })
+      window.print = () => {
+        Object.assign(window, { __printed: (window as { __printed?: number }).__printed! + 1 })
+      }
+    })
+  }
+
+  /** Savatga tovar qo'shib, naqd to'lov bilan yakunlaydi */
+  async function sell(page: Page) {
+    await addFromPicker(page)
+    await page.locator('.cash-row input').fill('300000')
+    await page.keyboard.press('F2')
+
+    await expect(page.getByTestId('change-amount')).toBeVisible()
+  }
+
+  test('agent ishlayotganda chek brauzer oynasisiz chiqadi', async ({ page }) => {
+    const calls = await fakeAgent(page)
+
+    await countPrints(page)
+    await openApp(page, admin, '/', { agent: 'fake' })
+    await sell(page)
+
+    await expect
+      .poll(() => calls.filter((path) => path === '/receipt').length)
+      .toBe(1)
+
+    expect(
+      await page.evaluate(() => (window as { __printed?: number }).__printed),
+      'brauzer oynasi ochildi',
+    ).toBe(0)
+  })
+
+  test('kech ko‘tarilgan agent keyingi chekda ishlatiladi', async ({ page }) => {
+    // Kompyuter yoqilganda brauzer agentdan oldin ochiladi: sahifa
+    // yuklanishidagi tekshiruv yiqiladi, lekin bu oxirgi so'z emas
+    const calls = await fakeAgent(page, { upFrom: 1 })
+
+    await countPrints(page)
+    await openApp(page, admin, '/', { agent: 'fake' })
+
+    await expect.poll(() => calls.length).toBeGreaterThan(0)
+    expect(calls[0], 'yuklanishdagi tekshiruv yiqilishi kerak edi').toBe('yiqilgan')
+
+    await sell(page)
+
+    await expect
+      .poll(() => calls.filter((path) => path === '/receipt').length)
+      .toBe(1)
+
+    expect(await page.evaluate(() => (window as { __printed?: number }).__printed)).toBe(0)
+  })
 })
 
 test.describe('kassa ekrani 1366×768', () => {
