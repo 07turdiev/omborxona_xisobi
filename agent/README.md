@@ -47,8 +47,29 @@ ko'rinadi: versiya, printerlar, oxirgi xatolar va sinov tugmalari.
 
 ## Kassa kompyuteriga o'rnatish
 
-Bu ish bir marta qilinadi. Administrator huquqi faqat printerni
-ulashish uchun kerak (2-qadam), qolganiga shart emas.
+Bu ish bir marta qilinadi.
+
+### Bir bosishda
+
+`ORNAT.cmd` ni ikki marta bosing. `install.ps1` qolganini bajaradi:
+Node.js, papka tuzilmasi, printerlarni topish va ulashish,
+`config.json`, avtomatik ishga tushish va sinov chop etish.
+Administrator huquqini o'zi so'raydi va qayta ishlatish xavfsiz.
+
+To'liq tartib, qabul qilish ro'yxati va muammolar jadvali:
+[docs/ornatish.md](../docs/ornatish.md).
+
+Kerak bo'lsa qo'lda boshqarish mumkin:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install.ps1 `
+    -Root 'C:\madlensen' -Site 'https://madlensen.uz' -ReceiptIp '192.168.1.50'
+```
+
+`-ReceiptIp usb` chek printerini ulashuv orqali ishlatadi,
+`-NoTest` sinov chop etishni o'tkazib yuboradi.
+
+### Qo'lda — skript ishlamasa
 
 **1. Node.js.** <https://nodejs.org> dan LTS versiyasini o'rnating yoki:
 

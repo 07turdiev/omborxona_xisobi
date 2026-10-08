@@ -1,9 +1,9 @@
-<#
+﻿<#
     Avtomatik ishga tushirishni o'chiradi.
 
         powershell -ExecutionPolicy Bypass -File uninstall-service.ps1
 
-    Agentning o'zi va sozlamalari joyida qoladi — faqat vazifa
+    Agentning o'zi va sozlamalari joyida qoladi - faqat vazifa
     o'chiriladi. Ishlab turgan agent ham to'xtatiladi.
 #>
 

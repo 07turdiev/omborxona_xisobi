@@ -50,6 +50,14 @@ const pickerOpen = ref(false)
 const PICKER_RANGE = [180, 560] as const
 const SUMMARY_RANGE = [240, 620] as const
 
+/** Savat ustuni shundan torayolmaydi: qator o'qilmay qoladi. */
+const CART_MIN = 340
+
+/** Ikkita ajratgich (5 px) va to'rtta oraliq (10 px). */
+const TRACK_EXTRA = 50
+
+const posEl = ref<HTMLElement | null>(null)
+
 const pickerWidth = ref(storedWidth('pos-picker-width', 240, PICKER_RANGE))
 const summaryWidth = ref(storedWidth('pos-summary-width', 310, SUMMARY_RANGE))
 
@@ -73,10 +81,37 @@ function remember(key: string, value: number) {
   }
 }
 
+/**
+ * Ustunni qancha kengaytirish mumkinligi.
+ *
+ * Qat'iy 560/620 px bitta ekranga to'g'ri kelmaydi: 1366 px noutbukda
+ * ikkala ustun oxirigacha surilsa panjara oynadan kengroq bo'lib
+ * qoladi, sahifa yonlamasiga suriladi va kontent qotirilgan yon menyu
+ * tagiga kirib ketadi — tugmalar bir-birining ustiga chiqqandek
+ * ko'rinadi. Shuning uchun chegara har doim qolgan joydan hisoblanadi.
+ */
+function widthLimit(side: 'picker' | 'summary') {
+  const [min, max] = side === 'picker' ? PICKER_RANGE : SUMMARY_RANGE
+  const other = side === 'picker' ? summaryWidth.value : pickerWidth.value
+  const available = posEl.value?.clientWidth ?? 0
+
+  if (!available) return [min, max] as const
+
+  const room = available - other - TRACK_EXTRA - CART_MIN
+
+  return [min, Math.max(min, Math.min(max, room))] as const
+}
+
+/** Saqlangan kenglik boshqa ekranda sig'masligi mumkin. */
+function fitWidths() {
+  pickerWidth.value = Math.min(pickerWidth.value, widthLimit('picker')[1])
+  summaryWidth.value = Math.min(summaryWidth.value, widthLimit('summary')[1])
+}
+
 /** Ajratgichni sichqoncha bilan surish. */
 function startResize(side: 'picker' | 'summary', event: PointerEvent) {
   const target = side === 'picker' ? pickerWidth : summaryWidth
-  const [min, max] = side === 'picker' ? PICKER_RANGE : SUMMARY_RANGE
+  const [min, max] = widthLimit(side)
 
   const startX = event.clientX
   const startWidth = target.value
@@ -102,7 +137,7 @@ function startResize(side: 'picker' | 'summary', event: PointerEvent) {
 /** Klaviatura bilan: o'q tugmalari 20 px dan suradi. */
 function nudge(side: 'picker' | 'summary', step: number) {
   const target = side === 'picker' ? pickerWidth : summaryWidth
-  const [min, max] = side === 'picker' ? PICKER_RANGE : SUMMARY_RANGE
+  const [min, max] = widthLimit(side)
   const direction = side === 'picker' ? 1 : -1
 
   target.value = Math.min(max, Math.max(min, target.value + step * direction))
@@ -424,12 +459,21 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  window.addEventListener('resize', fitWidths)
+  fitWidths()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('resize', fitWidths)
+})
 </script>
 
 <template>
   <section
+    ref="posEl"
     class="pos"
     :style="{ '--picker-width': `${pickerWidth}px`, '--summary-width': `${summaryWidth}px` }"
   >
@@ -762,9 +806,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .pos {
   display: grid;
   grid-template-columns:
-    var(--picker-width, 240px) 5px
+    minmax(0, var(--picker-width, 240px)) 5px
     minmax(0, 1fr)
-    5px var(--summary-width, 310px);
+    5px minmax(0, var(--summary-width, 310px));
   gap: 10px;
   height: calc(100vh - var(--topbar-height) - 56px);
 }
@@ -933,10 +977,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .cart-table {
   width: 100%;
   table-layout: fixed;
+
+  /* «−» va «+» tugmalarining o'lchami: tor ekranda kattalashadi */
+  --step-size: 40px;
+
+  /* Soni maydoni */
+  --number-width: 48px;
 }
 
+/* «Soni» ustuni aniq hisoblanadi: «−», maydon, «+», ular orasidagi
+   8 px va katakchaning ikki chetidagi 9 px. Qat'iy son yozilsa
+   o'lchamlar o'zgarganda tor bo'lib qoladi va «+» yon katakchadagi
+   chegirma maydoniga tegib ketadi. */
 .cart-table th:nth-child(2) {
-  width: 136px;
+  width: calc(var(--step-size) * 2 + var(--number-width) + 8px * 2 + 9px * 2);
 }
 
 .cart-table th:nth-child(3) {
@@ -967,7 +1021,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 
 .cart-number {
-  width: 48px;
+  width: var(--number-width, 48px);
   text-align: center;
 }
 
@@ -985,8 +1039,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 /* Barmoq uchun katta nishon */
 .step {
-  width: 40px;
-  height: 40px;
+  width: var(--step-size, 40px);
+  height: var(--step-size, 40px);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
@@ -1233,9 +1287,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     max-height: 50vh;
   }
 
-  .step {
-    width: 44px;
-    height: 44px;
+  .cart-table {
+    --step-size: 44px;
   }
 }
 
@@ -1260,13 +1313,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     padding-left: 4px;
   }
 
-  .step {
-    width: 40px;
-    height: 40px;
-  }
-
-  .cart-number {
-    width: 38px;
+  .cart-table {
+    --step-size: 40px;
+    --number-width: 38px;
   }
 
   .cart-number.discount {

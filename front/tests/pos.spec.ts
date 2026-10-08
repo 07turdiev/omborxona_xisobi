@@ -117,6 +117,34 @@ test('miqdor tugmalari va "Aniq summa"', async ({ page }) => {
   await expect(page.locator('.scan-field input')).toBeFocused()
 })
 
+test('savat qatoridagi boshqaruvlar bir-biriga tegmaydi', async ({ page }) => {
+  // «Soni» ustuni qat'iy kenglikda edi: «+» tugmasi yon katakchadagi
+  // chegirma maydoniga 8 px chiqib turardi.
+  await openPos(page)
+  await addFromPicker(page)
+
+  const gaps = await page.evaluate(() => {
+    const row = document.querySelector('.cart-table tbody tr')!
+
+    const boxes = [...row.querySelectorAll('button, input')].map((node) => {
+      const box = node.getBoundingClientRect()
+
+      return {
+        who: (node.getAttribute('aria-label') || node.textContent || '').split(':').pop()!.trim(),
+        left: box.left,
+        right: box.right,
+      }
+    })
+
+    return boxes
+      .slice(1)
+      .map((node, index) => ({ who: `${boxes[index].who} → ${node.who}`, gap: node.left - boxes[index].right }))
+      .filter((pair) => pair.gap < 4)
+  })
+
+  expect(gaps, 'boshqaruvlar orasida bo‘shliq yo‘q').toEqual([])
+})
+
 test('F4 to‘lov turini, F2 sotuvni, Esc savatni boshqaradi', async ({ page }) => {
   await openPos(page)
   await addFromPicker(page)
@@ -347,6 +375,38 @@ test.describe('kassa ekrani 1366×768', () => {
       .evaluate((element) => getComputedStyle(element).overflowY)
 
     expect(scrolls).toBe('auto')
+  })
+
+  test('ustunlar oxirigacha surilsa ham sahifa yonlamasiga surilmaydi', async ({ page }) => {
+    // Qat'iy chegara (560/620 px) bu ekranga sig'maydi: sig'masa
+    // kontent qotirilgan yon menyu tagiga kirib, tugmalar bir-birining
+    // ustiga chiqqandek ko'rinadi.
+    await page.addInitScript(() => {
+      localStorage.setItem('pos-picker-width', '560')
+      localStorage.setItem('pos-summary-width', '620')
+    })
+
+    await openPos(page)
+    await expect(page.locator('.pos')).toBeVisible()
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+
+    expect(overflow, 'kassa panjarasi oynadan kengroq').toBeLessThanOrEqual(1)
+
+    // Boshqaruvlarning birortasi ham menyu ostida qolmasin
+    const covered = await page.evaluate(() => {
+      const menu = document.querySelector('.sidebar')!.getBoundingClientRect()
+
+      return [...document.querySelectorAll('.pos button, .pos input')].filter((node) => {
+        const box = node.getBoundingClientRect()
+
+        return box.width > 0 && box.left < menu.right - 1 && box.right > menu.left + 1
+      }).length
+    })
+
+    expect(covered, 'boshqaruv yon menyu tagida qolgan').toBe(0)
   })
 })
 

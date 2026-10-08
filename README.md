@@ -86,6 +86,7 @@ Har ilovada bir xil tartib: `models.py` → `services.py` → `serializers.py`
 | [docs/deployment.md](docs/deployment.md) | Serverga chiqarish, HTTPS, zaxira nusxa |
 | [docs/roadmap.md](docs/roadmap.md) | Nima tayyor, nima ataylab qilinmagan, nima qoldi |
 | [docs/hardware.md](docs/hardware.md) | Printer va skanerni ulash, sinash, tez-tez uchraydigan muammolar |
+| [docs/ornatish.md](docs/ornatish.md) | Do'konga borib o'rnatish: ish tartibi, qabul qilish ro'yxati |
 | [agent/README.md](agent/README.md) | Chop etish agenti: o'rnatish, sozlash, avtomatik ishga tushirish |
 
 ---
