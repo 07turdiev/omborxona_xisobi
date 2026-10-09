@@ -351,6 +351,28 @@ test.describe('chop etish agenti', () => {
 
     expect(await page.evaluate(() => (window as { __printed?: number }).__printed)).toBe(0)
   })
+
+  test('tekshiruv yiqilsa ham chek agent orqali chiqadi', async ({ page }) => {
+    // Do'konda uchragan nosozlik: printer o'chirilganda agentning
+    // `/health` javobi kechikardi, brauzer tekshiruvni uzardi va chek
+    // brauzer oynasiga tushardi — sahifa qayta ochilgandan keyin
+    // kun bo'yi shunday qolardi. Chop etish endi tekshiruvga
+    // bog'lanmaydi: to'g'ridan-to'g'ri yuboriladi.
+    const calls = await fakeAgent(page, { healthDown: true })
+
+    await countPrints(page)
+    await openApp(page, admin, '/', { agent: 'fake' })
+    await sell(page)
+
+    await expect
+      .poll(() => calls.filter((path) => path === '/receipt').length)
+      .toBe(1)
+
+    expect(
+      await page.evaluate(() => (window as { __printed?: number }).__printed),
+      'brauzer oynasi ochildi',
+    ).toBe(0)
+  })
 })
 
 test.describe('kassa ekrani 1366×768', () => {

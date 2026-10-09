@@ -22,9 +22,15 @@ export const useAgentStore = defineStore('agent', () => {
   const version = computed(() => health.value?.version ?? '')
   const printers = computed(() => health.value?.printers ?? [])
 
-  /** Agent bormi — 300 ms kutadi, keyin yo'q deb hisoblaydi. */
-  async function probe(): Promise<boolean> {
-    health.value = await agentApi.health()
+  /**
+   * Agent bormi.
+   *
+   * Bu chaqiruv chop etish yo'lida EMAS: u faqat Sozlamalardagi
+   * ko'rinish va xabar matni uchun. Shuning uchun uni shoshiltirish
+   * shart emas.
+   */
+  async function probe(fresh = false): Promise<boolean> {
+    health.value = await agentApi.health(fresh)
     checked.value = true
 
     return available.value
@@ -37,28 +43,42 @@ export const useAgentStore = defineStore('agent', () => {
    * `false` qaytadi: chek yo'qolmasin, brauzer orqali chiqsin.
    */
   async function trySend(send: () => Promise<void>, done: string): Promise<boolean> {
-    // Agent brauzerdan keyin ko'tarilgan bo'lishi mumkin: kompyuter
-    // yoqilganda brauzer avval ochiladi, printer esa sug'urilib-ulanadi.
-    // Shuning uchun «yo'q» degan javob oxirgi so'z emas — har chop
-    // etishdan oldin bir marta qayta so'raymiz. Usiz kun boshida bitta
-    // muvaffaqiyatsiz tekshiruv butun kunni brauzer oynasiga bog'lardi.
-    if (!available.value && !(await probe())) return false
-
     const toast = useToastStore()
 
+    // Chop etish oldindan tekshiruvga BOG'LANMAYDI.
+    //
+    // Oldin shunday edi: avval `/health` so'raladi, javob 300 ms da
+    // kelmasa agent «yo'q» deb hisoblanardi. Printer o'chirilgan
+    // bo'lsa agentning javobi aynan shu chegara atrofida bo'lardi
+    // (o'lchangan: 260-390 ms), ya'ni chek tasodifan brauzer oynasiga
+    // tushardi. Sahifa qayta ochilganda esa holat noldan boshlanib,
+    // xato butun seansga yopishib qolardi.
+    //
+    // Endi to'g'ridan-to'g'ri yuboramiz: agent yo'q bo'lsa 127.0.0.1
+    // ga ulanish darhol rad etiladi, ya'ni kutish ham yo'q.
     try {
       await send()
       toast.show(done)
 
+      // Birinchi muvaffaqiyatli chop etish holatni ham tiklaydi
+      if (!available.value) void probe()
+
       return true
     } catch (error) {
-      toast.show(
-        `Printerga yuborilmadi: ${(error as Error).message}. Brauzer orqali chop etiladi.`,
-        'error',
-      )
+      // Agent umuman o'rnatilmagan bo'lsa jim qolamiz: u ixtiyoriy va
+      // har sotuvda qizil xabar chiqarib turish keraksiz. Agentni
+      // ko'rgan bo'lsak — sababini aytamiz.
+      const seen = available.value
 
-      // Sabab Sozlamalarda ko'rinsin (agent oxirgi xatoni eslab qoladi)
+      // Kutmaymiz: brauzer oynasi darhol ochilishi kerak
       void probe()
+
+      if (seen) {
+        toast.show(
+          `Printerga yuborilmadi: ${(error as Error).message}. Brauzer orqali chop etiladi.`,
+          'error',
+        )
+      }
 
       return false
     }

@@ -111,9 +111,33 @@ describe('HTTP xizmat', () => {
     assert.equal(response.status, 200)
     assert.equal(body.version, VERSION)
     assert.equal(body.printers.length, 2)
-    assert.equal(body.printers[0].responds, true)
     assert.equal(body.printers[0].lastError, null)
     assert.equal(response.headers.get('access-control-allow-origin'), ORIGIN)
+  })
+
+  it('/health birinchi javobda printerni kutmaydi', async () => {
+    const first = await (await fetch(`${base}/health`, { headers: { Origin: ORIGIN } })).json()
+
+    // Kesh hali bo'sh bo'lsa `null` qaytadi: «bilinmaydi». Javobni
+    // ushlab turish o'rniga so'rov fonda qilinadi.
+    assert.ok(
+      first.printers[0].responds === null || first.printers[0].responds === true,
+      'birinchi javob kutib turmasligi kerak',
+    )
+
+    // Fondagi so'rov tugagach natija keshda turadi
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const second = await (await fetch(`${base}/health`, { headers: { Origin: ORIGIN } })).json()
+
+    assert.equal(second.printers[0].responds, true)
+    assert.equal(second.printers[0].probedAt, '2026-09-18T10:00:00.000Z')
+  })
+
+  it('/health?wait=1 aniq holatni qaytaradi', async () => {
+    const body = await (await fetch(`${base}/health?wait=1`, { headers: { Origin: ORIGIN } })).json()
+
+    assert.equal(body.printers[0].responds, true)
   })
 
   it('lokal tarmoqqa murojaatga ruxsat beradi (Private Network Access)', async () => {
@@ -326,5 +350,56 @@ describe('to‘liq bo‘lmagan config.json', () => {
 
     assert.equal(commands.includes('undefined'), false)
     assert.equal(commands.includes('NaN'), false)
+  })
+})
+/**
+ * Bu bo'lim bitta haqiqiy nosozlikni qotirib qo'yadi.
+ *
+ * Printer o'chirilgan bo'lsa agentning printerga TCP so'rovi 250 ms
+ * kutardi va `/health` javobi 260-390 ms da chiqardi. Brauzer esa
+ * tekshiruvni 300 ms da uzardi, ya'ni O'CHIRILGAN PRINTER butun chop
+ * etishni buzib, chekni brauzer oynasiga yuborardi. Javob endi
+ * keshdan beriladi va printerning sekinligiga bog'liq emas.
+ */
+describe('sekin printer /health ni ushlab turmaydi', () => {
+  let server
+  let base
+
+  const PROBE_MS = 400
+
+  before(async () => {
+    server = createServer(CONFIG, {
+      send: async () => {},
+      probe: () => new Promise((resolve) => setTimeout(() => resolve(true), PROBE_MS)),
+      now: () => '2026-09-18T10:00:00.000Z',
+    })
+
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+
+    base = `http://127.0.0.1:${server.address().port}`
+  })
+
+  after(() => server.close())
+
+  it("javob printer so'rovidan tez keladi", async () => {
+    const started = Date.now()
+
+    const response = await fetch(`${base}/health`, { headers: { Origin: ORIGIN } })
+    const body = await response.json()
+
+    const elapsed = Date.now() - started
+
+    assert.equal(response.status, 200)
+    assert.ok(elapsed < PROBE_MS / 2, `javob ${elapsed} ms da keldi, kutilgani 200 ms dan kam`)
+    assert.equal(body.printers[0].responds, null)
+  })
+
+  it("wait=1 bo'lsa ataylab kutadi", async () => {
+    const started = Date.now()
+
+    const body = await (await fetch(`${base}/health?wait=1`, { headers: { Origin: ORIGIN } })).json()
+
+    assert.ok(Date.now() - started >= PROBE_MS - 50, 'wait=1 natijani kutishi kerak')
+    assert.equal(body.printers[0].responds, true)
   })
 })

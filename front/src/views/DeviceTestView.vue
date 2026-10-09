@@ -60,7 +60,9 @@ const toast = useToastStore()
 const agentBusy = ref(false)
 
 onMounted(() => {
-  void agent.probe()
+  // `true` — printerlardan shu lahzada so'raladi. Bu sahifaning
+  // vazifasi aynan holatni ko'rsatish, shuning uchun kutish o'rinli.
+  void agent.probe(true)
 })
 
 /** Vaqtni qisqartiradi: `2026-09-18T10:00:00.000Z` → `2026-09-18 10:00` */
@@ -96,7 +98,7 @@ async function send(what: string, action: () => Promise<void>) {
     agentBusy.value = false
 
     // Agent oxirgi xatoni eslab qoladi — jadval yangilansin
-    await agent.probe()
+    await agent.probe(true)
   }
 }
 
@@ -259,7 +261,7 @@ async function lookup(code: string): Promise<string> {
 
           <span v-if="agent.available" class="muted">v{{ agent.version }}</span>
 
-          <button class="button button-outline" type="button" @click="agent.probe()">
+          <button class="button button-outline" type="button" @click="agent.probe(true)">
             Qayta tekshirish
           </button>
         </p>

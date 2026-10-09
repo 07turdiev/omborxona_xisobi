@@ -109,10 +109,23 @@ export async function openApp(
  * Qaytgan ro'yxatga agent qabul qilgan yo'llar tushadi: `/health`,
  * `/receipt`, `/labels`.
  */
-export async function fakeAgent(page: Page, { upFrom = 0 } = {}): Promise<string[]> {
+export async function fakeAgent(
+  page: Page,
+  { upFrom = 0, healthDown = false } = {},
+): Promise<string[]> {
   const calls: string[] = []
 
   await page.route(AGENT, async (route) => {
+    const path = new URL(route.request().url()).pathname
+
+    // `healthDown` — tekshiruv ishlamaydi, chop etish esa ishlaydi.
+    // Do'konda shunday bo'lgan: printer o'chirilganda agentning
+    // `/health` javobi kechikib, tekshiruv uzilib qolardi.
+    if (healthDown && path === '/health') {
+      calls.push('tekshiruv yiqilgan')
+      return route.abort('connectionrefused')
+    }
+
     // `upFrom` — agent shuncha so'rovdan keyin ko'tariladi. Kun boshida
     // brauzer agentdan oldin ochilgan holatni shunday sinaymiz.
     if (calls.length < upFrom) {
@@ -120,7 +133,7 @@ export async function fakeAgent(page: Page, { upFrom = 0 } = {}): Promise<string
       return route.abort('connectionrefused')
     }
 
-    calls.push(new URL(route.request().url()).pathname)
+    calls.push(path)
 
     await route.fulfill({
       status: 200,

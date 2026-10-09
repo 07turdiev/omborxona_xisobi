@@ -13,8 +13,14 @@ import type { Sale, ShopSettings } from '@/types'
 /** Agent faqat shu kompyuterda tinglaydi */
 const BASE = 'http://127.0.0.1:7777'
 
-/** Agent o'chirilgan bo'lsa kassa kutib qolmasligi kerak */
-const PROBE_TIMEOUT = 300
+/**
+ * Tekshiruv chop etish yo'lida emas, shuning uchun unga vaqt beriladi.
+ *
+ * Oldin 300 ms edi va bu kam bo'lib chiqdi: agent printerni ham
+ * so'raydi, o'chirilgan printer esa 250 ms kutadi — javob chegara
+ * atrofida chiqib, agent «yo'q» deb hisoblanardi.
+ */
+const PROBE_TIMEOUT = 3000
 const PRINT_TIMEOUT = 5000
 
 /**
@@ -33,8 +39,10 @@ export interface AgentPrinter {
   name: string
   transport: string
   target: string | null
-  /** `null` — tekshirib bo'lmaydi (Windows printer ulashuvi) */
+  /** `null` — tekshirib bo'lmaydi yoki hali so'ralmagan */
   responds: boolean | null
+  /** So'rov qachon qilingan (keshdagi natija qanchalik yangi) */
+  probedAt: string | null
   lastError: AgentError | null
 }
 
@@ -115,10 +123,21 @@ async function request<T>(path: string, init: RequestInit, timeout: number): Pro
   return (await response.json()) as T
 }
 
-/** Agent ishlayaptimi. Ishlamasa `null` — bu oddiy holat, xato emas. */
-export async function health(): Promise<AgentHealth | null> {
+/**
+ * Agent ishlayaptimi. Ishlamasa `null` — bu oddiy holat, xato emas.
+ *
+ * `fresh` — printerlardan shu lahzada so'rab javob qaytaradi.
+ * Sozlamalardagi «Qurilmalarni sinash» uchun: u yerda aniqlik muhim,
+ * kutish esa muhim emas. Oddiy chaqiruvda agent keshdagi natijani
+ * darhol beradi.
+ */
+export async function health(fresh = false): Promise<AgentHealth | null> {
   try {
-    return await request<AgentHealth>('/health', { method: 'GET' }, PROBE_TIMEOUT)
+    return await request<AgentHealth>(
+      fresh ? '/health?wait=1' : '/health',
+      { method: 'GET' },
+      PROBE_TIMEOUT,
+    )
   } catch {
     return null
   }

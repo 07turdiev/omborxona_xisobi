@@ -271,9 +271,23 @@ ishlatiladi — u xuddi shu seansda ishlaydi.
 
 | Manzil | Nima qiladi |
 |---|---|
-| `GET /health` | Versiya, kod sahifasi, printerlar, har biri bo'yicha oxirgi xato |
+| `GET /health` | Versiya, kod sahifasi, printerlar, har biri bo'yicha oxirgi xato. **Darhol** javob beradi: printer holati keshdan olinadi, so'rov fonda yangilanadi |
+| `GET /health?wait=1` | Printerlardan shu lahzada so'raydi. Sozlamalardagi «Qurilmalarni sinash» uchun |
 | `POST /receipt` | Chekni ESC/POS ga o'giradi va yuboradi |
 | `POST /labels` | Yorliqlarni TSPL ga o'giradi va yuboradi |
+
+### Nega `/health` kutmaydi
+
+Avval `/health` har printerga so'rov yuborib, javobni ushlab turardi.
+O'chirilgan printerga TCP so'rovi 250 ms kutadi, ya'ni javob 260-390 ms
+da chiqardi — ilova esa tekshiruvni 300 ms da uzardi. Natijada
+**o'chirilgan printer butun chop etishni buzardi**: chek brauzer
+oynasiga tushardi va sahifa qayta ochilgandan keyin ham shunday
+qolardi.
+
+Endi javob 1-4 ms da keladi. Ilova esa chop etishni tekshiruvga
+umuman bog'lamaydi: to'g'ridan-to'g'ri yuboradi va faqat yuborish
+muvaffaqiyatsiz bo'lsa brauzer yo'liga qaytadi.
 
 Himoya:
 

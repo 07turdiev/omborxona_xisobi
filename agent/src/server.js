@@ -16,7 +16,7 @@ import { buildReceipt } from './escpos.js'
 import { buildLabels } from './tspl.js'
 import { probe, send } from './printer.js'
 
-export const VERSION = '1.1.0'
+export const VERSION = '1.2.0'
 
 const MAX_BODY = 512 * 1024
 const TOKEN_HEADER = 'x-agent-token'
@@ -124,6 +124,40 @@ export function createServer(config, deps = {}) {
   /** Har printer bo'yicha oxirgi xato — Sozlamalarda ko'rsatiladi */
   const lastErrors = new Map()
 
+  /**
+   * Printer so'rovlarining keshlangan natijasi.
+   *
+   * Nega kesh: `/health` ning asosiy vazifasi — «agent tirikmi?»
+   * degan savolga javob berish. Printer o'chirilgan bo'lsa TCP so'rovi
+   * 250 ms kutadi va javob brauzerning 300 ms lik chegarasi atrofida
+   * chiqadi; brauzer esa tekshiruvni shunda uzib, chekni o'z oynasiga
+   * yuborardi. Ya'ni o'chirilgan printer butun chop etishni buzardi.
+   *
+   * Endi javob darhol keshdan beriladi, so'rov esa fonda yangilanadi.
+   * Shu lahzadagi aniq holat kerak bo'lsa — `/health?wait=1`.
+   */
+  const probeCache = new Map()
+
+  let probing = null
+
+  function refreshProbes() {
+    if (probing) return probing
+
+    const names = Object.keys(config.printers ?? {})
+
+    probing = Promise.all(
+      names.map(async (name) => {
+        const responds = await probePrinter(config.printers[name])
+
+        probeCache.set(name, { responds, at: now() })
+      }),
+    ).finally(() => {
+      probing = null
+    })
+
+    return probing
+  }
+
   async function printTo(name, bytes) {
     const printer = config.printers?.[name]
 
@@ -187,19 +221,28 @@ export function createServer(config, deps = {}) {
       if (request.method === 'GET' && url.pathname === '/health') {
         const names = Object.keys(config.printers ?? {})
 
-        const printers = await Promise.all(
-          names.map(async (name) => {
-            const printer = config.printers[name]
+        if (url.searchParams.get('wait') === '1') {
+          // Sozlamalar sahifasi: bir-ikki yuz millisekund muhim emas,
+          // aniq holat muhim
+          await refreshProbes()
+        } else {
+          void refreshProbes()
+        }
 
-            return {
-              name,
-              transport: printer.transport,
-              target: printer.host ?? printer.share ?? printer.path ?? null,
-              responds: await probePrinter(printer),
-              lastError: lastErrors.get(name) ?? null,
-            }
-          }),
-        )
+        const printers = names.map((name) => {
+          const printer = config.printers[name]
+          const cached = probeCache.get(name)
+
+          return {
+            name,
+            transport: printer.transport,
+            target: printer.host ?? printer.share ?? printer.path ?? null,
+            // Hali bir marta ham so'ralmagan bo'lsa `null` — «bilinmaydi»
+            responds: cached ? cached.responds : null,
+            probedAt: cached ? cached.at : null,
+            lastError: lastErrors.get(name) ?? null,
+          }
+        })
 
         sendJson(
           response,

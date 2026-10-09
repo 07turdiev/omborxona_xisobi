@@ -205,6 +205,8 @@ ochib bo'lmaydi.
 | Yorliq hira | `config.json` -> `label.density` ni oshiring (0–15), `speed` ni pasaytiring. Keyin agentni qayta ishga tushirib **skaner bilan** sinang |
 | Yorliq ikki yorliqqa bo'linib chiqadi | Oraliq kalibrlanmagan: [hardware.md, 2.3](hardware.md) |
 | Agent ertalab ishlamaydi | Vazifa boshqa foydalanuvchi uchun yozilgan. `Get-ScheduledTask 'Chop etish agenti' \| Select-Object -ExpandProperty Principal` |
+| Saytni qayta ochgandan keyin chiqmaydi | Agentning eski nusxasi. `http://127.0.0.1:7777/health` dagi `version` **1.2.0** dan kichik bo'lsa `ORNAT.cmd` ni qayta bosing |
+| Printer o'chib yongandan keyin chiqmaydi | Avval yuqoridagi versiyani tekshiring. Keyin yorliq printerining ulashuvi joyidami: `Get-Printer \| Select-Object Name, Shared, ShareName`. Ulashuv yo'qolgan bo'lsa `ORNAT.cmd` uni qayta tiklaydi |
 | Skaner harf chiqaradi | Klaviatura tili. [hardware.md, 4-bo'lim](hardware.md) |
 
 Agentni qo'lda ko'rib chiqish kerak bo'lsa:
@@ -218,7 +220,20 @@ Xabarlar ekranda ko'rinadi. Jurnal: `C:\madlensen\agent\agent.log`.
 
 ---
 
-## 7. Agent ishlamay qolsa nima bo'ladi
+## 7. Agentni yangilash
+
+Yangi versiya chiqsa fleshkadagi `agent` papkasini olib kelib
+`ORNAT.cmd` ni qayta bosasiz. Sozlama (`config.json`) tegilmaydi:
+u agent papkasidan tashqarida turadi. Printer ulashuvlari ham qayta
+tekshiriladi, shuning uchun bu bir vaqtning o'zida tiklash vositasi
+hamdir.
+
+O'rnatilgan versiyani bilish: <http://127.0.0.1:7777/health> dagi
+`version`.
+
+---
+
+## 8. Agent ishlamay qolsa nima bo'ladi
 
 Savdo to'xtamaydi. Ilova jimgina brauzerning chop etish oynasiga
 qaytadi — kassir Ctrl+P bosgandek chiqaradi. Agent keyin ko'tarilsa,
