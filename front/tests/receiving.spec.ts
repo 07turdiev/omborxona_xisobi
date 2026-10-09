@@ -234,6 +234,46 @@ test('qabulda joy tanlanadi: tovar to‘g‘ridan-to‘g‘ri zalga tushadi', as
   expect(at('warehouse')).toBe(0)
 })
 
+test('omborga qabulda shkafdagi joy yoziladi', async ({ page, request }) => {
+  // Ombor kichik, lekin tovarni qayerga qo'yganini eslab qolish kerak:
+  // joy qabulda yoziladi va zalga chiqarishda o'qiladi
+  const name = `Shkaf kirim ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+  await fillNewProduct(page, name, { sizes: [sizes[0]!.name], colors: [colors[0]!.name] })
+
+  await grid(page).getByLabel('Model tannarxi').fill('100000')
+  await page.keyboard.press('Tab')
+  await grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`).fill('4')
+
+  // Standart joy — ombor, shuning uchun katak so'raladi
+  await grid(page).getByLabel('Shkafdagi joyi').selectOption('C2')
+  await confirmButton(page).click()
+
+  await expect(page.getByTestId('purchase-summary')).toBeVisible()
+
+  const saved = await findProduct(request, name)
+  const variant = saved.variants[0]!
+  const warehouse = variant.stocks?.find((stock: { kind: string }) => stock.kind === 'warehouse')
+
+  expect(warehouse?.quantity).toBe(4)
+  expect(warehouse?.cell, 'shkafdagi joy saqlanmadi').toBe('C2')
+})
+
+test('zalga qabul qilinsa shkaf joyi so‘ralmaydi', async ({ page }) => {
+  // Savdo zalida shkaf yo'q — u yerda tovar javonga chiqariladi
+  const name = `Zalga shkafsiz ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+  await fillNewProduct(page, name, { sizes: [sizes[0]!.name], colors: [colors[0]!.name] })
+
+  await expect(grid(page).getByLabel('Shkafdagi joyi')).toBeVisible()
+
+  await page.getByLabel('Qayerga tushsin').selectOption({ label: 'Savdo zali' })
+
+  await expect(grid(page).getByLabel('Shkafdagi joyi')).toHaveCount(0)
+})
+
 test('rasm majburiy, narx ustamadan taklif qilinadi', async ({ page, request }) => {
   const name = `Ustamali ko‘ylak ${Date.now()}`
 

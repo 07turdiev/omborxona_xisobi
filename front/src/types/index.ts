@@ -32,6 +32,9 @@ export interface ShopSettings {
   max_discount_percent: string
   /** Kirimda ustamadan taklif qilingan narx shu qadamga yaxlitlanadi */
   price_rounding_step: number
+  /** Ombordagi shkaf: ustunlar harf (A, B...), qatorlar raqam */
+  cabinet_columns: number
+  cabinet_rows: number
 }
 
 export interface Category {
@@ -129,6 +132,27 @@ export interface StockAtLocation {
   location_name: string
   kind: LocationKind
   quantity: number
+  /** Ombordagi shkaf katagi (`B2`). Zalda bo'sh — u yerda shkaf yo'q */
+  cell: string
+}
+
+/** Shkafdagi bitta tovar */
+export interface CabinetItem {
+  variant: number
+  name: string
+  label: string
+  quantity: number
+}
+
+/** Shkaf xaritasi: har katakda nima turibdi */
+export interface Cabinet {
+  columns: number
+  rows: number
+  cells: Record<string, CabinetItem[]>
+  /** Omborda turgan, lekin joyi belgilanmagan tovarlar */
+  unplaced: CabinetItem[]
+  /** Shkaf kichraytirilgandan keyin jadvaldan tashqarida qolganlar */
+  outside: Record<string, CabinetItem[]>
 }
 
 export interface Variant {
@@ -227,6 +251,8 @@ export interface PurchaseLine {
   unit_cost: string
   /** Tasdiqlanganda mahsulotga yoziladigan yangi sotuv narxi */
   new_sale_price?: string | null
+  /** Tovar omborning qaysi katagiga qo'yilgani: `B2` */
+  cell?: string
   line_total?: string
 }
 

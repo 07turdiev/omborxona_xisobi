@@ -485,3 +485,81 @@ class PurchaseLocationTests(TestCase):
 
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(self.stock(Location.shop()), 0)
+
+
+class PurchaseCellTests(TestCase):
+    """Qabulda tovar shkafning qaysi katagiga qo'yilgani yoziladi."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.variant = create_product().variants.get()
+        self.client = api_client(self.admin)
+
+    def create(self, cell='B2', location=None) -> dict:
+        payload = {
+            'date': str(timezone.localdate()),
+            'supplier': None,
+            'lines': [
+                {'variant': self.variant.pk, 'quantity': 4, 'unit_cost': '100000', 'cell': cell}
+            ],
+        }
+
+        if location is not None:
+            payload['location'] = location.pk
+
+        response = self.client.post('/api/purchases/', payload, format='json')
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        return response.json()
+
+    def warehouse_cell(self) -> str:
+        row = VariantStock.objects.filter(
+            variant=self.variant, location=Location.warehouse()
+        ).first()
+
+        return row.cell if row else ''
+
+    def test_cell_is_kept_on_the_draft(self):
+        """Qoralama bir necha kun turishi mumkin — joy o'sha kuni yoziladi."""
+        purchase = self.create()
+
+        self.assertEqual(purchase['lines'][0]['cell'], 'B2')
+        self.assertEqual(self.warehouse_cell(), '')
+
+    def test_confirming_moves_the_cell_onto_the_stock(self):
+        purchase = self.create(cell='c3')
+
+        self.assertEqual(purchase['lines'][0]['cell'], 'C3')
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+
+        self.assertEqual(self.warehouse_cell(), 'C3')
+
+    def test_receiving_into_the_shop_leaves_the_cabinet_alone(self):
+        """Savdo zalida shkaf yo'q: u yerga tushgan tovarga joy berilmaydi."""
+        purchase = self.create(cell='', location=Location.shop())
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+
+        self.assertEqual(self.warehouse_cell(), '')
+
+    def test_cell_outside_the_cabinet_is_refused_on_the_draft(self):
+        response = self.client.post(
+            '/api/purchases/',
+            {
+                'date': str(timezone.localdate()),
+                'supplier': None,
+                'lines': [
+                    {
+                        'variant': self.variant.pk,
+                        'quantity': 1,
+                        'unit_cost': '100000',
+                        'cell': 'Z9',
+                    }
+                ],
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)

@@ -2,8 +2,14 @@
 
 from decimal import Decimal
 
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+# Shkafning chegaralari o'sha yerda ta'riflangan. Import bir tomonlama:
+# `storage` modulida Django modeli yo'q, shuning uchun aylanma bog'liqlik
+# hosil bo'lmaydi.
+from apps.inventory.storage import MAX_COLUMNS, MAX_ROWS
 
 
 class TimeStampedModel(models.Model):
@@ -49,6 +55,21 @@ class ShopSettings(TimeStampedModel):
     #: ham butun son ko'rinadi.
     price_rounding_step = models.PositiveIntegerField(
         _('Narxni yaxlitlash qadami, so‘m'), default=1000
+    )
+
+    #: Ombordagi shkaf: ustunlar harf (A, B, C...), qatorlar raqam.
+    #: Katak nomi shu ikkisidan yig'iladi — `B2`. O'lcham sozlamada,
+    #: chunki shkaf har do'konda boshqacha va uni o'lchab kelish kerak.
+    cabinet_columns = models.PositiveSmallIntegerField(
+        _('Shkaf ustunlari'),
+        default=5,
+        validators=[MinValueValidator(1), MaxValueValidator(MAX_COLUMNS)],
+    )
+
+    cabinet_rows = models.PositiveSmallIntegerField(
+        _('Shkaf qatorlari'),
+        default=5,
+        validators=[MinValueValidator(1), MaxValueValidator(MAX_ROWS)],
     )
 
     class Meta:

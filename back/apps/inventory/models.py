@@ -105,6 +105,14 @@ class VariantStock(models.Model):
 
     quantity = models.IntegerField(_('Qoldiq'), default=0)
 
+    #: Ombordagi shkafning katagi: `B2`. Faqat ombor uchun ma'noli —
+    #: savdo zalida tovar javonda turadi va uni qidirish kerak emas.
+    #:
+    #: Qoldiq qatorida saqlanadi, chunki qator tovar tugaganda ham
+    #: o'chmaydi: keyingi kirimda xodim o'sha tovarni odatdagi joyiga
+    #: qo'yadi va dastur joyni eslab turgani qulay.
+    cell = models.CharField(_('Shkafdagi joyi'), max_length=3, blank=True)
+
     class Meta:
         verbose_name = _('Joydagi qoldiq')
         verbose_name_plural = _('Joydagi qoldiqlar')

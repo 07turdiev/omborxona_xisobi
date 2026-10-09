@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { shopStock, stockLine, stockOfKind, warehouseStock } from './stock'
+import { shopStock, stockLine, stockOfKind, warehouseCell, warehouseStock } from './stock'
 import type { StockAtLocation } from '@/types'
 
-function at(kind: 'shop' | 'warehouse', quantity: number): StockAtLocation {
+function at(kind: 'shop' | 'warehouse', quantity: number, cell = ''): StockAtLocation {
   return {
     location: kind === 'shop' ? 2 : 1,
     location_name: kind === 'shop' ? 'Do‘kon' : 'Ombor',
     kind,
     quantity,
+    cell,
   }
 }
 
@@ -43,5 +44,30 @@ describe('stockLine', () => {
 
   it('bo‘sh qoldiq ham yoziladi — «yo‘q» ekani ko‘rinib tursin', () => {
     expect(stockLine({ stocks: [] })).toBe('Zalda 0 · omborda 0')
+  })
+})
+
+describe('warehouseCell', () => {
+  it('ombordagi katakni beradi', () => {
+    expect(warehouseCell({ stocks: [at('warehouse', 4, 'B2'), at('shop', 1)] })).toBe('B2')
+  })
+
+  it('joy belgilanmagan bo‘lsa bo‘sh', () => {
+    expect(warehouseCell({ stocks: [at('warehouse', 4)] })).toBe('')
+  })
+})
+
+describe('stockLine katak bilan', () => {
+  it('omborda tovar bo‘lsa katak ham ko‘rinadi', () => {
+    expect(stockLine({ stocks: [at('warehouse', 12, 'B2'), at('shop', 3)] })).toBe(
+      'Zalda 3 · omborda 12 · B2',
+    )
+  })
+
+  it('omborda tovar qolmagan bo‘lsa katak aytilmaydi', () => {
+    // Joy eslab qolinadi, lekin bo‘sh katakni ko‘rsatish chalg‘itadi
+    expect(stockLine({ stocks: [at('warehouse', 0, 'B2'), at('shop', 3)] })).toBe(
+      'Zalda 3 · omborda 0',
+    )
   })
 })

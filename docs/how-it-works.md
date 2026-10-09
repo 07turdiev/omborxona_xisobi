@@ -119,6 +119,36 @@ farqqa tushmaydi. Hisobdan chiqarish ham o'z joyidan bo'ladi.
 Tovarlar ro'yxatida «Joy» filtri bor: faqat zalda turganlarni yoki
 faqat omborda yotganlarni ajratib ko'rish mumkin.
 
+### Ombordagi shkaf: katak tovarni topish uchun
+
+Omborda bitta shkaf bor va u Excel jadvaliga o'xshaydi: ustunlar harf
+(A, B, C...), qatorlar raqam. Katak nomi shu ikkisidan yig'iladi —
+`B2`. Shkaf o'lchami Sozlamalarda (standart 5 × 5).
+
+**Katak faqat joyni ko'rsatadi.** Qoldiq avvalgidek butun ombor
+bo'yicha yuritiladi, har katakda alohida hisob yo'q. Sabab oddiy:
+ombor kichik va unda tovar ko'p saqlanmaydi, har katakda alohida
+hisob yuritilsa esa zalga chiqarishda, hisobdan chiqarishda va
+sanoqda har safar katak tanlash kerak bo'lardi. Katak bitta savolga
+javob beradi — «tovarni qayerdan olaman?»
+
+Joy uch joyda ko'rinadi:
+
+- **Qabulda** — kirim omborga tushsa, har model uchun katak
+  ro'yxatdan tanlanadi. Hujjat tasdiqlanganda joy qoldiqqa ko'chadi.
+- **«Ombor shkafi» ekranida** (Zalga chiqarish → Shkaf) — butun
+  shkaf jadval bo'lib chiziladi, katak bosilsa ichidagi tovarlar
+  ro'yxati chiqadi. Joyi belgilanmaganlar alohida ro'yxatda turadi.
+- **Zalga chiqarishda** — har variant yonida katak yoziladi, xodim
+  shkafga borishdan oldin shuni o'qiydi.
+
+Joy qoldiq qatorida (`VariantStock.cell`) saqlanadi va tovar tugaganda
+ham o'chmaydi: keyingi kirimda xodim uni odatdagi joyiga qo'yadi.
+
+Shkaf kichraytirilsa, jadvaldan tashqarida qolgan kataklar «Shkafdan
+tashqarida» ro'yxatida ko'rsatiladi — tovar fizik joyda turibdi,
+uni jimgina yo'qotib bo'lmaydi.
+
 ---
 
 ## 4. Tannarx — o'rtacha qiymat

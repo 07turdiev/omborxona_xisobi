@@ -52,6 +52,10 @@ export const SECTION_TABS: Record<string, Tab[]> = {
     { to: '/purchases', label: 'Qabul qilish' },
     { to: '/suppliers', label: 'Ta’minotchilar' },
   ],
+  transfers: [
+    { to: '/transfers', label: 'Zalga chiqarish' },
+    { to: '/warehouse', label: 'Shkaf' },
+  ],
   counts: [
     { to: '/stock-counts', label: 'Sanoq' },
     { to: '/write-offs', label: 'Hisobdan chiqarish' },

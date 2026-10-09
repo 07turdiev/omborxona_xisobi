@@ -81,6 +81,9 @@ def location_stocks(variant) -> list[dict]:
             'location_name': stock.location.name,
             'kind': stock.location.kind,
             'quantity': stock.quantity,
+            # Ombordagi shkafning katagi. Zalda bo'sh — u yerda tovar
+            # javonda turadi va uni qidirish kerak emas.
+            'cell': stock.cell,
         }
         for stock in variant.stocks.all()
     ]

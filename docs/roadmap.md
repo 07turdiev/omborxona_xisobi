@@ -21,6 +21,7 @@ Holat: **2026-09-18**.
 | **Sozlamalar** | Do'kon nomi, yorliq o'lchami, kassir chegirma chegarasi |
 | **Chop etish agenti** | Chek va yorliq to'g'ridan-to'g'ri printerga: oyna ochilmaydi, qog'oz bo'shga ketmaydi |
 | **Ombor va savdo zali** | Qoldiq ikki joyda alohida; ko'chirish hujjati; kassa faqat zaldagini sotadi |
+| **Ombordagi shkaf** | Ustun harf, qator raqam (`B2`). Qabulda joy yoziladi, shkaf jadvalida va zalga chiqarishda ko'rinadi |
 | **Mahsulot rasmi** | Har tovarga majburiy, har rangga alohida surat; kassa savatida va ro'yxatlarda ko'rinadi |
 
 Testlar: **backend 95, frontend 44, agent 85, chop etish 10** — hammasi
@@ -73,7 +74,6 @@ kodi (MXIK) qaytariladi.
 | Nima | Izoh |
 |---|---|
 | **Excel'dan mahsulot import qilish** | Do'konda yuzlab pozitsiya bo'lsa qo'l bilan kiritish uzoq |
-| **Ombor strukturasi** (javon, polka) | Hozir kerak emas: ombor kichik va unda tovar ko'p saqlanmaydi |
 | **O'lchamlarni kategoriya bo'yicha ajratish** | Kiyim (S, M, L) va oyoq kiyim (36–41) bitta ro'yxatda. Ro'yxat uzayib ketsa kerak bo'ladi |
 
 ---

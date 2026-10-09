@@ -107,6 +107,7 @@ const SCREENS: Screen[] = [
   { name: 'pos', path: '/', ready: '.pos', prepare: fillCart },
   { name: 'purchases', path: '/purchases', ready: '.data-table tbody' },
   { name: 'transfers', path: '/transfers', ready: '.data-table tbody' },
+  { name: 'warehouse', path: '/warehouse', ready: '.grid' },
   { name: 'reports', path: '/reports', ready: '.kpi-card' },
 ]
 

@@ -31,7 +31,26 @@ export function warehouseStock(item: HasStocks): number {
   return stockOfKind(item, 'warehouse')
 }
 
-/** «Zalda 3 · omborda 12» ko'rinishidagi qator. */
+/**
+ * Ombordagi shkafning katagi: `B2`. Belgilanmagan bo'lsa bo'sh satr.
+ *
+ * Zalda katak bo'lmaydi — u yerda tovar javonda turadi.
+ */
+export function warehouseCell(item: HasStocks): string {
+  return (item.stocks ?? []).find((stock) => stock.kind === 'warehouse')?.cell ?? ''
+}
+
+/**
+ * «Zalda 3 · omborda 12 · B2» ko'rinishidagi qator.
+ *
+ * Katak faqat omborda tovar turganda qo'shiladi: qoldig'i yo'q
+ * tovarning joyini aytish chalg'itadi.
+ */
 export function stockLine(item: HasStocks): string {
-  return `Zalda ${shopStock(item)} · omborda ${warehouseStock(item)}`
+  const parts = [`Zalda ${shopStock(item)}`, `omborda ${warehouseStock(item)}`]
+  const cell = warehouseCell(item)
+
+  if (cell && warehouseStock(item) > 0) parts.push(cell)
+
+  return parts.join(' · ')
 }

@@ -2,14 +2,16 @@ from collections import defaultdict
 
 from django.apps import apps
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from rest_framework.permissions import IsAuthenticated
 
+from apps.catalog.models import Variant
 from apps.core.permissions import IsAdmin
-from apps.inventory import services
+from apps.inventory import services, storage
 from apps.inventory.models import Location, StockCount, StockMovement, Transfer, WriteOff
 from apps.inventory.serializers import (
     LocationSerializer,
@@ -204,3 +206,38 @@ class TransferViewSet(
             return Response({'detail': exc.messages}, status=400)
 
         return Response(self.get_serializer(transfer).data, status=201)
+
+
+class CabinetView(APIView):
+    """Ombordagi shkaf xaritasi.
+
+    O'qishga hamma xodimga ruxsat: tovarni qayerdan olishni kassir ham
+    bilishi kerak. Joyni o'zgartirish — administratorga.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(storage.cabinet())
+
+
+class PlaceView(APIView):
+    """Tovarga shkafdagi joyni belgilaydi."""
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        variant_id = request.data.get('variant')
+        cell = request.data.get('cell', '')
+
+        variant = Variant.objects.filter(pk=variant_id).first()
+
+        if variant is None:
+            return Response({'variant': 'Tovar topilmadi'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            placed = storage.place(variant, cell)
+        except DjangoValidationError as error:
+            return Response({'cell': error.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'variant': variant.pk, 'cell': placed})

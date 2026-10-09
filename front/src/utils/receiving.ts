@@ -27,6 +27,14 @@ export interface DraftModel {
   quantities: Record<number, number>
   /** variant → shu qatorning alohida tannarxi (bo'sh bo'lsa modelniki) */
   overrides: Record<number, string>
+  /**
+   * Ombordagi shkafning katagi: `B2`.
+   *
+   * Model bo'yicha bitta: bitta modelning hamma o'lchami va rangi
+   * omborda yonma-yon turadi, ularni alohida kataklarga tarqatish
+   * tovarni qidirishni osonlashtirmaydi.
+   */
+  cell: string
 }
 
 export interface GridAxis {
@@ -58,6 +66,7 @@ export function emptyModel(product: Product): DraftModel {
     variants: product.variants.filter((variant) => variant.is_active),
     quantities: {},
     overrides: {},
+    cell: '',
   }
 }
 
@@ -90,6 +99,7 @@ export function modelFromLines(product: Product, lines: PurchaseLine[]): DraftMo
 
   // Narx modelga tegishli — qatorlarda bir xil yozilgan bo'ladi
   model.newPrice = lines.find((line) => line.new_sale_price)?.new_sale_price ?? ''
+  model.cell = lines.find((line) => line.cell)?.cell ?? ''
 
   return model
 }
@@ -123,6 +133,7 @@ export interface DraftLine {
   quantity: number
   unit_cost: string
   new_sale_price: string | null
+  cell: string
 }
 
 /** Modellardan hujjat qatorlari: bo'sh katakchalar tushib qoladi. */
@@ -131,6 +142,7 @@ export function draftLines(models: DraftModel[]): DraftLine[] {
 
   for (const model of models) {
     const newPrice = model.newPrice.trim() ? normalizeMoneyInput(model.newPrice) : null
+    const cell = model.cell.trim().toUpperCase()
 
     for (const variant of model.variants) {
       const quantity = model.quantities[variant.id] ?? 0
@@ -142,6 +154,7 @@ export function draftLines(models: DraftModel[]): DraftLine[] {
         quantity,
         unit_cost: lineCost(model, variant.id),
         new_sale_price: newPrice,
+        cell,
       })
     }
   }

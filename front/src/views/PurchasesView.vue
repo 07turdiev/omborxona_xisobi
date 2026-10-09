@@ -11,6 +11,8 @@ import AmountField from '@/components/AmountField.vue'
 import { errorMessage } from '@/api/client'
 import { inventoryApi } from '@/api/inventory'
 import { purchasesApi } from '@/api/purchases'
+import { useAuthStore } from '@/stores/auth'
+import { cellNames } from '@/utils/cabinet'
 import { formatDayMonth, formatTime, todayIso } from '@/utils/date'
 import { formatMoney, formatSum, normalizeMoneyInput } from '@/utils/money'
 import {
@@ -63,6 +65,8 @@ const draft = ref({
   amount_paid: '',
 })
 
+const auth = useAuthStore()
+
 const locations = ref<Location[]>([])
 
 const models = ref<DraftModel[]>([])
@@ -74,6 +78,20 @@ const extraLabels = ref(0)
 
 const labels = ref<InstanceType<typeof LabelPrint> | null>(null)
 const labelItems = ref<LabelItem[]>([])
+
+/**
+ * Shkaf kataklari — faqat kirim omborga tushganda.
+ *
+ * Savdo zalida shkaf yo'q: u yerda tovar javonga chiqariladi va uni
+ * qidirish kerak bo'lmaydi.
+ */
+const cabinetCells = computed(() => {
+  const place = locations.value.find((item) => item.id === draft.value.location)
+
+  if (place?.kind !== 'warehouse') return []
+
+  return cellNames(auth.shop?.cabinet_columns ?? 0, auth.shop?.cabinet_rows ?? 0)
+})
 
 const units = computed(() => draftUnits(models.value))
 const total = computed(() => draftTotal(models.value))
@@ -415,6 +433,7 @@ onMounted(async () => {
         v-for="model in models"
         :key="model.product"
         :model="model"
+        :cells="cabinetCells"
         @remove="removeModel(model.product)"
       />
 

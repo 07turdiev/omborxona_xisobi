@@ -6,7 +6,7 @@ import { errorMessage } from '@/api/client'
 import { inventoryApi, type Transfer } from '@/api/inventory'
 import { formatDayMonth, formatTime } from '@/utils/date'
 import { formatSum } from '@/utils/money'
-import { shopStock, warehouseStock } from '@/utils/stock'
+import { shopStock, warehouseCell, warehouseStock } from '@/utils/stock'
 import type { CatalogCard, Location, Variant } from '@/types'
 
 /**
@@ -260,6 +260,7 @@ onMounted(load)
           <thead>
             <tr>
               <th>Variant</th>
+              <th>Joyi</th>
               <th class="num">Omborda</th>
               <th class="num">Zalda</th>
               <th class="num">Chiqariladi</th>
@@ -276,6 +277,15 @@ onMounted(load)
                 />
                 {{ variant.label || item.name }}
               </td>
+
+              <!-- Shkafdagi katak: tovarni qayerdan olish kerakligi -->
+              <td>
+                <span v-if="warehouseCell(variant)" class="pill pill-grey">
+                  {{ warehouseCell(variant) }}
+                </span>
+                <span v-else class="muted">—</span>
+              </td>
+
               <td class="num">{{ warehouseStock(variant) }}</td>
               <td class="num">{{ shopStock(variant) }}</td>
 

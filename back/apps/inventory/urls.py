@@ -1,7 +1,10 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from apps.inventory.api import (
+    CabinetView,
     LocationViewSet,
+    PlaceView,
     StockCountViewSet,
     StockMovementViewSet,
     TransferViewSet,
@@ -17,4 +20,7 @@ router.register('transfers', TransferViewSet, basename='transfer')
 router.register('stock-counts', StockCountViewSet, basename='stock-count')
 router.register('write-offs', WriteOffViewSet, basename='write-off')
 
-urlpatterns = router.urls
+urlpatterns = router.urls + [
+    path('storage/cabinet/', CabinetView.as_view(), name='cabinet'),
+    path('storage/place/', PlaceView.as_view(), name='place'),
+]

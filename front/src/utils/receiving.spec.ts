@@ -123,12 +123,23 @@ describe('kirim qatorlari', () => {
     model.quantities = { [OQ_S.id]: 3, [QORA_M.id]: 2 }
 
     expect(draftLines([model])).toEqual([
-      { variant: OQ_S.id, quantity: 3, unit_cost: '200000.00', new_sale_price: null },
-      { variant: QORA_M.id, quantity: 2, unit_cost: '200000.00', new_sale_price: null },
+      { variant: OQ_S.id, quantity: 3, unit_cost: '200000.00', new_sale_price: null, cell: '' },
+      { variant: QORA_M.id, quantity: 2, unit_cost: '200000.00', new_sale_price: null, cell: '' },
     ])
 
     expect(modelUnits(model)).toBe(5)
     expect(modelTotal(model)).toBe('1000000.00')
+  })
+
+  it('shkafdagi joy hamma qatorga bir xil tushadi', () => {
+    // Bitta modelning hamma o'lchami va rangi omborda yonma-yon turadi
+    const model = emptyModel(product())
+
+    model.cost = '100000'
+    model.quantities = { [OQ_S.id]: 1, [QORA_M.id]: 1 }
+    model.cell = ' b2 '
+
+    expect(draftLines([model]).map((line) => line.cell)).toEqual(['B2', 'B2'])
   })
 
   it('qatorning alohida tannarxi modelnikidan ustun', () => {

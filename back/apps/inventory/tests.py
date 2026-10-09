@@ -24,6 +24,7 @@ from apps.inventory.models import (
     StockMovement,
     VariantStock,
 )
+from apps.core.models import ShopSettings
 from apps.inventory.services import (
     confirm_stock_count,
     create_transfer,
@@ -31,6 +32,7 @@ from apps.inventory.services import (
     moving_average,
     record_movement,
 )
+from apps.inventory.storage import cabinet, cell_names, normalize_cell, place
 from apps.sales.services import create_sale
 
 
@@ -502,3 +504,123 @@ class WriteOffLocationApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400, response.content)
         self.assertIn('yetarli emas', ' '.join(response.json()['detail']))
+
+
+class CellNameTests(TestCase):
+    """Katak nomi: `A1` ko'rinishida va shkafdan tashqariga chiqmasin."""
+
+    def test_names_go_left_to_right_then_down(self):
+        self.assertEqual(
+            cell_names(3, 2),
+            ['A1', 'B1', 'C1', 'A2', 'B2', 'C2'],
+        )
+
+    def test_lowercase_and_spaces_are_cleaned(self):
+        self.assertEqual(normalize_cell('  b2 ', 5, 5), 'B2')
+
+    def test_empty_means_no_place(self):
+        self.assertEqual(normalize_cell('', 5, 5), '')
+
+    def test_wrong_shape_is_rejected(self):
+        for bad in ('2B', 'BB', '12', 'B', 'B0'):
+            with self.subTest(bad=bad), self.assertRaises(ValidationError):
+                normalize_cell(bad, 5, 5)
+
+    def test_cell_outside_the_cabinet_is_rejected(self):
+        """Besh ustunli shkafda `F1` yo'q — bunday tovarni hech kim topmaydi."""
+        with self.assertRaises(ValidationError) as caught:
+            normalize_cell('F1', 5, 5)
+
+        self.assertIn('E5', str(caught.exception))
+
+        with self.assertRaises(ValidationError):
+            normalize_cell('A6', 5, 5)
+
+
+class CabinetTests(TestCase):
+    """Shkaf xaritasi va tovarga joy belgilash."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.variant = create_product().variants.get()
+        self.warehouse = Location.warehouse()
+
+        receive_stock(self.variant, 4, '100000', location=self.warehouse)
+
+    def test_place_writes_the_cell_on_warehouse_stock(self):
+        place(self.variant, 'b2')
+
+        stock = VariantStock.objects.get(variant=self.variant, location=self.warehouse)
+
+        self.assertEqual(stock.cell, 'B2')
+
+    def test_cabinet_lists_every_cell_even_empty_ones(self):
+        settings = ShopSettings.load()
+        settings.cabinet_columns = 3
+        settings.cabinet_rows = 2
+        settings.save(update_fields=['cabinet_columns', 'cabinet_rows'])
+
+        place(self.variant, 'C2')
+
+        board = cabinet()
+
+        self.assertEqual(len(board['cells']), 6)
+        self.assertEqual(board['cells']['A1'], [])
+        self.assertEqual(board['cells']['C2'][0]['quantity'], 4)
+
+    def test_goods_without_a_place_are_listed_separately(self):
+        board = cabinet()
+
+        self.assertEqual(board['unplaced'][0]['variant'], self.variant.pk)
+
+    def test_shrinking_the_cabinet_does_not_hide_goods(self):
+        """Tovar fizik joyda turibdi — jadvaldan tushib qolsa yo'qoladi."""
+        place(self.variant, 'E5')
+
+        settings = ShopSettings.load()
+        settings.cabinet_columns = 3
+        settings.cabinet_rows = 3
+        settings.save(update_fields=['cabinet_columns', 'cabinet_rows'])
+
+        board = cabinet()
+
+        self.assertEqual(board['outside']['E5'][0]['variant'], self.variant.pk)
+
+
+class CabinetApiTests(TestCase):
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.cashier = create_cashier()
+        self.variant = create_product().variants.get()
+
+        receive_stock(self.variant, 2, '100000', location=Location.warehouse())
+
+    def test_cashier_can_read_the_map(self):
+        """Tovarni qayerdan olishni kassir ham bilishi kerak."""
+        response = api_client(self.cashier).get('/api/storage/cabinet/')
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()['columns'], 5)
+
+    def test_admin_places_a_variant(self):
+        response = api_client(self.admin).post(
+            '/api/storage/place/', {'variant': self.variant.pk, 'cell': 'c3'}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()['cell'], 'C3')
+
+    def test_cashier_cannot_place(self):
+        response = api_client(self.cashier).post(
+            '/api/storage/place/', {'variant': self.variant.pk, 'cell': 'C3'}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_cell_outside_the_cabinet_is_refused(self):
+        response = api_client(self.admin).post(
+            '/api/storage/place/', {'variant': self.variant.pk, 'cell': 'Z9'}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 400)

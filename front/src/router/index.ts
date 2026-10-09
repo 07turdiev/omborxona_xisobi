@@ -136,6 +136,18 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
+  {
+    // Kassir ham ko'radi: tovarni qayerdan olishni bilishi kerak
+    path: '/warehouse',
+    name: 'warehouse',
+    component: () => import('@/views/CabinetView.vue'),
+    meta: {
+      title: 'Ombor shkafi',
+      section: 'transfers',
+      description: 'Qaysi tovar shkafning qaysi katagida turganini ko‘rsatadi',
+    },
+  },
+
   // --- Inventarizatsiya -------------------------------------------------
   {
     path: '/stock-counts',

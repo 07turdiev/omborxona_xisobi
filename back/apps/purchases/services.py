@@ -8,7 +8,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.catalog.models import Product
-from apps.inventory.models import MovementReason
+from apps.inventory.models import Location, MovementReason, VariantStock
 from apps.inventory.services import record_movement
 from apps.purchases.models import Purchase
 
@@ -23,6 +23,29 @@ def recalculate_total(purchase: Purchase) -> Purchase:
     purchase.save(update_fields=['total', 'updated_at'])
 
     return purchase
+
+
+def apply_cells(purchase: Purchase, lines) -> None:
+    """Qatorlarda yozilgan shkaf katagini qoldiqqa ko'chiradi.
+
+    Faqat omborga qabul qilinganda: savdo zalida shkaf yo'q.
+    Qatorda katak yozilmagan bo'lsa, tovarning oldingi joyi
+    o'zgarmaydi — odatda u o'sha yerga qaytariladi.
+    """
+    if purchase.location.kind != Location.Kind.WAREHOUSE:
+        return
+
+    for line in lines:
+        if not line.cell:
+            continue
+
+        stock = VariantStock.objects.filter(
+            variant=line.variant, location=purchase.location
+        ).first()
+
+        if stock is not None and stock.cell != line.cell:
+            stock.cell = line.cell
+            stock.save(update_fields=['cell'])
 
 
 def apply_new_sale_prices(lines) -> int:
@@ -77,6 +100,7 @@ def confirm(purchase: Purchase, user=None) -> Purchase:
             user=user,
         )
 
+    apply_cells(purchase, lines)
     apply_new_sale_prices(lines)
 
     purchase.status = Purchase.Status.CONFIRMED

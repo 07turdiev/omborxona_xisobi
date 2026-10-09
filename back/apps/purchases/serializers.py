@@ -1,8 +1,11 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
+from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
 from apps.inventory.models import Location
+from apps.inventory.storage import normalize_cell
 from apps.purchases.models import Purchase, PurchaseLine, Supplier, SupplierPayment
 from apps.purchases.services import recalculate_total, supplier_balance
 
@@ -63,7 +66,7 @@ class PurchaseLineSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'variant', 'product', 'product_name', 'variant_label',
             'size', 'size_name', 'color', 'color_name', 'sku', 'barcode',
-            'price', 'quantity', 'unit_cost', 'new_sale_price', 'line_total',
+            'price', 'quantity', 'unit_cost', 'new_sale_price', 'line_total', 'cell',
         )
         read_only_fields = ('id',)
 
@@ -72,6 +75,20 @@ class PurchaseLineSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Miqdor noldan katta bo‘lishi kerak.')
 
         return value
+
+    def validate_cell(self, value):
+        """Shkafda yo'q katakni yozib bo'lmaydi.
+
+        Tekshiruv shu yerda: qoralamada noto'g'ri katak qolib ketsa,
+        xato faqat tasdiqlash paytida chiqib, xodimni hujjat boshiga
+        qaytarardi.
+        """
+        settings = ShopSettings.load()
+
+        try:
+            return normalize_cell(value, settings.cabinet_columns, settings.cabinet_rows)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError(error.messages) from error
 
     def validate_new_sale_price(self, value):
         if value is not None and value <= 0:
@@ -131,6 +148,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
                 quantity=line['quantity'],
                 unit_cost=line['unit_cost'],
                 new_sale_price=line.get('new_sale_price'),
+                cell=line.get('cell', ''),
             )
             for line in lines
         ])

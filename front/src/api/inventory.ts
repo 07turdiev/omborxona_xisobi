@@ -1,5 +1,6 @@
 import api from '@/api/client'
 import type {
+  Cabinet,
   Location,
   Paginated,
   StockCount,
@@ -35,6 +36,21 @@ export interface Transfer {
 }
 
 export const inventoryApi = {
+  /** Ombordagi shkaf xaritasi */
+  async cabinet() {
+    const { data } = await api.get<Cabinet>('/storage/cabinet/')
+    return data
+  },
+
+  /** Tovarga shkafdagi joy belgilaydi. Bo'sh qiymat joyni o'chiradi. */
+  async place(variant: number, cell: string) {
+    const { data } = await api.post<{ variant: number; cell: string }>('/storage/place/', {
+      variant,
+      cell,
+    })
+    return data
+  },
+
   /** Joylar: ombor va savdo zali */
   async locations() {
     const { data } = await api.get<Location[]>('/locations/')

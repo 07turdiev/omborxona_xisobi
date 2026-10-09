@@ -57,6 +57,7 @@ const PAGES: [string, string, string][] = [
   ['/purchases', 'Tovar qabul qilish', 'Tovar qabul qilish'],
   ['/suppliers', 'Tovar qabul qilish', 'Tovar qabul qilish'],
   ['/transfers', 'Zalga chiqarish', 'Zalga chiqarish'],
+  ['/warehouse', 'Ombor shkafi', 'Zalga chiqarish'],
   ['/stock-counts', 'Sanoq', 'Sanoq'],
   ['/write-offs', 'Sanoq', 'Sanoq'],
   ['/reports', 'Hisobot', 'Hisobot'],
@@ -97,6 +98,7 @@ test('bo‘lim ichidagi tablar', async ({ page }, info) => {
 
   const groups: [string, string[]][] = [
     ['/stock-counts', ['Sanoq', 'Hisobdan chiqarish']],
+    ['/transfers', ['Zalga chiqarish', 'Shkaf']],
     ['/reports', ['Savdo', 'Qoldiq qiymati', 'Xarajatlar', 'Cheklar']],
     ['/settings', ['Do‘kon', 'Xodimlar', 'Qurilmalar']],
     ['/products', ['Tovarlar', 'Kategoriya, o‘lcham, rang']],

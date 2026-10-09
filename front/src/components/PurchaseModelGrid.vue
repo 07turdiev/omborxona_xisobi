@@ -34,7 +34,14 @@ import type { Color, Size } from '@/types'
  * Faqat o'sha juftlik yaratiladi — matritsa emas.
  */
 
-const props = defineProps<{ model: DraftModel }>()
+const props = defineProps<{
+  model: DraftModel
+  /**
+   * Shkaf kataklari. Bo'sh bo'lsa joy so'ralmaydi: kirim savdo
+   * zaliga tushyapti va u yerda shkaf yo'q.
+   */
+  cells?: string[]
+}>()
 
 const emit = defineEmits<{ remove: [] }>()
 
@@ -254,6 +261,17 @@ onMounted(async () => {
           aria-label="Yangi sotuv narxi"
           :placeholder="formatMoney(model.currentPrice)"
         />
+      </label>
+
+      <!-- Omborga tushsa: tovar shkafning qaysi katagiga qo'yildi.
+           Ro'yxatdan tanlanadi — qo'lda yozilgan katak xato
+           bo'lishi va tovar yo'qolib qolishi mumkin. -->
+      <label v-if="cells?.length" class="price-field narrow">
+        <span>Shkafdagi joyi</span>
+        <select v-model="model.cell" aria-label="Shkafdagi joyi">
+          <option value="">Belgilanmagan</option>
+          <option v-for="cell in cells" :key="cell" :value="cell">{{ cell }}</option>
+        </select>
       </label>
     </div>
 

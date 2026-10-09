@@ -169,6 +169,12 @@ class PurchaseLine(models.Model):
     #: qoralama hali kelmagan tovar, uning narxi do'konda ko'rinmasligi kerak.
     new_sale_price = MoneyField(_('Yangi sotuv narxi'), null=True, blank=True)
 
+    #: Tovar omborning qaysi katagiga qo'yilgani (`B2`). Hujjat
+    #: tasdiqlanganda qoldiq qatoriga ko'chiriladi. Qatorda saqlanadi,
+    #: chunki qoralama bir necha kun turishi mumkin va xodim joyni
+    #: tovar kelgan kuni yozadi.
+    cell = models.CharField(_('Shkafdagi joyi'), max_length=3, blank=True)
+
     class Meta:
         verbose_name = _('Kirim qatori')
         verbose_name_plural = _('Kirim qatorlari')
