@@ -251,7 +251,7 @@ const routes: RouteRecordRaw[] = [
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('@/views/NotFoundView.vue'),
-    meta: { public: true },
+    meta: { public: true, title: 'Sahifa topilmadi' },
   },
 ]
 
@@ -290,6 +290,15 @@ router.beforeEach(async (to) => {
   if (to.meta.admin && !auth.isAdmin) {
     return { name: 'pos' }
   }
+})
+
+/** Brauzer yorlig'ida va tarixda do'kon nomi ko'rinadi */
+const SHOP = 'Madlen sen'
+
+router.afterEach((to) => {
+  // Bo'lim nomi oldinda: yorliq torayganda ham o'qiladigan qismi
+  // aynan shu bo'ladi, do'kon nomi esa hamma yorliqda bir xil.
+  document.title = to.meta.title ? `${to.meta.title} — ${SHOP}` : SHOP
 })
 
 export default router

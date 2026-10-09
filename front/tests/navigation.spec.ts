@@ -156,3 +156,36 @@ test('kassir ham kassadan qaytarishga o‘tadi', async ({ page }) => {
   await expect(page).toHaveURL(/\/returns$/)
   await expect(page.locator('.menu-item.active')).toHaveText('Qaytarish')
 })
+
+test("brauzer yorlig'ida bo'lim va do'kon nomi turadi", async ({ page }) => {
+  // Yorliq sarlavhasi tarixda va bir nechta oyna ochilganda muhim:
+  // «Vite App» qolib ketgan edi
+  await openApp(page, admin, '/')
+  await expect(page).toHaveTitle('Sotish — Madlen sen')
+
+  await openApp(page, admin, '/products')
+  await expect(page).toHaveTitle('Tovarlar — Madlen sen')
+
+  // Sarlavhasi yo'q sahifada faqat do'kon nomi
+  await page.goto('/login')
+  await expect(page).toHaveTitle('Madlen sen')
+})
+
+test('nishoncha va manifest beriladi', async ({ page, request }) => {
+  await openApp(page, admin, '/')
+
+  const icon = page.locator('link[rel="icon"][href$=".ico"]')
+
+  await expect(icon).toHaveCount(1)
+
+  for (const path of ['/favicon.ico', '/apple-touch-icon.png', '/site.webmanifest']) {
+    const response = await request.get(path)
+
+    expect(response.status(), `${path} berilmadi`).toBe(200)
+  }
+
+  const manifest = await (await request.get('/site.webmanifest')).json()
+
+  expect(manifest.name).toBe('Madlen sen')
+  expect(manifest.icons.some((item: { purpose: string }) => item.purpose === 'maskable')).toBe(true)
+})

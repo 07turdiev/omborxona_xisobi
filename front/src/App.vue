@@ -30,8 +30,8 @@ onMounted(async () => {
     }
   }
 
-  // Chop etish agenti bormi. Javob bo'lmasa 300 ms dan keyin to'xtaydi
-  // va ilova brauzer orqali chop etishda qoladi.
+  // Chop etish agenti bormi — Sozlamalardagi ko'rinish va xabar
+  // matni uchun. Chop etishning o'zi bu javobga bog'liq emas.
   void agent.probe()
 })
 
