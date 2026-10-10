@@ -274,6 +274,73 @@ test('zalga qabul qilinsa shkaf joyi so‘ralmaydi', async ({ page }) => {
   await expect(grid(page).getByLabel('Shkafdagi joyi')).toHaveCount(0)
 })
 
+test('qabulda bir qismi darhol javonga chiqariladi', async ({ page, request }) => {
+  const name = `Zalga qismi ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+  await fillNewProduct(page, name, { sizes: [sizes[0]!.name], colors: [colors[0]!.name] })
+
+  await grid(page).getByLabel('Model tannarxi').fill('100000')
+  await page.keyboard.press('Tab')
+  await grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`).fill('10')
+
+  await grid(page).getByRole('button', { name: 'Zalga chiqarish' }).click()
+  await grid(page).getByLabel(/nechtasi zalga/).fill('3')
+
+  await confirmButton(page).click()
+  await expect(page.getByTestId('purchase-summary')).toBeVisible()
+
+  // Qolgani omborda, uchtasi javonda
+  const saved = await findProduct(request, name)
+  const variant = saved.variants[0]!
+  const at = (kind: string) =>
+    variant.stocks?.find((stock: { kind: string }) => stock.kind === kind)?.quantity ?? 0
+
+  expect(at('warehouse')).toBe(7)
+  expect(at('shop')).toBe(3)
+})
+
+test('«har biridan 1 ta» hamma qatorni to‘ldiradi', async ({ page }) => {
+  const name = `Har biridan ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+  await fillNewProduct(page, name, {
+    sizes: [sizes[0]!.name, sizes[1]!.name],
+    colors: [colors[0]!.name],
+  })
+
+  await grid(page).getByLabel('Model tannarxi').fill('100000')
+  await page.keyboard.press('Tab')
+
+  for (const size of [sizes[0]!, sizes[1]!]) {
+    await grid(page).getByLabel(`${size.name} ${colors[0]!.name}: nechta`).fill('5')
+  }
+
+  await grid(page).getByRole('button', { name: 'Zalga chiqarish' }).click()
+  await grid(page).getByRole('button', { name: 'Har biridan 1 ta' }).click()
+
+  const counts = grid(page).getByLabel(/nechtasi zalga/)
+
+  await expect(counts).toHaveCount(2)
+  await expect(counts.nth(0)).toHaveValue('1')
+  await expect(counts.nth(1)).toHaveValue('1')
+})
+
+test('zalga qabul qilinsa ko‘chirish so‘ralmaydi', async ({ page }) => {
+  const name = `Zalga to'g'ridan ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+  await fillNewProduct(page, name, { sizes: [sizes[0]!.name], colors: [colors[0]!.name] })
+
+  await grid(page).getByLabel(`${sizes[0]!.name} ${colors[0]!.name}: nechta`).fill('4')
+
+  await expect(grid(page).getByRole('button', { name: 'Zalga chiqarish' })).toBeVisible()
+
+  await page.getByLabel('Qayerga tushsin').selectOption({ label: 'Savdo zali' })
+
+  await expect(grid(page).getByRole('button', { name: 'Zalga chiqarish' })).toHaveCount(0)
+})
+
 test('rasm majburiy, narx ustamadan taklif qilinadi', async ({ page, request }) => {
   const name = `Ustamali ko‘ylak ${Date.now()}`
 

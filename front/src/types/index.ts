@@ -32,9 +32,6 @@ export interface ShopSettings {
   max_discount_percent: string
   /** Kirimda ustamadan taklif qilingan narx shu qadamga yaxlitlanadi */
   price_rounding_step: number
-  /** Ombordagi shkaf: ustunlar harf (A, B...), qatorlar raqam */
-  cabinet_columns: number
-  cabinet_rows: number
 }
 
 export interface Category {
@@ -132,11 +129,25 @@ export interface StockAtLocation {
   location_name: string
   kind: LocationKind
   quantity: number
-  /** Ombordagi shkaf katagi (`B2`). Zalda bo'sh — u yerda shkaf yo'q */
+  /** Ombordagi javon manzili (`D3`). Zalda bo'sh — u yerda javon yo'q */
   cell: string
 }
 
-/** Shkafdagi bitta tovar */
+/** Ombordagi javon qatori: bitta devor yoki eshik tepasi */
+export interface ShelfRun {
+  id: number
+  /** Bitta harf: A, B, C… */
+  code: string
+  /** Qayerda: «O'ng devor» */
+  name: string
+  shelves: number
+  position: number
+  is_active: boolean
+  /** Shu qatordagi manzillar: `D1`, `D2`… */
+  cells: string[]
+}
+
+/** Javonda turgan bitta tovar */
 export interface CabinetItem {
   variant: number
   name: string
@@ -144,14 +155,16 @@ export interface CabinetItem {
   quantity: number
 }
 
-/** Shkaf xaritasi: har katakda nima turibdi */
+/** Ombor xaritasi: har javonda nima turibdi */
 export interface Cabinet {
-  columns: number
-  rows: number
-  cells: Record<string, CabinetItem[]>
+  runs: {
+    code: string
+    name: string
+    shelves: { cell: string; items: CabinetItem[] }[]
+  }[]
   /** Omborda turgan, lekin joyi belgilanmagan tovarlar */
   unplaced: CabinetItem[]
-  /** Shkaf kichraytirilgandan keyin jadvaldan tashqarida qolganlar */
+  /** Javon qatori o'chirilgandan keyin ro'yxatdan tashqarida qolganlar */
   outside: Record<string, CabinetItem[]>
 }
 
@@ -251,8 +264,10 @@ export interface PurchaseLine {
   unit_cost: string
   /** Tasdiqlanganda mahsulotga yoziladigan yangi sotuv narxi */
   new_sale_price?: string | null
-  /** Tovar omborning qaysi katagiga qo'yilgani: `B2` */
+  /** Tovar omborning qaysi javoniga qo'yilgani: `D3` */
   cell?: string
+  /** Shu qatordan nechtasi darhol savdo zaliga chiqariladi */
+  to_shop?: number
   line_total?: string
 }
 

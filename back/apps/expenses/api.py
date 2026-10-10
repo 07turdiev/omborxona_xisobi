@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 
+from apps.core import telegram
 from apps.core.permissions import IsAdmin
 from apps.expenses.models import Expense
 from apps.expenses.serializers import ExpenseSerializer
@@ -27,4 +28,11 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        expense = serializer.save(created_by=self.request.user)
+
+        telegram.notify(
+            f'<b>Xarajat</b>\n'
+            f'{telegram.money(expense.amount)} so‘m — {expense.get_category_display()}\n'
+            f'{expense.note or "izohsiz"}\n'
+            f'Kim: {telegram.who(expense.created_by)}'
+        )

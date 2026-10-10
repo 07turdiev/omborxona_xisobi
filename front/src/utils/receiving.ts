@@ -28,6 +28,14 @@ export interface DraftModel {
   /** variant → shu qatorning alohida tannarxi (bo'sh bo'lsa modelniki) */
   overrides: Record<number, string>
   /**
+   * variant → shu qatordan nechtasi darhol savdo zaliga chiqadi.
+   *
+   * Qolgani omborda qoladi. Tovar har doim avval omborga tushadi,
+   * keyin ko'chiriladi: shunda jurnalda kirim ham, javonga chiqish
+   * ham alohida ko'rinadi.
+   */
+  toShop: Record<number, number>
+  /**
    * Ombordagi shkafning katagi: `B2`.
    *
    * Model bo'yicha bitta: bitta modelning hamma o'lchami va rangi
@@ -66,6 +74,7 @@ export function emptyModel(product: Product): DraftModel {
     variants: product.variants.filter((variant) => variant.is_active),
     quantities: {},
     overrides: {},
+    toShop: {},
     cell: '',
   }
 }
@@ -87,6 +96,8 @@ export function modelFromLines(product: Product, lines: PurchaseLine[]): DraftMo
   for (const line of lines) {
     model.quantities[line.variant] = line.quantity
     counts.set(line.unit_cost, (counts.get(line.unit_cost) ?? 0) + 1)
+
+    if (line.to_shop) model.toShop[line.variant] = line.to_shop
   }
 
   const [common] = [...counts].sort((a, b) => b[1] - a[1])
@@ -134,6 +145,7 @@ export interface DraftLine {
   unit_cost: string
   new_sale_price: string | null
   cell: string
+  to_shop: number
 }
 
 /** Modellardan hujjat qatorlari: bo'sh katakchalar tushib qoladi. */
@@ -155,6 +167,8 @@ export function draftLines(models: DraftModel[]): DraftLine[] {
         unit_cost: lineCost(model, variant.id),
         new_sale_price: newPrice,
         cell,
+        // Kelganidan ko'pini chiqarib bo'lmaydi
+        to_shop: Math.min(quantity, Math.max(0, model.toShop[variant.id] ?? 0)),
       })
     }
   }

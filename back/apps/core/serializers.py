@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from apps.core.models import ShopSettings
-from apps.inventory.storage import MAX_COLUMNS, MAX_ROWS
 
 
 class ShopSettingsSerializer(serializers.ModelSerializer):
@@ -15,25 +14,7 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
             'receipt_page_height_mm',
             'max_discount_percent',
             'price_rounding_step',
-            'cabinet_columns',
-            'cabinet_rows',
         )
-
-    def validate_cabinet_columns(self, value):
-        if value < 1 or value > MAX_COLUMNS:
-            raise serializers.ValidationError(
-                f'Shkaf ustunlari 1 dan {MAX_COLUMNS} gacha bo‘lishi kerak.'
-            )
-
-        return value
-
-    def validate_cabinet_rows(self, value):
-        if value < 1 or value > MAX_ROWS:
-            raise serializers.ValidationError(
-                f'Shkaf qatorlari 1 dan {MAX_ROWS} gacha bo‘lishi kerak.'
-            )
-
-        return value
 
     def validate_max_discount_percent(self, value):
         if value < 0 or value > 100:

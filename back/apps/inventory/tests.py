@@ -18,6 +18,7 @@ from apps.core.factories import (
 )
 from apps.inventory.models import (
     Location,
+    ShelfRun,
     MovementReason,
     StockCount,
     StockCountLine,
@@ -506,41 +507,76 @@ class WriteOffLocationApiTests(TestCase):
         self.assertIn('yetarli emas', ' '.join(response.json()['detail']))
 
 
-class CellNameTests(TestCase):
-    """Katak nomi: `A1` ko'rinishida va shkafdan tashqariga chiqmasin."""
+#: Do'kondagi haqiqiy tuzilma: har devorda javonlar soni har xil
+SHELVES = [
+    ('A', 'Pastki devor', 5),
+    ('B', 'Chap devor', 3),
+    ('C', 'Tepa devor', 6),
+    ('D', 'O‘ng devor', 9),
+    ('E', 'Eshik tepasida', 2),
+]
 
-    def test_names_go_left_to_right_then_down(self):
-        self.assertEqual(
-            cell_names(3, 2),
-            ['A1', 'B1', 'C1', 'A2', 'B2', 'C2'],
-        )
+
+def use_cabinet(rows=SHELVES):
+    """Ombor javonlarini yaratadi: standart holatda ular umuman yo'q."""
+    return [
+        ShelfRun.objects.create(code=code, name=name, shelves=count, position=index)
+        for index, (code, name, count) in enumerate(rows)
+    ]
+
+
+class CellNameTests(TestCase):
+    """Manzil: `D3` ko'rinishida va omborda haqiqatan mavjud bo'lishi kerak."""
+
+    def setUp(self):
+        self.runs = use_cabinet()
+
+    def test_names_follow_the_runs(self):
+        self.assertEqual(cell_names()[:6], ['A1', 'A2', 'A3', 'A4', 'A5', 'B1'])
+        self.assertEqual(len(cell_names()), 25)
 
     def test_lowercase_and_spaces_are_cleaned(self):
-        self.assertEqual(normalize_cell('  b2 ', 5, 5), 'B2')
+        self.assertEqual(normalize_cell('  d3 '), 'D3')
 
     def test_empty_means_no_place(self):
-        self.assertEqual(normalize_cell('', 5, 5), '')
+        self.assertEqual(normalize_cell(''), '')
 
     def test_wrong_shape_is_rejected(self):
-        for bad in ('2B', 'BB', '12', 'B', 'B0'):
+        for bad in ('3D', 'DD', '12', 'D', 'D0'):
             with self.subTest(bad=bad), self.assertRaises(ValidationError):
-                normalize_cell(bad, 5, 5)
+                normalize_cell(bad)
 
-    def test_cell_outside_the_cabinet_is_rejected(self):
-        """Besh ustunli shkafda `F1` yo'q — bunday tovarni hech kim topmaydi."""
+    def test_unknown_run_is_rejected(self):
         with self.assertRaises(ValidationError) as caught:
-            normalize_cell('F1', 5, 5)
+            normalize_cell('Z1')
 
-        self.assertIn('E5', str(caught.exception))
+        self.assertIn('yo‘q', str(caught.exception))
 
-        with self.assertRaises(ValidationError):
-            normalize_cell('A6', 5, 5)
+    def test_shelf_above_the_count_is_rejected(self):
+        """Chap devorda uchta javon bor — to'rtinchisi yo'q."""
+        with self.assertRaises(ValidationError) as caught:
+            normalize_cell('B4')
+
+        self.assertIn('3 ta javon', str(caught.exception))
+
+        # O'ng devorda esa to'qqiztagacha bor
+        self.assertEqual(normalize_cell('D9'), 'D9')
+
+    def test_without_runs_nothing_can_be_placed(self):
+        ShelfRun.objects.all().delete()
+
+        with self.assertRaises(ValidationError) as caught:
+            normalize_cell('A1')
+
+        self.assertIn('kiritilmagan', str(caught.exception))
 
 
 class CabinetTests(TestCase):
-    """Shkaf xaritasi va tovarga joy belgilash."""
+    """Ombor xaritasi va tovarga javon belgilash."""
 
     def setUp(self):
+        use_cabinet()
+
         self.admin = create_admin()
         self.variant = create_product().variants.get()
         self.warehouse = Location.warehouse()
@@ -548,48 +584,50 @@ class CabinetTests(TestCase):
         receive_stock(self.variant, 4, '100000', location=self.warehouse)
 
     def test_place_writes_the_cell_on_warehouse_stock(self):
-        place(self.variant, 'b2')
+        place(self.variant, 'd3')
 
         stock = VariantStock.objects.get(variant=self.variant, location=self.warehouse)
 
-        self.assertEqual(stock.cell, 'B2')
+        self.assertEqual(stock.cell, 'D3')
 
-    def test_cabinet_lists_every_cell_even_empty_ones(self):
-        settings = ShopSettings.load()
-        settings.cabinet_columns = 3
-        settings.cabinet_rows = 2
-        settings.save(update_fields=['cabinet_columns', 'cabinet_rows'])
-
+    def test_map_lists_every_shelf_even_empty_ones(self):
         place(self.variant, 'C2')
 
         board = cabinet()
+        shelves = {
+            shelf['cell']: shelf['items']
+            for run in board['runs']
+            for shelf in run['shelves']
+        }
 
-        self.assertEqual(len(board['cells']), 6)
-        self.assertEqual(board['cells']['A1'], [])
-        self.assertEqual(board['cells']['C2'][0]['quantity'], 4)
+        self.assertEqual(len(board['runs']), 5)
+        self.assertEqual(len(shelves), 25)
+        self.assertEqual(shelves['A1'], [])
+        self.assertEqual(shelves['C2'][0]['quantity'], 4)
+
+    def test_runs_keep_the_order_from_the_door(self):
+        self.assertEqual([run['code'] for run in cabinet()['runs']], ['A', 'B', 'C', 'D', 'E'])
 
     def test_goods_without_a_place_are_listed_separately(self):
         board = cabinet()
 
         self.assertEqual(board['unplaced'][0]['variant'], self.variant.pk)
 
-    def test_shrinking_the_cabinet_does_not_hide_goods(self):
-        """Tovar fizik joyda turibdi — jadvaldan tushib qolsa yo'qoladi."""
-        place(self.variant, 'E5')
+    def test_removing_a_run_does_not_hide_goods(self):
+        """Tovar fizik javonda turibdi — ro'yxatdan tushib qolsa yo'qoladi."""
+        place(self.variant, 'D9')
 
-        settings = ShopSettings.load()
-        settings.cabinet_columns = 3
-        settings.cabinet_rows = 3
-        settings.save(update_fields=['cabinet_columns', 'cabinet_rows'])
+        ShelfRun.objects.filter(code='D').delete()
 
-        board = cabinet()
-
-        self.assertEqual(board['outside']['E5'][0]['variant'], self.variant.pk)
+        self.assertEqual(cabinet()['outside']['D9'][0]['variant'], self.variant.pk)
 
 
 class CabinetApiTests(TestCase):
+    """Ombor sahifasining API si."""
 
     def setUp(self):
+        use_cabinet()
+
         self.admin = create_admin()
         self.cashier = create_cashier()
         self.variant = create_product().variants.get()
@@ -601,7 +639,11 @@ class CabinetApiTests(TestCase):
         response = api_client(self.cashier).get('/api/storage/cabinet/')
 
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()['columns'], 5)
+
+        body = response.json()
+
+        self.assertEqual([run['code'] for run in body['runs']], ['A', 'B', 'C', 'D', 'E'])
+        self.assertEqual(len(body['runs'][3]['shelves']), 9)
 
     def test_admin_places_a_variant(self):
         response = api_client(self.admin).post(
@@ -618,9 +660,62 @@ class CabinetApiTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
-    def test_cell_outside_the_cabinet_is_refused(self):
+    def test_a_shelf_that_does_not_exist_is_refused(self):
         response = api_client(self.admin).post(
-            '/api/storage/place/', {'variant': self.variant.pk, 'cell': 'Z9'}, format='json'
+            '/api/storage/place/', {'variant': self.variant.pk, 'cell': 'B9'}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('3 ta javon', response.content.decode())
+
+
+class ShelfRunApiTests(TestCase):
+    """Javon qatorlarini administrator kiritadi."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.cashier = create_cashier()
+
+    def test_admin_adds_a_run(self):
+        response = api_client(self.admin).post(
+            '/api/shelf-runs/',
+            {'code': 'd', 'name': 'O‘ng devor', 'shelves': 9, 'position': 4},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        body = response.json()
+
+        self.assertEqual(body['code'], 'D')
+        self.assertEqual(body['cells'], [f'D{level}' for level in range(1, 10)])
+
+    def test_cashier_only_reads(self):
+        use_cabinet()
+
+        read = api_client(self.cashier).get('/api/shelf-runs/')
+
+        self.assertEqual(read.status_code, 200)
+        self.assertEqual(len(read.json()), 5)
+
+        write = api_client(self.cashier).post(
+            '/api/shelf-runs/', {'code': 'Z', 'name': 'Yangi', 'shelves': 2}, format='json'
+        )
+
+        self.assertEqual(write.status_code, 403)
+
+    def test_the_same_letter_is_refused(self):
+        use_cabinet()
+
+        response = api_client(self.admin).post(
+            '/api/shelf-runs/', {'code': 'A', 'name': 'Takror', 'shelves': 2}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_a_long_code_is_refused(self):
+        response = api_client(self.admin).post(
+            '/api/shelf-runs/', {'code': 'AB', 'name': 'Ikki harf', 'shelves': 2}, format='json'
         )
 
         self.assertEqual(response.status_code, 400)

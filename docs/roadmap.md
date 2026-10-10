@@ -21,7 +21,9 @@ Holat: **2026-09-18**.
 | **Sozlamalar** | Do'kon nomi, yorliq o'lchami, kassir chegirma chegarasi |
 | **Chop etish agenti** | Chek va yorliq to'g'ridan-to'g'ri printerga: oyna ochilmaydi, qog'oz bo'shga ketmaydi |
 | **Ombor va savdo zali** | Qoldiq ikki joyda alohida; ko'chirish hujjati; kassa faqat zaldagini sotadi |
-| **Ombordagi shkaf** | Ustun harf, qator raqam (`B2`). Qabulda joy yoziladi, shkaf jadvalida va zalga chiqarishda ko'rinadi |
+| **Ombor javonlari** | Har devor alohida qator, har qatorda o'z javonlari soni (`D3`). Qabulda joy yoziladi, Ombor sahifasida va zalga chiqarishda ko'rinadi |
+| **Qabulda zalga chiqarish** | Kelgan tovarning bir qismi darhol javonga: alohida ko'chirish hujjati yoziladi |
+| **Telegram bildirishnomalari** | Sotuv, qabul, bekor qilish, qaytarish, hisobdan chiqarish, xarajat va narx o'zgarishi egasining telefoniga boradi |
 | **Mahsulot rasmi** | Har tovarga majburiy, har rangga alohida surat; kassa savatida va ro'yxatlarda ko'rinadi |
 
 Testlar: **backend 95, frontend 44, agent 85, chop etish 10** — hammasi

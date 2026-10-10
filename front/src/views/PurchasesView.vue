@@ -11,8 +11,6 @@ import AmountField from '@/components/AmountField.vue'
 import { errorMessage } from '@/api/client'
 import { inventoryApi } from '@/api/inventory'
 import { purchasesApi } from '@/api/purchases'
-import { useAuthStore } from '@/stores/auth'
-import { cellNames } from '@/utils/cabinet'
 import { formatDayMonth, formatTime, todayIso } from '@/utils/date'
 import { formatMoney, formatSum, normalizeMoneyInput } from '@/utils/money'
 import {
@@ -65,7 +63,8 @@ const draft = ref({
   amount_paid: '',
 })
 
-const auth = useAuthStore()
+/** Ombor javonlarining manzillari: `A1`, `D3`… */
+const shelfCells = ref<string[]>([])
 
 const locations = ref<Location[]>([])
 
@@ -85,13 +84,13 @@ const labelItems = ref<LabelItem[]>([])
  * Savdo zalida shkaf yo'q: u yerda tovar javonga chiqariladi va uni
  * qidirish kerak bo'lmaydi.
  */
-const cabinetCells = computed(() => {
-  const place = locations.value.find((item) => item.id === draft.value.location)
+/** Kirim omborga tushyaptimi */
+const toWarehouse = computed(
+  () => locations.value.find((item) => item.id === draft.value.location)?.kind === 'warehouse',
+)
 
-  if (place?.kind !== 'warehouse') return []
-
-  return cellNames(auth.shop?.cabinet_columns ?? 0, auth.shop?.cabinet_rows ?? 0)
-})
+/** Ombordagi javon manzillari — faqat kirim omborga tushganda */
+const cabinetCells = computed(() => (toWarehouse.value ? shelfCells.value : []))
 
 const units = computed(() => draftUnits(models.value))
 const total = computed(() => draftTotal(models.value))
@@ -112,15 +111,17 @@ async function load() {
   error.value = ''
 
   try {
-    const [page, supplierPage, places] = await Promise.all([
+    const [page, supplierPage, places, runs] = await Promise.all([
       purchasesApi.list(),
       purchasesApi.suppliers(),
       inventoryApi.locations(),
+      inventoryApi.shelfRuns(),
     ])
 
     purchases.value = page.results
     suppliers.value = supplierPage.results
     locations.value = places
+    shelfCells.value = runs.filter((run) => run.is_active).flatMap((run) => run.cells)
 
     // Joy ro'yxati kelgach standart tanlov qo'yiladi
     draft.value.location ??= places.find((place) => place.kind === 'warehouse')?.id ?? null
@@ -433,6 +434,7 @@ onMounted(async () => {
         v-for="model in models"
         :key="model.product"
         :model="model"
+        :warehouse="toWarehouse"
         :cells="cabinetCells"
         @remove="removeModel(model.product)"
       />

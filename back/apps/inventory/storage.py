@@ -1,89 +1,110 @@
-"""Ombordagi shkaf: ustun va qatorlarga bo'lingan kataklar.
+"""Ombordagi javonlar va ularning manzillari.
 
-Omborda bitta shkaf bor va u Excel jadvaliga o'xshaydi: ustunlar harf
-(A, B, C...), qatorlar raqam (1, 2, 3...). Katak nomi shu ikkisidan
-yig'iladi — `B2`.
+Ombor — tor xona, javonlar devorlar bo'ylab ketadi. Har devorda
+javonlar soni har xil: bir tomonda to'qqizta, boshqasida uchta, eshik
+tepasida esa ikkita. Shuning uchun bu yerda to'g'ri to'rtburchak
+jadval yo'q — har **javon qatori** (`ShelfRun`) o'z soni bilan yashaydi.
 
-Katak **faqat joyni ko'rsatadi**: qoldiq avvalgidek butun ombor
-bo'yicha yuritiladi. Ombor kichik va unda tovar ko'p saqlanmaydi,
-shuning uchun har katakda alohida hisob yuritish xodimning ishini
-og'irlashtirardi — zalga chiqarishda, hisobdan chiqarishda va sanoqda
-har safar katak tanlash kerak bo'lardi. Bu yerda esa katak bitta
-savolga javob beradi: «tovarni qayerdan olaman?»
+Manzil qator harfi va javon raqamidan yig'iladi:
 
-Shkaf o'lchami do'kon sozlamalarida (`ShopSettings`).
+    D3  ->  «o'ng devor, tepadan uchinchi javon»
+
+Raqam tepadan boshlanadi: javon oldida turgan odam uni yuqoridan
+pastga sanaydi.
+
+Manzil **faqat joyni ko'rsatadi**: qoldiq avvalgidek butun ombor
+bo'yicha yuritiladi. Ombor kichik va unda tovar ko'p saqlanmaydi, har
+javonda alohida hisob yuritilsa esa zalga chiqarishda, hisobdan
+chiqarishda va sanoqda har safar javon tanlash kerak bo'lardi. Manzil
+bitta savolga javob beradi: «tovarni qayerdan olaman?»
 """
 
 from django.core.exceptions import ValidationError
 
-#: Ustun harflari. Bitta shkaf uchun 12 tadan ortig'i kerak emas.
-LETTERS = 'ABCDEFGHIJKL'
+#: Qator harflari
+LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-MAX_COLUMNS = len(LETTERS)
-MAX_ROWS = 20
-
-
-def column_letter(index: int) -> str:
-    """0 -> 'A', 1 -> 'B'."""
-    return LETTERS[index]
+#: Bitta qatordagi javonlarning eng ko'p soni
+MAX_SHELVES = 30
 
 
-def cell_names(columns: int, rows: int) -> list[str]:
-    """Shkafdagi hamma katak nomi, chapdan o'ngga va yuqoridan pastga."""
-    return [f'{LETTERS[column]}{row + 1}' for row in range(rows) for column in range(columns)]
-
-
-def parse_cell(cell: str) -> tuple[int, int] | None:
-    """`'B2'` -> `(1, 1)`. Shakli noto'g'ri bo'lsa `None`.
-
-    Qaytadigan juftlik — noldan boshlanadigan (ustun, qator) indeksi.
-    """
+def parse_cell(cell: str) -> tuple[str, int] | None:
+    """`'D3'` -> `('D', 3)`. Shakli noto'g'ri bo'lsa `None`."""
     cell = (cell or '').strip().upper()
 
     if len(cell) < 2:
         return None
 
-    letter, digits = cell[0], cell[1:]
+    code, digits = cell[0], cell[1:]
 
-    if letter not in LETTERS or not digits.isdigit():
+    if code not in LETTERS or not digits.isdigit():
         return None
 
-    row = int(digits)
+    level = int(digits)
 
-    if row < 1:
+    if level < 1:
         return None
 
-    return LETTERS.index(letter), row - 1
+    return code, level
 
 
-def normalize_cell(cell: str, columns: int, rows: int) -> str:
-    """Katak nomini tekshiradi va bir xil ko'rinishga keltiradi.
+def runs():
+    """Faol javon qatorlari, eshikdan boshlab tartib bilan."""
+    from apps.inventory.models import ShelfRun
+
+    return ShelfRun.objects.filter(is_active=True)
+
+
+def cell_names() -> list[str]:
+    """Ombordagi hamma manzil: `A1`, `A2`, ... `E2`."""
+    return [cell for run in runs() for cell in run.cells]
+
+
+def normalize_cell(cell: str, known=None) -> str:
+    """Manzilni tekshiradi va bir xil ko'rinishga keltiradi.
 
     Bo'sh qiymat ruxsat etiladi — tovarning joyi belgilanmagan degani.
-    Shkafdan tashqaridagi katak rad etiladi: `F1` deb yozilgan tovarni
-    besh ustunli shkafdan hech kim topa olmaydi.
+    Mavjud bo'lmagan javon rad etiladi: `D12` deb yozilgan tovarni
+    to'qqiz javonli devordan hech kim topa olmaydi.
+
+    `known` — qatorlar ro'yxati; berilmasa bazadan o'qiladi. Ko'p
+    qatorni ketma-ket tekshirganda (kirim hujjati) uni bir marta olib
+    uzatgan ma'qul.
     """
     cell = (cell or '').strip().upper()
 
     if not cell:
         return ''
 
+    known = list(runs()) if known is None else list(known)
+
+    if not known:
+        raise ValidationError(
+            'Ombor javonlari hali kiritilmagan. «Ombor» sahifasida javon qatorlarini qo‘shing.'
+        )
+
     parsed = parse_cell(cell)
 
     if parsed is None:
-        raise ValidationError(f'«{cell}» katak nomi noto‘g‘ri. Masalan: A1, B2')
+        raise ValidationError(f'«{cell}» manzil noto‘g‘ri yozilgan. Masalan: A1, D3')
 
-    column, row = parsed
+    code, level = parsed
+    run = next((item for item in known if item.code == code), None)
 
-    if column >= columns or row >= rows:
-        last = f'{LETTERS[columns - 1]}{rows}'
+    if run is None:
+        letters = ', '.join(item.code for item in known)
 
-        raise ValidationError(f'«{cell}» shkafda yo‘q. Oxirgi katak: {last}')
+        raise ValidationError(f'«{code}» degan javon qatori yo‘q. Bor qatorlar: {letters}')
 
-    return f'{LETTERS[column]}{row + 1}'
+    if level > run.shelves:
+        raise ValidationError(
+            f'«{run.name}»da {run.shelves} ta javon bor, {level}-javon yo‘q.'
+        )
+
+    return f'{code}{level}'
 
 
-def warehouse() -> 'Location':  # noqa: F821
+def warehouse():
     """Ombor joyi. Bitta do'konda u bitta."""
     from apps.inventory.models import Location
 
@@ -91,18 +112,15 @@ def warehouse() -> 'Location':  # noqa: F821
 
 
 def place(variant, cell: str) -> str:
-    """Tovarga shkafdagi joy belgilaydi.
+    """Tovarga ombordagi javon manzilini beradi.
 
-    Bo'sh qiymat joyni o'chiradi. Qoldiq qatori yo'q bo'lsa yaratiladi:
-    tovar hali kelmagan bo'lsa ham, uning joyini oldindan belgilab
-    qo'yish mumkin.
+    Bo'sh qiymat manzilni o'chiradi. Qoldiq qatori yo'q bo'lsa
+    yaratiladi: tovar hali kelmagan bo'lsa ham joyini oldindan
+    belgilab qo'yish mumkin.
     """
-    from apps.core.models import ShopSettings
     from apps.inventory.models import VariantStock
 
-    settings = ShopSettings.load()
-    cell = normalize_cell(cell, settings.cabinet_columns, settings.cabinet_rows)
-
+    cell = normalize_cell(cell)
     store = warehouse()
 
     if store is None:
@@ -118,60 +136,56 @@ def place(variant, cell: str) -> str:
 
 
 def cabinet() -> dict:
-    """Shkaf xaritasi: har katakda nima turibdi.
+    """Ombor xaritasi: har javonda nima turibdi.
 
-    Bo'sh kataklar ham qaytadi — jadval to'liq chizilishi kerak.
-    Joyi belgilanmagan, lekin omborda turgan tovarlar alohida
-    ro'yxatda: ularni xodim ko'rib, joyini belgilab chiqadi.
+    Bo'sh javonlar ham qaytadi — ro'yxat to'liq ko'rinishi kerak.
+    Joyi belgilanmagan tovarlar alohida ro'yxatda: xodim ularni ko'rib,
+    joyini belgilab chiqadi. Qatorlardan tashqarida qolganlar ham
+    alohida: javon qatori o'chirilgan bo'lsa, tovar o'sha yerda
+    turganini jimgina yo'qotib bo'lmaydi.
     """
-    from apps.core.models import ShopSettings
     from apps.inventory.models import VariantStock
 
-    settings = ShopSettings.load()
+    known = list(runs())
     store = warehouse()
 
-    cells = {name: [] for name in cell_names(settings.cabinet_columns, settings.cabinet_rows)}
+    shelves = {cell: [] for run in known for cell in run.cells}
     loose = []
-
-    if store is None:
-        return {
-            'columns': settings.cabinet_columns,
-            'rows': settings.cabinet_rows,
-            'cells': cells,
-            'unplaced': loose,
-            'outside': {},
-        }
-
-    rows = (
-        VariantStock.objects.filter(location=store, quantity__gt=0)
-        .select_related('variant__product', 'variant__size', 'variant__color')
-        .order_by('variant__product__name', 'variant__size__name', 'variant__color__name')
-    )
-
-    # Shkaf kichraytirilgan bo'lsa, eski kataklar ro'yxatdan tashqarida
-    # qoladi. Ularni jimgina yo'qotib bo'lmaydi: tovar o'sha yerda
-    # turibdi va xodim uni ko'chirishi kerak.
     outside = {}
 
-    for stock in rows:
-        item = {
-            'variant': stock.variant_id,
-            'name': stock.variant.product.name,
-            'label': stock.variant.label,
-            'quantity': stock.quantity,
-        }
+    if store is not None:
+        rows = (
+            VariantStock.objects.filter(location=store, quantity__gt=0)
+            .select_related('variant__product', 'variant__size', 'variant__color')
+            .order_by('variant__product__name', 'variant__size__name', 'variant__color__name')
+        )
 
-        if not stock.cell:
-            loose.append(item)
-        elif stock.cell in cells:
-            cells[stock.cell].append(item)
-        else:
-            outside.setdefault(stock.cell, []).append(item)
+        for stock in rows:
+            item = {
+                'variant': stock.variant_id,
+                'name': stock.variant.product.name,
+                'label': stock.variant.label,
+                'quantity': stock.quantity,
+            }
+
+            if not stock.cell:
+                loose.append(item)
+            elif stock.cell in shelves:
+                shelves[stock.cell].append(item)
+            else:
+                outside.setdefault(stock.cell, []).append(item)
 
     return {
-        'columns': settings.cabinet_columns,
-        'rows': settings.cabinet_rows,
-        'cells': cells,
+        'runs': [
+            {
+                'code': run.code,
+                'name': run.name,
+                'shelves': [
+                    {'cell': cell, 'items': shelves[cell]} for cell in run.cells
+                ],
+            }
+            for run in known
+        ],
         'unplaced': loose,
         'outside': outside,
     }

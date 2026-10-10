@@ -17,6 +17,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.core import telegram
 from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
 from apps.inventory.models import Location, MovementReason
@@ -190,7 +191,31 @@ def create_sale(
 
     transaction.on_commit(lambda: fiscal.register_sale(sale))
 
+    notify_sale(sale)
+
     return sale
+
+
+def notify_sale(sale: Sale) -> None:
+    """Boshliqqa sotuv haqida xabar."""
+    payment = []
+
+    if sale.cash_amount:
+        payment.append(f'naqd {telegram.money(sale.cash_amount)}')
+
+    if sale.card_amount:
+        payment.append(f'karta {telegram.money(sale.card_amount)}')
+
+    lines = [
+        f'<b>Sotuv {sale.number}</b>',
+        f'{telegram.money(sale.total)} so‘m — {" + ".join(payment) or "to‘lovsiz"}',
+        f'Kassir: {telegram.who(sale.cashier)}',
+    ]
+
+    if sale.discount_total:
+        lines.append(f'Chegirma: {telegram.money(sale.discount_total)} so‘m')
+
+    telegram.notify('\n'.join(lines))
 
 
 @transaction.atomic
@@ -227,6 +252,12 @@ def void_sale(sale: Sale, user=None) -> Sale:
     sale.voided_at = timezone.now()
     sale.voided_by = user
     sale.save(update_fields=['status', 'voided_at', 'voided_by', 'updated_at'])
+
+    telegram.notify(
+        f'<b>Chek bekor qilindi: {sale.number}</b>\n'
+        f'{telegram.money(sale.total)} so‘m qaytarildi\n'
+        f'Kim: {telegram.who(user)}'
+    )
 
     return sale
 
@@ -318,6 +349,12 @@ def create_return(*, sale: Sale, items, refund_method, user=None, request_key=No
     sale_return.save(update_fields=['total', 'updated_at'])
 
     transaction.on_commit(lambda: fiscal.register_return(sale_return))
+
+    telegram.notify(
+        f'<b>Qaytarish {sale_return.number}</b>\n'
+        f'{telegram.money(sale_return.total)} so‘m — {sale.number} cheki bo‘yicha\n'
+        f'Kim: {telegram.who(user)}'
+    )
 
     return sale_return
 

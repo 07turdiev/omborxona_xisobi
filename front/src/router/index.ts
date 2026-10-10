@@ -142,9 +142,9 @@ const routes: RouteRecordRaw[] = [
     name: 'warehouse',
     component: () => import('@/views/CabinetView.vue'),
     meta: {
-      title: 'Ombor shkafi',
+      title: 'Ombor javonlari',
       section: 'transfers',
-      description: 'Qaysi tovar shkafning qaysi katagida turganini ko‘rsatadi',
+      description: 'Qaysi tovar ombordagi qaysi javonda turganini ko‘rsatadi',
     },
   },
 

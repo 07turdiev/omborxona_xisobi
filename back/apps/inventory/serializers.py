@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from apps.inventory.models import (
     Location,
+    ShelfRun,
     StockCount,
     StockCountLine,
     StockMovement,
@@ -9,6 +10,7 @@ from apps.inventory.models import (
     TransferLine,
     WriteOff,
 )
+from apps.inventory.storage import LETTERS, MAX_SHELVES
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -19,6 +21,32 @@ class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = ('id', 'name', 'kind', 'kind_display', 'is_active')
+
+
+class ShelfRunSerializer(serializers.ModelSerializer):
+    """Ombordagi javon qatori: harfi, joyi va javonlar soni."""
+
+    cells = serializers.ListField(child=serializers.CharField(), read_only=True)
+
+    class Meta:
+        model = ShelfRun
+        fields = ('id', 'code', 'name', 'shelves', 'position', 'is_active', 'cells')
+
+    def validate_code(self, value):
+        code = (value or '').strip().upper()
+
+        if len(code) != 1 or code not in LETTERS:
+            raise serializers.ValidationError('Harf bitta lotin harfi bo‘lishi kerak: A, B, C…')
+
+        return code
+
+    def validate_shelves(self, value):
+        if value < 1 or value > MAX_SHELVES:
+            raise serializers.ValidationError(
+                f'Javonlar soni 1 dan {MAX_SHELVES} gacha bo‘lishi kerak.'
+            )
+
+        return value
 
 
 class StockMovementSerializer(serializers.ModelSerializer):

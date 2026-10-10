@@ -7,6 +7,8 @@ from django.utils import timezone
 
 from apps.catalog.models import Category, Color, Size, Variant
 from apps.inventory.models import Location
+from apps.inventory.models import Transfer
+from apps.inventory.tests import use_cabinet
 from apps.inventory.services import create_transfer
 from apps.core.factories import (
     api_client,
@@ -491,11 +493,13 @@ class PurchaseCellTests(TestCase):
     """Qabulda tovar shkafning qaysi katagiga qo'yilgani yoziladi."""
 
     def setUp(self):
+        use_cabinet()
+
         self.admin = create_admin()
         self.variant = create_product().variants.get()
         self.client = api_client(self.admin)
 
-    def create(self, cell='B2', location=None) -> dict:
+    def create(self, cell='D3', location=None) -> dict:
         payload = {
             'date': str(timezone.localdate()),
             'supplier': None,
@@ -524,17 +528,17 @@ class PurchaseCellTests(TestCase):
         """Qoralama bir necha kun turishi mumkin — joy o'sha kuni yoziladi."""
         purchase = self.create()
 
-        self.assertEqual(purchase['lines'][0]['cell'], 'B2')
+        self.assertEqual(purchase['lines'][0]['cell'], 'D3')
         self.assertEqual(self.warehouse_cell(), '')
 
     def test_confirming_moves_the_cell_onto_the_stock(self):
-        purchase = self.create(cell='c3')
+        purchase = self.create(cell='c6')
 
-        self.assertEqual(purchase['lines'][0]['cell'], 'C3')
+        self.assertEqual(purchase['lines'][0]['cell'], 'C6')
 
         self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
 
-        self.assertEqual(self.warehouse_cell(), 'C3')
+        self.assertEqual(self.warehouse_cell(), 'C6')
 
     def test_receiving_into_the_shop_leaves_the_cabinet_alone(self):
         """Savdo zalida shkaf yo'q: u yerga tushgan tovarga joy berilmaydi."""
@@ -544,7 +548,7 @@ class PurchaseCellTests(TestCase):
 
         self.assertEqual(self.warehouse_cell(), '')
 
-    def test_cell_outside_the_cabinet_is_refused_on_the_draft(self):
+    def test_a_shelf_that_does_not_exist_is_refused_on_the_draft(self):
         response = self.client.post(
             '/api/purchases/',
             {
@@ -555,7 +559,7 @@ class PurchaseCellTests(TestCase):
                         'variant': self.variant.pk,
                         'quantity': 1,
                         'unit_cost': '100000',
-                        'cell': 'Z9',
+                        'cell': 'B9',
                     }
                 ],
             },
@@ -563,3 +567,100 @@ class PurchaseCellTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400, response.content)
+
+
+class PurchaseToShopTests(TestCase):
+    """Qabulda tovarning bir qismi darhol javonga chiqariladi."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.variant = create_product().variants.get()
+        self.client = api_client(self.admin)
+
+    def create(self, quantity=10, to_shop=3, location=None) -> dict:
+        payload = {
+            'date': str(timezone.localdate()),
+            'supplier': None,
+            'lines': [
+                {
+                    'variant': self.variant.pk,
+                    'quantity': quantity,
+                    'unit_cost': '100000',
+                    'to_shop': to_shop,
+                }
+            ],
+        }
+
+        if location is not None:
+            payload['location'] = location.pk
+
+        response = self.client.post('/api/purchases/', payload, format='json')
+
+        self.assertEqual(response.status_code, 201, response.content)
+
+        return response.json()
+
+    def stock(self, location) -> int:
+        row = VariantStock.objects.filter(variant=self.variant, location=location).first()
+
+        return row.quantity if row else 0
+
+    def test_part_goes_to_the_shop_rest_stays_in_the_warehouse(self):
+        purchase = self.create(quantity=10, to_shop=3)
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+
+        self.assertEqual(self.stock(Location.warehouse()), 7)
+        self.assertEqual(self.stock(Location.shop()), 3)
+
+    def test_a_separate_transfer_document_is_written(self):
+        """Jurnalda kirim ham, javonga chiqish ham alohida ko'rinadi."""
+        purchase = self.create(quantity=10, to_shop=4)
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+
+        transfer = Transfer.objects.get()
+
+        self.assertTrue(transfer.number.startswith('KCH-'))
+        self.assertEqual(transfer.source, Location.warehouse())
+        self.assertEqual(transfer.target, Location.shop())
+        self.assertIn(purchase['number'], transfer.note)
+        self.assertEqual(transfer.lines.get().quantity, 4)
+
+    def test_without_the_number_nothing_is_moved(self):
+        purchase = self.create(quantity=10, to_shop=0)
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+
+        self.assertEqual(self.stock(Location.warehouse()), 10)
+        self.assertEqual(Transfer.objects.count(), 0)
+
+    def test_more_than_received_is_refused(self):
+        response = self.client.post(
+            '/api/purchases/',
+            {
+                'date': str(timezone.localdate()),
+                'supplier': None,
+                'lines': [
+                    {
+                        'variant': self.variant.pk,
+                        'quantity': 3,
+                        'unit_cost': '100000',
+                        'to_shop': 5,
+                    }
+                ],
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)
+
+    def test_receiving_straight_into_the_shop_moves_nothing(self):
+        """Tovar allaqachon javonda — ko'chirishning ma'nosi yo'q."""
+        purchase = self.create(quantity=5, to_shop=5, location=Location.shop())
+
+        self.client.post(f'/api/purchases/{purchase["id"]}/confirm/')
+
+        self.assertEqual(self.stock(Location.shop()), 5)
+        self.assertEqual(self.stock(Location.warehouse()), 0)
+        self.assertEqual(Transfer.objects.count(), 0)

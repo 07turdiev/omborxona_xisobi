@@ -17,6 +17,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.catalog.models import Variant
+from apps.core import telegram
 from apps.core.numbering import next_number
 from apps.inventory.models import (
     Location,
@@ -186,6 +187,14 @@ def create_write_off(*, variant, quantity: int, reason: str, location=None, user
         reason=MovementReason.WRITE_OFF,
         document=write_off,
         user=user,
+    )
+
+    telegram.notify(
+        f'<b>Hisobdan chiqarildi</b>\n'
+        f'{variant.product.name} — {variant.label or "—"}\n'
+        f'{quantity} dona, {location.name}\n'
+        f'Sababi: {reason}\n'
+        f'Kim: {telegram.who(user)}'
     )
 
     return write_off

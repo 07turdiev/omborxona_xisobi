@@ -1,10 +1,9 @@
 /**
- * Ombordagi shkaf: ustunlar harf, qatorlar raqam.
+ * Ombor javonlari: har devor alohida qator, har qatorda o'z soni.
  *
- * Shkaf bitta savolga javob beradi — «tovarni qayerdan olaman?».
- * Shuning uchun testlar ham shu zanjirni tekshiradi: qabulda joy
- * yoziladi, shkaf jadvalida ko'rinadi, zalga chiqarishda esa xodim
- * uni o'qiydi.
+ * Sahifa bitta savolga javob beradi — «tovarni qayerdan olaman?».
+ * Testlar shu zanjirni tekshiradi: qabulda manzil yoziladi, ombor
+ * sahifasida ko'rinadi, zalga chiqarishda esa xodim uni o'qiydi.
  */
 
 import { expect, test, type APIRequestContext } from '@playwright/test'
@@ -47,33 +46,34 @@ async function place(request: APIRequestContext, variant: number, cell: string) 
   expect(response.ok(), `joy belgilanmadi: ${await response.text()}`).toBeTruthy()
 }
 
-test('shkaf jadvali ustun harfi va qator raqami bilan chiziladi', async ({ page }) => {
+test('har devor alohida qator bo‘lib chiziladi', async ({ page }) => {
   await openApp(page, admin, '/warehouse')
 
-  const grid = page.locator('.grid')
+  const runs = page.locator('.run')
 
-  await expect(grid).toBeVisible()
+  await expect(runs).toHaveCount(5)
+  await expect(runs.locator('.run-letter')).toHaveText(['A', 'B', 'C', 'D', 'E'])
 
-  // Standart shkaf 5 × 5: A dan E gacha, 1 dan 5 gacha
-  await expect(grid.locator('thead th')).toHaveText(['', 'A', 'B', 'C', 'D', 'E'])
-  await expect(grid.locator('tbody tr')).toHaveCount(5)
-  await expect(grid.locator('.cell')).toHaveCount(25)
+  // Devorlarda javonlar soni teng emas: 5, 3, 6, 9, 2
+  await expect(runs.nth(1).locator('.shelf')).toHaveCount(3)
+  await expect(runs.nth(3).locator('.shelf')).toHaveCount(9)
+  await expect(page.locator('.shelf')).toHaveCount(25)
 })
 
-test('katakka qo‘yilgan tovar o‘sha katakda ko‘rinadi', async ({ page, request }) => {
+test('javonga qo‘yilgan tovar o‘sha javonda ko‘rinadi', async ({ page, request }) => {
   const product = await ownProduct(request)
   const variant = await stockInWarehouseOnly(request, admin, product, 4)
 
   await place(request, variant.id, 'C3')
   await openApp(page, admin, '/warehouse')
 
-  const cell = page.getByRole('button', { name: /^C3:/ })
+  const shelf = page.getByRole('button', { name: /^C3:/ })
 
-  await expect(cell.locator('.cell-count')).toHaveText('4')
+  await expect(shelf.locator('.shelf-count')).toHaveText('4')
 
-  await cell.click()
+  await shelf.click()
 
-  // O'ng tomonda katak ichidagi tovarlar
+  // O'ng tomonda javondagi tovarlar
   await expect(page.locator('.chosen-cell')).toContainText(product.name)
   await expect(page.locator('.chosen-cell')).toContainText('4 dona')
 })
@@ -98,7 +98,7 @@ test('joyi belgilanmagan tovar alohida ro‘yxatda turadi va joylashtiriladi', a
     .locator('select')
     .selectOption('A2')
 
-  await expect(page.getByRole('button', { name: /^A2:/ }).locator('.cell-count')).toHaveText('2')
+  await expect(page.getByRole('button', { name: /^A2:/ }).locator('.shelf-count')).toHaveText('2')
 
   // Serverda ham saqlandi
   const stored = await (
@@ -107,9 +107,11 @@ test('joyi belgilanmagan tovar alohida ro‘yxatda turadi va joylashtiriladi', a
     })
   ).json()
 
-  expect(stored.cells.A2.some((item: { variant: number }) => item.variant === variant.id)).toBe(
-    true,
-  )
+  const shelf = stored.runs
+    .flatMap((run: { shelves: { cell: string; items: { variant: number }[] }[] }) => run.shelves)
+    .find((item: { cell: string }) => item.cell === 'A2')
+
+  expect(shelf.items.some((item: { variant: number }) => item.variant === variant.id)).toBe(true)
 })
 
 test('zalga chiqarishda tovarning joyi ko‘rinadi', async ({ page, request }) => {
@@ -143,24 +145,29 @@ test('kassir shkafni ko‘radi, lekin joyini o‘zgartira olmaydi', async ({ pag
   await expect(page.locator('.chosen-cell select')).toHaveCount(0)
 })
 
-test('shkafda yo‘q katak rad etiladi', async ({ request }) => {
+test('omborda yo‘q javon rad etiladi', async ({ request }) => {
   const product = await ownProduct(request)
   const variant = await stockInWarehouseOnly(request, admin, product, 1)
 
-  const place = async (cell: string) =>
+  const put = async (cell: string) =>
     request.post(`${API}/api/storage/place/`, {
       headers: { Authorization: `Bearer ${admin.access}` },
       data: { variant: variant.id, cell },
     })
 
-  // Harfi bor, lekin besh ustunli shkafdan tashqarida
-  const outside = await place('F1')
+  // Chap devorda uchta javon bor, to'rtinchisi yo'q
+  const tooHigh = await put('B4')
 
-  expect(outside.status()).toBe(400)
-  expect(await outside.text(), 'oxirgi katak aytilishi kerak').toContain('E5')
+  expect(tooHigh.status()).toBe(400)
+  expect(await tooHigh.text(), 'javonlar soni aytilishi kerak').toContain('3 ta javon')
 
-  // Shakli umuman noto'g'ri
-  const wrong = await place('2B')
+  // Bunday qator umuman yo'q
+  const unknown = await put('Z1')
+
+  expect(unknown.status()).toBe(400)
+
+  // Shakli noto'g'ri
+  const wrong = await put('2B')
 
   expect(wrong.status()).toBe(400)
 })

@@ -36,10 +36,9 @@ import type { Color, Size } from '@/types'
 
 const props = defineProps<{
   model: DraftModel
-  /**
-   * Shkaf kataklari. Bo'sh bo'lsa joy so'ralmaydi: kirim savdo
-   * zaliga tushyapti va u yerda shkaf yo'q.
-   */
+  /** Kirim omborga tushyaptimi: zal uchun shkaf ham, ko'chirish ham yo'q */
+  warehouse?: boolean
+  /** Shkaf kataklari. Bo'sh bo'lsa joy so'ralmaydi. */
   cells?: string[]
 }>()
 
@@ -54,6 +53,7 @@ const auth = useAuthStore()
 const model = computed(() => props.model)
 
 const overridesOpen = ref(Object.keys(props.model.overrides).length > 0)
+const toShopOpen = ref(Object.values(props.model.toShop).some((value) => value > 0))
 const root = ref<HTMLElement | null>(null)
 
 /** Do'kondagi hamma o'lcham va rang — yangi juftlik tanlash uchun */
@@ -131,6 +131,31 @@ function setQuantity(variantId: number, raw: string) {
 function setOverride(variantId: number, raw: string) {
   if (!raw.trim()) delete model.value.overrides[variantId]
   else model.value.overrides[variantId] = raw
+}
+
+/** Shu qatordan nechtasi javonga chiqadi. Kelganidan ko'pi mumkin emas. */
+function setToShop(variantId: number, raw: string) {
+  const asked = Number(raw)
+  const came = model.value.quantities[variantId] ?? 0
+
+  if (!raw.trim() || !Number.isFinite(asked) || asked <= 0) {
+    delete model.value.toShop[variantId]
+
+    return
+  }
+
+  model.value.toShop[variantId] = Math.min(Math.floor(asked), came)
+}
+
+/**
+ * Har variantdan bittadan javonga.
+ *
+ * Eng ko'p uchraydigan holat: har o'lcham va rangdan bittasi javonga
+ * qo'yiladi, qolgani omborda turadi. Buni qo'lda yozib chiqish
+ * zerikarli — bitta tugma bilan to'ldiriladi.
+ */
+function oneOfEach() {
+  for (const row of filled.value) model.value.toShop[row.variant.id] = 1
 }
 
 /** Yangi katakka fokus: qo'shilgan zahoti son yoziladi */
@@ -404,6 +429,16 @@ onMounted(async () => {
         Alohida tannarx
       </button>
 
+      <button
+        v-if="warehouse && filled.length"
+        class="button button-outline"
+        type="button"
+        :aria-expanded="toShopOpen"
+        @click="toShopOpen = !toShopOpen"
+      >
+        Zalga chiqarish
+      </button>
+
       <strong class="model-total">{{ units }} dona · {{ formatSum(total) }}</strong>
     </div>
 
@@ -432,10 +467,69 @@ onMounted(async () => {
         </tr>
       </tbody>
     </table>
+
+    <!-- Zalga chiqarish: tovar avval omborga tushadi, bu yerdagi son
+         esa darhol javonga ko'chiriladi. Alohida hujjat yoziladi. -->
+    <div v-if="toShopOpen && warehouse && filled.length" class="to-shop">
+      <div class="to-shop-head">
+        <p class="field-hint">
+          Qolgani omborda qoladi. Tasdiqlanganda alohida ko'chirish hujjati yoziladi.
+        </p>
+
+        <button class="button button-outline" type="button" @click="oneOfEach">
+          Har biridan 1 ta
+        </button>
+      </div>
+
+      <table class="data-table overrides">
+        <thead>
+          <tr>
+            <th>Qator</th>
+            <th class="num">Keldi</th>
+            <th class="num">Zalga</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr v-for="row in filled" :key="row.variant.id">
+            <td>{{ row.variant.label }}</td>
+            <td class="num">{{ row.quantity }}</td>
+            <td class="num">
+              <input
+                class="to-shop-count"
+                type="number"
+                min="0"
+                :max="row.quantity"
+                :value="model.toShop[row.variant.id] || ''"
+                :aria-label="`${row.variant.label}: nechtasi zalga`"
+                @input="setToShop(row.variant.id, ($event.target as HTMLInputElement).value)"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.to-shop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.to-shop-head .field-hint {
+  margin: 0;
+}
+
+.to-shop-count {
+  width: 72px;
+  text-align: center;
+}
+
 .model-grid {
   margin: 10px 0;
   padding: 14px;

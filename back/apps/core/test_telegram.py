@@ -1,0 +1,122 @@
+"""Telegram bildirishnomalari.
+
+Asosiy talab: xabar **hech qachon ishni to'xtatmaydi**. Telegram
+javob bermasa ham sotuv yakunlanishi kerak. Ikkinchi talab:
+tranzaksiya bekor bo'lsa xabar ketmasligi kerak.
+"""
+
+from decimal import Decimal
+from unittest import mock
+
+from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
+
+from apps.core import telegram
+from apps.core.factories import (
+    api_client,
+    create_admin,
+    create_product,
+    receive_stock,
+)
+from apps.inventory.models import Location
+from apps.inventory.services import create_write_off
+from apps.sales.services import create_sale, void_sale
+
+SETTINGS = {'TELEGRAM_BOT_TOKEN': 'sinov-token', 'TELEGRAM_CHAT_ID': '42'}
+
+
+class TelegramModuleTests(TestCase):
+
+    def test_silent_without_a_token(self):
+        """Ishlab chiqish kompyuterida hech narsa yuborilmaydi."""
+        with override_settings(TELEGRAM_BOT_TOKEN='', TELEGRAM_CHAT_ID=''):
+            with mock.patch('apps.core.telegram._dispatch') as send:
+                telegram.notify('salom')
+
+            self.assertFalse(telegram.configured())
+            send.assert_not_called()
+
+    @override_settings(**SETTINGS)
+    def test_money_is_grouped_like_on_the_receipt(self):
+        self.assertEqual(telegram.money(Decimal('1234567.00')), '1 234 567')
+
+    @override_settings(**SETTINGS)
+    def test_a_broken_connection_does_not_raise(self):
+        """Internet uzilgani sotuvni to'xtatmasligi kerak."""
+        with mock.patch('urllib.request.urlopen', side_effect=OSError('tarmoq yo‘q')):
+            telegram._send('salom')
+
+
+@override_settings(**SETTINGS)
+class NotificationTests(TestCase):
+    """Qaysi hodisalar xabar yuboradi."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.product = create_product(sizes=('M',), colors=('qora',))
+        self.variant = self.product.variants.get()
+
+        receive_stock(self.variant, 5, '100000')
+
+        # `_dispatch` to'xtatiladi: oqim ham, tarmoq ham kerak emas
+        patcher = mock.patch('apps.core.telegram._dispatch')
+
+        self.send = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def messages(self) -> str:
+        return '\n'.join(call.args[0] for call in self.send.call_args_list)
+
+    def sell(self, quantity=1):
+        """Bitta sotuv. `on_commit` testda o'zi ishlamaydi — qo'lda yuritiladi."""
+        with self.captureOnCommitCallbacks(execute=True):
+            return create_sale(
+                user=self.admin,
+                lines=[{'variant': self.variant, 'quantity': quantity}],
+                cash_amount=Decimal('250000'),
+            )
+
+    def test_a_sale_is_announced(self):
+        self.sell()
+
+        self.assertIn('Sotuv', self.messages())
+        self.assertIn('Kassir', self.messages())
+
+    def test_a_voided_receipt_is_announced(self):
+        sale = self.sell()
+
+        self.send.reset_mock()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            void_sale(sale, user=self.admin)
+
+        self.assertIn('bekor qilindi', self.messages())
+
+    def test_a_write_off_is_announced(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            create_write_off(
+            variant=self.variant,
+                quantity=1,
+                reason='Yirtilgan',
+                location=Location.shop(),
+                user=self.admin,
+            )
+
+        self.assertIn('Hisobdan chiqarildi', self.messages())
+        self.assertIn('Yirtilgan', self.messages())
+
+    def test_a_price_change_is_announced(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            api_client(self.admin).patch(
+                f'/api/products/{self.product.pk}/', {'sale_price': '999000'}, format='json'
+            )
+
+        self.assertIn('Narx o‘zgardi', self.messages())
+        self.assertIn('999 000', self.messages())
+
+    def test_nothing_is_sent_when_the_sale_fails(self):
+        """Tranzaksiya bekor bo'lsa xabar ham ketmaydi."""
+        with self.assertRaises(ValidationError):
+            self.sell(quantity=99)
+
+        self.send.assert_not_called()

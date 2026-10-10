@@ -4,6 +4,7 @@ from rest_framework.validators import UniqueValidator
 
 from apps.catalog.models import Category, Color, Product, ProductImage, Size, Variant
 from apps.catalog.services import add_product_image, set_primary_image, sync_variant_matrix
+from apps.core import telegram
 from apps.core.redaction import HideFromCashierMixin
 
 
@@ -200,10 +201,22 @@ class ProductSerializer(serializers.ModelSerializer):
         sizes = validated_data.pop('size_ids', None)
         colors = validated_data.pop('color_ids', None)
 
+        # Eski narxni oldindan olamiz: `super().update()` dan keyin
+        # obyektda faqat yangisi qoladi
+        was = instance.sale_price
+
         product = super().update(instance, validated_data)
 
         if sizes is not None or colors is not None:
             sync_variant_matrix(product, sizes or [], colors or [])
+
+        if product.sale_price != was:
+            telegram.notify(
+                f'<b>Narx o‘zgardi</b>\n'
+                f'{product.name}\n'
+                f'{telegram.money(was)} → {telegram.money(product.sale_price)} so‘m\n'
+                f'Kim: {telegram.who(self.context["request"].user)}'
+            )
 
         return product
 

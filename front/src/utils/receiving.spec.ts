@@ -123,8 +123,22 @@ describe('kirim qatorlari', () => {
     model.quantities = { [OQ_S.id]: 3, [QORA_M.id]: 2 }
 
     expect(draftLines([model])).toEqual([
-      { variant: OQ_S.id, quantity: 3, unit_cost: '200000.00', new_sale_price: null, cell: '' },
-      { variant: QORA_M.id, quantity: 2, unit_cost: '200000.00', new_sale_price: null, cell: '' },
+      {
+        variant: OQ_S.id,
+        quantity: 3,
+        unit_cost: '200000.00',
+        new_sale_price: null,
+        cell: '',
+        to_shop: 0,
+      },
+      {
+        variant: QORA_M.id,
+        quantity: 2,
+        unit_cost: '200000.00',
+        new_sale_price: null,
+        cell: '',
+        to_shop: 0,
+      },
     ])
 
     expect(modelUnits(model)).toBe(5)
@@ -280,5 +294,27 @@ describe('ochilgan hujjat: qatorlar model bo‘yicha', () => {
     ])
 
     expect(mixed[0]!.cost).toBe('')
+  })
+})
+
+describe('zalga chiqarish', () => {
+  it('yozilgan son qatorga tushadi', () => {
+    const model = emptyModel(product())
+
+    model.cost = '100000'
+    model.quantities = { [OQ_S.id]: 10, [QORA_M.id]: 4 }
+    model.toShop = { [OQ_S.id]: 3 }
+
+    expect(draftLines([model]).map((line) => line.to_shop)).toEqual([3, 0])
+  })
+
+  it('kelganidan ko‘pini chiqarib bo‘lmaydi', () => {
+    const model = emptyModel(product())
+
+    model.cost = '100000'
+    model.quantities = { [OQ_S.id]: 2 }
+    model.toShop = { [OQ_S.id]: 9 }
+
+    expect(draftLines([model])[0]!.to_shop).toBe(2)
   })
 })

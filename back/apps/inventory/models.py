@@ -13,11 +13,13 @@ hisoblangan kesh.
 """
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.fields import MoneyField
 from apps.core.models import TimeStampedModel
+from apps.inventory.storage import MAX_SHELVES
 
 
 class MovementReason(models.TextChoices):
@@ -84,6 +86,52 @@ class Location(TimeStampedModel):
     @classmethod
     def shop(cls) -> 'Location':
         return cls.of_kind(cls.Kind.SHOP)
+
+
+class ShelfRun(models.Model):
+    """Ombordagi bitta javon qatori — masalan «o'ng devor».
+
+    Ombor tor xona: javonlar devorlar bo'ylab ketadi va har devorda
+    ularning soni har xil (bir tomonda to'qqizta, boshqasida uchta).
+    Shuning uchun bu yerda to'g'ri to'rtburchak jadval emas, har
+    qatorning o'z soni bor.
+
+    Manzil qator harfi va javon raqamidan yig'iladi: `D3` — o'ng
+    devor, tepadan uchinchi javon. **Raqam tepadan boshlanadi**: javon
+    oldida turgan odam uni yuqoridan pastga sanaydi.
+    """
+
+    code = models.CharField(
+        _('Harfi'),
+        max_length=1,
+        unique=True,
+        help_text=_('Bitta harf: A, B, C…'),
+    )
+
+    name = models.CharField(_('Qayerda'), max_length=60)
+
+    shelves = models.PositiveSmallIntegerField(
+        _('Javonlar soni'),
+        validators=[MinValueValidator(1), MaxValueValidator(MAX_SHELVES)],
+    )
+
+    #: Ro'yxatdagi tartib: eshikdan boshlab devorlar bo'ylab
+    position = models.PositiveSmallIntegerField(_('Tartibi'), default=0)
+
+    is_active = models.BooleanField(_('Faol'), default=True)
+
+    class Meta:
+        verbose_name = _('Javon qatori')
+        verbose_name_plural = _('Javon qatorlari')
+        ordering = ['position', 'code']
+
+    def __str__(self):
+        return f'{self.code} — {self.name}'
+
+    @property
+    def cells(self) -> list[str]:
+        """Shu qatordagi hamma manzil: `D1`, `D2`…"""
+        return [f'{self.code}{level}' for level in range(1, self.shelves + 1)]
 
 
 class VariantStock(models.Model):

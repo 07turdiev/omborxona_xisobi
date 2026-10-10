@@ -2,6 +2,7 @@ import api from '@/api/client'
 import type {
   Cabinet,
   Location,
+  ShelfRun,
   Paginated,
   StockCount,
   StockCountLine,
@@ -36,13 +37,31 @@ export interface Transfer {
 }
 
 export const inventoryApi = {
-  /** Ombordagi shkaf xaritasi */
+  /** Ombordagi javon qatorlari */
+  async shelfRuns() {
+    const { data } = await api.get<ShelfRun[]>('/shelf-runs/')
+    return data
+  },
+
+  async saveShelfRun(run: Partial<ShelfRun> & { id?: number }) {
+    const { data } = run.id
+      ? await api.patch<ShelfRun>(`/shelf-runs/${run.id}/`, run)
+      : await api.post<ShelfRun>('/shelf-runs/', run)
+
+    return data
+  },
+
+  async removeShelfRun(id: number) {
+    await api.delete(`/shelf-runs/${id}/`)
+  },
+
+  /** Ombor xaritasi: har javonda nima turibdi */
   async cabinet() {
     const { data } = await api.get<Cabinet>('/storage/cabinet/')
     return data
   },
 
-  /** Tovarga shkafdagi joy belgilaydi. Bo'sh qiymat joyni o'chiradi. */
+  /** Tovarga ombordagi javon manzilini beradi. Bo'sh qiymat o'chiradi. */
   async place(variant: number, cell: string) {
     const { data } = await api.post<{ variant: number; cell: string }>('/storage/place/', {
       variant,

@@ -54,7 +54,7 @@ export const SECTION_TABS: Record<string, Tab[]> = {
   ],
   transfers: [
     { to: '/transfers', label: 'Zalga chiqarish' },
-    { to: '/warehouse', label: 'Shkaf' },
+    { to: '/warehouse', label: 'Ombor' },
   ],
   counts: [
     { to: '/stock-counts', label: 'Sanoq' },

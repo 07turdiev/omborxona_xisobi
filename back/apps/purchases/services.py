@@ -8,8 +8,9 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.catalog.models import Product
+from apps.core import telegram
 from apps.inventory.models import Location, MovementReason, VariantStock
-from apps.inventory.services import record_movement
+from apps.inventory.services import create_transfer, record_movement
 from apps.purchases.models import Purchase
 
 ZERO = Decimal('0')
@@ -23,6 +24,38 @@ def recalculate_total(purchase: Purchase) -> Purchase:
     purchase.save(update_fields=['total', 'updated_at'])
 
     return purchase
+
+
+def move_to_shop(purchase: Purchase, lines, user=None) -> None:
+    """Qabul qilingan tovarning bir qismini darhol javonga chiqaradi.
+
+    Qabul paytida xodim «shundan nechtasi zalga» sonini yozadi. Alohida
+    ko'chirish hujjati yoziladi: qoldiq tarixida kirim ham, javonga
+    chiqish ham alohida ko'rinib turadi.
+
+    Zalga qabul qilingan tovarda bu son ma'nosiz — u allaqachon
+    javonda.
+    """
+    if purchase.location.kind != Location.Kind.WAREHOUSE:
+        return
+
+    moving = [
+        {'variant': line.variant, 'quantity': line.to_shop}
+        for line in lines
+        if line.to_shop > 0
+    ]
+
+    if not moving:
+        return
+
+    create_transfer(
+        source=purchase.location,
+        target=Location.shop(),
+        lines=moving,
+        user=user,
+        date=purchase.date,
+        note=f'{purchase.number} qabulidan',
+    )
 
 
 def apply_cells(purchase: Purchase, lines) -> None:
@@ -101,13 +134,44 @@ def confirm(purchase: Purchase, user=None) -> Purchase:
         )
 
     apply_cells(purchase, lines)
+    move_to_shop(purchase, lines, user)
     apply_new_sale_prices(lines)
 
     purchase.status = Purchase.Status.CONFIRMED
     purchase.confirmed_at = timezone.now()
     purchase.save(update_fields=['status', 'confirmed_at', 'updated_at'])
 
-    return recalculate_total(purchase)
+    purchase = recalculate_total(purchase)
+
+    notify_confirmed(purchase, lines)
+
+    return purchase
+
+
+def notify_confirmed(purchase: Purchase, lines) -> None:
+    """Boshliqqa qabul haqida xabar."""
+    units = sum(line.quantity for line in lines)
+    to_shop = sum(line.to_shop for line in lines)
+    prices = sum(1 for line in lines if line.new_sale_price)
+
+    text = [
+        f'<b>Tovar qabul qilindi: {purchase.number}</b>',
+        f'{units} dona — {telegram.money(purchase.total)} so‘m',
+        f'Joyi: {purchase.location.name}',
+    ]
+
+    if purchase.supplier_id:
+        text.append(f'Ta’minotchi: {purchase.supplier.name}')
+
+    if to_shop:
+        text.append(f'Zalga chiqarildi: {to_shop} dona')
+
+    if prices:
+        text.append(f'Yangi sotuv narxi: {prices} ta tovarda')
+
+    text.append(f'Kim: {telegram.who(purchase.created_by)}')
+
+    telegram.notify('\n'.join(text))
 
 
 @transaction.atomic
@@ -136,6 +200,12 @@ def cancel(purchase: Purchase, user=None) -> Purchase:
     purchase.status = Purchase.Status.CANCELLED
     purchase.cancelled_at = timezone.now()
     purchase.save(update_fields=['status', 'cancelled_at', 'updated_at'])
+
+    telegram.notify(
+        f'<b>Kirim bekor qilindi: {purchase.number}</b>\n'
+        f'{telegram.money(purchase.total)} so‘m — tovar qoldiqdan chiqarildi\n'
+        f'Kim: {telegram.who(user)}'
+    )
 
     return purchase
 

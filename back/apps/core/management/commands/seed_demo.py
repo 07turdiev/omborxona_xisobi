@@ -19,7 +19,7 @@ from apps.catalog.services import add_product_image, sync_variant_matrix
 from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
 from apps.inventory import services as inventory_services
-from apps.inventory.models import Location
+from apps.inventory.models import Location, ShelfRun
 from apps.purchases import services as purchase_services
 from apps.purchases.models import Purchase, PurchaseLine, Supplier
 from apps.sales import services as sale_services
@@ -29,6 +29,15 @@ PASSWORD = 'demo12345'
 
 #: Rasmlar shu papkada: har tovarga bittadan (manba: `demo_photos/SOURCES.md`)
 PHOTO_DIR = Path(__file__).resolve().parents[2] / 'demo_photos'
+
+#: Ombor javonlari: harf, qayerda, nechta javon. Har devorda soni har xil.
+SHELF_RUNS = [
+    ('A', 'Pastki devor', 5),
+    ('B', 'Chap devor', 3),
+    ('C', 'Tepa devor', 6),
+    ('D', 'O‘ng devor', 9),
+    ('E', 'Eshik tepasida', 2),
+]
 
 #: kategoriya, nom, brend, narx, o'lchamlar, ranglar, rasm
 PRODUCTS = [
@@ -119,6 +128,13 @@ class Command(BaseCommand):
         shop.shop_name = 'Madlen sen'
         shop.max_discount_percent = Decimal('15')
         shop.save()
+
+        # Ombor javonlari: haqiqiy do'konning tuzilmasi
+        for position, (code, name, shelves) in enumerate(SHELF_RUNS):
+            ShelfRun.objects.get_or_create(
+                code=code,
+                defaults={'name': name, 'shelves': shelves, 'position': position},
+            )
 
         admin = User.objects.create_user(
             username='admin',

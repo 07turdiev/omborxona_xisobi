@@ -159,6 +159,16 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 
 
+# --- Telegram bildirishnomalari -------------------------------------------
+#
+# Do'kon egasiga sotuv, qabul, bekor qilish va narx o'zgarishi haqida
+# xabar boradi (`apps/core/telegram.py`). Token bo'lmasa modul jim
+# turadi — ishlab chiqish kompyuterida hech narsa yuborilmaydi.
+
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_CHAT_ID = env("TELEGRAM_CHAT_ID", default="")
+
+
 # --- Xavfsizlik -----------------------------------------------------------
 #
 # Faqat DEBUG=False bo'lganda yoqiladi: ishlab chiqishda HTTPS yo'q.

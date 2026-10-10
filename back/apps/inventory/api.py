@@ -12,9 +12,17 @@ from rest_framework.permissions import IsAuthenticated
 from apps.catalog.models import Variant
 from apps.core.permissions import IsAdmin
 from apps.inventory import services, storage
-from apps.inventory.models import Location, StockCount, StockMovement, Transfer, WriteOff
+from apps.inventory.models import (
+    Location,
+    ShelfRun,
+    StockCount,
+    StockMovement,
+    Transfer,
+    WriteOff,
+)
 from apps.inventory.serializers import (
     LocationSerializer,
+    ShelfRunSerializer,
     StockCountSerializer,
     StockMovementSerializer,
     TransferSerializer,
@@ -206,6 +214,24 @@ class TransferViewSet(
             return Response({'detail': exc.messages}, status=400)
 
         return Response(self.get_serializer(transfer).data, status=201)
+
+
+class ShelfRunViewSet(viewsets.ModelViewSet):
+    """Ombordagi javon qatorlari.
+
+    O'qishga hamma xodimga ruxsat: manzilni kassir ham o'qiydi.
+    O'zgartirish administratorga.
+    """
+
+    serializer_class = ShelfRunSerializer
+    queryset = ShelfRun.objects.all()
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return [IsAuthenticated()]
+
+        return [IsAdmin()]
 
 
 class CabinetView(APIView):

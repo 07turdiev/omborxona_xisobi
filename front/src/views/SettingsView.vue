@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
 
 import { settingsApi } from '@/api/accounts'
 import AmountField from '@/components/AmountField.vue'
@@ -18,8 +17,6 @@ const form = ref<ShopSettings>({
   receipt_page_height_mm: 110,
   max_discount_percent: '0',
   price_rounding_step: 1000,
-  cabinet_columns: 5,
-  cabinet_rows: 5,
 })
 
 const loading = ref(true)
@@ -94,23 +91,6 @@ async function onSave() {
       <div class="field">
         <label>Narxni yaxlitlash qadami (so‘m)</label>
         <input v-model.number="form.price_rounding_step" type="number" min="1" step="100" />
-      </div>
-
-      <div class="field">
-        <label>Ombor shkafi: ustunlar</label>
-        <input v-model.number="form.cabinet_columns" type="number" min="1" max="12" />
-        <small class="field-hint">
-          Ustunlar harf bilan belgilanadi: A, B, C… Shkaf jadvali
-          <RouterLink to="/warehouse">Ombor shkafi</RouterLink> sahifasida.
-        </small>
-      </div>
-
-      <div class="field">
-        <label>Ombor shkafi: qatorlar</label>
-        <input v-model.number="form.cabinet_rows" type="number" min="1" max="20" />
-        <small class="field-hint">
-          Katak nomi ustun va qatordan yig'iladi — masalan B2.
-        </small>
       </div>
 
       <div class="field">

@@ -3,13 +3,18 @@
 import shutil
 import tempfile
 from io import StringIO
+from unittest import mock
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 
 from apps.accounts.models import User
 from apps.catalog.models import Product, Variant
+from apps.core.factories import create_admin, create_product, receive_stock
+from apps.core.models import ShopSettings
+from apps.inventory.models import Location, StockMovement, VariantStock
+from apps.purchases.models import Purchase
 from apps.sales.models import Sale
 
 
@@ -143,3 +148,61 @@ class SeedDemoTests(TestCase):
             call_command('seed_demo', stdout=StringIO(), stderr=StringIO())
 
         self.assertIn('--force', str(caught.exception))
+
+
+class ResetShopTests(TransactionTestCase):
+    """Bazani tozalash: hammasi o'chadi, tuzilish qoladi.
+
+    `TransactionTestCase` ataylab: tozalash `TRUNCATE` bilan ishlaydi,
+    uni esa oddiy testning tranzaksiyasi ichida bajarib bo'lmaydi
+    («pending trigger events»). Jurnalda `DELETE` ni bloklaydigan
+    trigger borligi uchun qator-qator o'chirish ham mumkin emas.
+    """
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.product = create_product()
+
+        receive_stock(self.product.variants.first(), 5, '100000')
+
+    def run_reset(self, **options):
+        out = StringIO()
+
+        call_command('reset_shop', '--yes', '--keep-media', stdout=out, **options)
+
+        return out.getvalue()
+
+    def test_everything_goes_including_staff(self):
+        self.run_reset()
+
+        self.assertEqual(User.objects.count(), 0)
+        self.assertEqual(Product.objects.count(), 0)
+        self.assertEqual(Variant.objects.count(), 0)
+        self.assertEqual(StockMovement.objects.count(), 0)
+        self.assertEqual(VariantStock.objects.count(), 0)
+        self.assertEqual(Purchase.objects.count(), 0)
+
+    def test_shop_structure_comes_back(self):
+        """Ombor va zalsiz ilova umuman ishlamaydi."""
+        self.run_reset()
+
+        self.assertEqual(Location.objects.filter(kind=Location.Kind.WAREHOUSE).count(), 1)
+        self.assertEqual(Location.objects.filter(kind=Location.Kind.SHOP).count(), 1)
+        self.assertEqual(ShopSettings.objects.count(), 1)
+
+    def test_wrong_name_changes_nothing(self):
+        """Tasdiq noto'g'ri bo'lsa baza tegilmaydi."""
+        with mock.patch('builtins.input', return_value='boshqa nom'):
+            with self.assertRaises(CommandError):
+                call_command('reset_shop', '--keep-media', stdout=StringIO())
+
+        self.assertEqual(Product.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_right_name_clears_the_database(self):
+        shop = ShopSettings.load()
+
+        with mock.patch('builtins.input', return_value=shop.shop_name):
+            call_command('reset_shop', '--keep-media', stdout=StringIO())
+
+        self.assertEqual(Product.objects.count(), 0)

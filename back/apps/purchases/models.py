@@ -169,6 +169,13 @@ class PurchaseLine(models.Model):
     #: qoralama hali kelmagan tovar, uning narxi do'konda ko'rinmasligi kerak.
     new_sale_price = MoneyField(_('Yangi sotuv narxi'), null=True, blank=True)
 
+    #: Shu qatordan nechtasi darhol savdo zaliga chiqariladi.
+    #:
+    #: Tovar har doim avval omborga tushadi, keyin ko'chiriladi — ya'ni
+    #: ikkita hujjat yoziladi (kirim va `KCH-`). Jurnal to'liq qoladi:
+    #: keyin «bu tovar zalga qachon chiqdi?» degan savolga javob bor.
+    to_shop = models.PositiveIntegerField(_('Shundan zalga'), default=0)
+
     #: Tovar omborning qaysi katagiga qo'yilgani (`B2`). Hujjat
     #: tasdiqlanganda qoldiq qatoriga ko'chiriladi. Qatorda saqlanadi,
     #: chunki qoralama bir necha kun turishi mumkin va xodim joyni

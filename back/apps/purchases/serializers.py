@@ -2,7 +2,6 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
-from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
 from apps.inventory.models import Location
 from apps.inventory.storage import normalize_cell
@@ -67,6 +66,7 @@ class PurchaseLineSerializer(serializers.ModelSerializer):
             'id', 'variant', 'product', 'product_name', 'variant_label',
             'size', 'size_name', 'color', 'color_name', 'sku', 'barcode',
             'price', 'quantity', 'unit_cost', 'new_sale_price', 'line_total', 'cell',
+            'to_shop',
         )
         read_only_fields = ('id',)
 
@@ -76,17 +76,27 @@ class PurchaseLineSerializer(serializers.ModelSerializer):
 
         return value
 
-    def validate_cell(self, value):
-        """Shkafda yo'q katakni yozib bo'lmaydi.
+    def validate(self, attrs):
+        """Zalga kelganidan ko'pini chiqarib bo'lmaydi."""
+        quantity = attrs.get('quantity', getattr(self.instance, 'quantity', 0))
+        to_shop = attrs.get('to_shop', getattr(self.instance, 'to_shop', 0))
 
-        Tekshiruv shu yerda: qoralamada noto'g'ri katak qolib ketsa,
+        if to_shop > quantity:
+            raise serializers.ValidationError(
+                {'to_shop': 'Zalga chiqariladigan son kelganidan ko‘p bo‘lishi mumkin emas.'}
+            )
+
+        return attrs
+
+    def validate_cell(self, value):
+        """Omborda yo'q javonni yozib bo'lmaydi.
+
+        Tekshiruv shu yerda: qoralamada noto'g'ri manzil qolib ketsa,
         xato faqat tasdiqlash paytida chiqib, xodimni hujjat boshiga
         qaytarardi.
         """
-        settings = ShopSettings.load()
-
         try:
-            return normalize_cell(value, settings.cabinet_columns, settings.cabinet_rows)
+            return normalize_cell(value)
         except DjangoValidationError as error:
             raise serializers.ValidationError(error.messages) from error
 
@@ -149,6 +159,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
                 unit_cost=line['unit_cost'],
                 new_sale_price=line.get('new_sale_price'),
                 cell=line.get('cell', ''),
+                to_shop=line.get('to_shop', 0),
             )
             for line in lines
         ])

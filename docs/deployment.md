@@ -315,6 +315,51 @@ standart chegarasi 1 MB: proxyda unutilsa, tovar rasmi yuklanganda
 
 ---
 
+## 5.1. Telegram bildirishnomalari
+
+Do'kon egasiga sotuv, qabul, bekor qilish, qaytarish, hisobdan
+chiqarish, xarajat va narx o'zgarishi haqida xabar boradi.
+
+1. Telegramda **@BotFather** ga `/newbot` yozib bot yarating va
+   tokenni oling.
+2. Botga bitta xabar yozing, so'ng chat ID ni oling:
+   `https://api.telegram.org/bot<TOKEN>/getUpdates`.
+3. Serverdagi `.env` ga qo'ying:
+
+   ```
+   TELEGRAM_BOT_TOKEN=<BotFather bergan token>
+   TELEGRAM_CHAT_ID=<chat id>
+   ```
+
+4. Qayta ishga tushiring: `docker compose up -d`.
+
+Ikkalasi bo'sh qoldirilsa modul jim turadi. Telegram javob bermasa
+sotuv baribir yakunlanadi: xabar alohida oqimda ketadi va xatosi
+faqat jurnalga yoziladi.
+
+Guruhga yuborish kerak bo'lsa, botni guruhga qo'shing va chat ID ni
+o'sha guruhniki (manfiy son) qilib qo'ying.
+
+
+## 5.2. Haqiqiy ish boshlanishidan oldin bazani tozalash
+
+Sinov davrida kiritilgan tovar, kirim va sotuv hisobotni buzadi.
+Do'konning birinchi kunidan oldin baza tozalanadi:
+
+```bash
+docker compose exec backend python manage.py reset_shop
+docker compose exec backend python manage.py createsuperuser
+```
+
+Buyruq do'kon nomini yozishni so'raydi — tasodifan ishga tushib
+ketmaydi. **Ortga qaytarib bo'lmaydi**, shuning uchun avval zaxira
+nusxa oling (7-bo'lim).
+
+O'chadi: mahsulot, qoldiq, hujjatlar, ta'minotchilar, kategoriya,
+o'lcham, rang, xodimlar va yuklangan rasmlar. Qoladi: ombor, savdo
+zali va do'kon sozlamalari — ularsiz ilova ishlamaydi.
+
+
 ## 6. Xavfsizlik
 
 `DEBUG=False` bo'lganda avtomatik yoqiladi

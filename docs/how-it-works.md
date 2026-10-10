@@ -95,6 +95,12 @@ kirim → Ombor → (ko'chirish) → Savdo zali → sotuv
   qabulda yorliq chop etiladi va zaxiraga qo'yiladi. Qabul ekranida
   «Qayerga tushsin?» tanlovi bor: kichik partiyani ombordan o'tkazmay
   to'g'ridan-to'g'ri javonga qo'yish mumkin.
+- **Qabulda bir qismini darhol javonga chiqarish mumkin.** Model
+  yonidagi «Zalga chiqarish» tugmasi har variant uchun «nechtasi
+  zalga» sonini so'raydi; «Har biridan 1 ta» tugmasi eng ko'p
+  uchraydigan holatni bir bosishda to'ldiradi. Tovar baribir avval
+  omborga tushadi va keyin ko'chiriladi — ya'ni jurnalda kirim
+  ham, javonga chiqish ham alohida hujjat bo'lib qoladi.
 - **Sotuv faqat zaldagi qoldiqdan** bo'ladi. Omborda 20 dona bo'lsa-yu
   zalda nol bo'lsa, kassa uni sota olmaydi. Kassa tanlagichi ham faqat
   **zalda qoldig'i bor** tovarni ko'rsatadi: butunlay omborda yotgan
@@ -119,35 +125,48 @@ farqqa tushmaydi. Hisobdan chiqarish ham o'z joyidan bo'ladi.
 Tovarlar ro'yxatida «Joy» filtri bor: faqat zalda turganlarni yoki
 faqat omborda yotganlarni ajratib ko'rish mumkin.
 
-### Ombordagi shkaf: katak tovarni topish uchun
+### Ombor javonlari: manzil tovarni topish uchun
 
-Omborda bitta shkaf bor va u Excel jadvaliga o'xshaydi: ustunlar harf
-(A, B, C...), qatorlar raqam. Katak nomi shu ikkisidan yig'iladi —
-`B2`. Shkaf o'lchami Sozlamalarda (standart 5 × 5).
+Ombor — tor xona, javonlar devorlar bo'ylab ketadi. Har devorda
+javonlar soni har xil: o'ng devorda to'qqizta, chapda uchta, eshik
+tepasida ikkita. Shuning uchun bu yerda to'g'ri to'rtburchak jadval
+yo'q — har **javon qatori** (`ShelfRun`) o'z soni bilan yashaydi.
 
-**Katak faqat joyni ko'rsatadi.** Qoldiq avvalgidek butun ombor
-bo'yicha yuritiladi, har katakda alohida hisob yo'q. Sabab oddiy:
-ombor kichik va unda tovar ko'p saqlanmaydi, har katakda alohida
-hisob yuritilsa esa zalga chiqarishda, hisobdan chiqarishda va
-sanoqda har safar katak tanlash kerak bo'lardi. Katak bitta savolga
-javob beradi — «tovarni qayerdan olaman?»
+Manzil qator harfi va javon raqamidan yig'iladi:
+
+```
+D3  ->  o'ng devor, tepadan uchinchi javon
+```
+
+Raqam **tepadan** boshlanadi: javon oldida turgan odam uni yuqoridan
+pastga sanaydi.
+
+**Manzil faqat joyni ko'rsatadi.** Qoldiq avvalgidek butun ombor
+bo'yicha yuritiladi, har javonda alohida hisob yo'q. Sabab oddiy:
+ombor kichik, har javonda alohida hisob yuritilsa esa zalga
+chiqarishda, hisobdan chiqarishda va sanoqda har safar javon tanlash
+kerak bo'lardi. Manzil bitta savolga javob beradi — «tovarni
+qayerdan olaman?»
+
+Javon qatorlari «Ombor» sahifasida kiritiladi: harfi, qayerdaligi va
+nechta javon borligi. Ular kiritilmaguncha qabulda joy so'ralmaydi.
 
 Joy uch joyda ko'rinadi:
 
-- **Qabulda** — kirim omborga tushsa, har model uchun katak
+- **Qabulda** — kirim omborga tushsa, har model uchun manzil
   ro'yxatdan tanlanadi. Hujjat tasdiqlanganda joy qoldiqqa ko'chadi.
-- **«Ombor shkafi» ekranida** (Zalga chiqarish → Shkaf) — butun
-  shkaf jadval bo'lib chiziladi, katak bosilsa ichidagi tovarlar
-  ro'yxati chiqadi. Joyi belgilanmaganlar alohida ro'yxatda turadi.
-- **Zalga chiqarishda** — har variant yonida katak yoziladi, xodim
-  shkafga borishdan oldin shuni o'qiydi.
+- **«Ombor» ekranida** (Zalga chiqarish → Ombor) — har qator o'z
+  bo'yi bilan chiziladi, javon bosilsa ichidagi tovarlar ro'yxati
+  chiqadi. Joyi belgilanmaganlar alohida ro'yxatda turadi.
+- **Zalga chiqarishda** — har variant yonida manzil yoziladi, xodim
+  javonga borishdan oldin shuni o'qiydi.
 
 Joy qoldiq qatorida (`VariantStock.cell`) saqlanadi va tovar tugaganda
 ham o'chmaydi: keyingi kirimda xodim uni odatdagi joyiga qo'yadi.
 
-Shkaf kichraytirilsa, jadvaldan tashqarida qolgan kataklar «Shkafdan
-tashqarida» ro'yxatida ko'rsatiladi — tovar fizik joyda turibdi,
-uni jimgina yo'qotib bo'lmaydi.
+Javon qatori o'chirilsa, u yerdagi tovarlar «ro'yxatdan tashqarida»
+ro'yxatiga tushadi — tovar fizik javonda turibdi, uni jimgina
+yo'qotib bo'lmaydi.
 
 ---
 
