@@ -91,6 +91,24 @@ def send_to(chat: str, text: str) -> tuple[bool, str]:
         return False, str(error)
 
 
+def bot_link() -> str:
+    """Botning havolasi: `https://t.me/<nom>`.
+
+    Qabul qiluvchi botga `/start` bosmaguncha Telegram xabarni rad
+    etadi, shuning uchun unga aynan qaysi botni ochish kerakligini
+    aytish kerak. Nom tokendan emas, Telegramning o'zidan so'raladi.
+    """
+    url = f'https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getMe'
+
+    try:
+        with urllib.request.urlopen(url, timeout=TIMEOUT) as response:
+            name = json.loads(response.read()).get('result', {}).get('username', '')
+
+        return f'https://t.me/{name}' if name else ''
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return ''
+
+
 def _send(text: str) -> None:
     """Xabarni hamma qabul qiluvchiga yuboradi. Xatolik yutiladi.
 

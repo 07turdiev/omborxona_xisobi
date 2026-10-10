@@ -71,6 +71,13 @@ class Command(BaseCommand):
                     'o‘sha odam botni topib «Start» bosmagan.'
                 )
             )
+
+            link = telegram.bot_link()
+
+            if link:
+                self.stdout.write('')
+                self.stdout.write(f'Shu havolani ularga yuboring: {link}')
+                self.stdout.write('Ochib «Start» bosishsa yetarli.')
         else:
             self.stdout.write(self.style.SUCCESS('Hammasiga yetib bordi.'))
 

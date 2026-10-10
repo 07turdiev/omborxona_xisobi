@@ -177,10 +177,14 @@ class TelegramTestCommandTests(TestCase):
             return (False, 'chat not found') if chat == '42' else (True, 'yuborildi')
 
         with mock.patch('apps.core.telegram.send_to', side_effect=answer):
-            output = self.run_command()
+            with mock.patch('apps.core.telegram.bot_link', return_value='https://t.me/sinov_bot'):
+                output = self.run_command()
 
         self.assertIn('chat not found', output)
         self.assertIn('1 ta hisobga yetib bormadi', output)
+
+        # Odamga aynan qaysi botni ochish kerakligi aytilsin
+        self.assertIn('https://t.me/sinov_bot', output)
 
     def test_without_settings_it_explains_what_is_missing(self):
         with override_settings(TELEGRAM_BOT_TOKEN='', TELEGRAM_CHAT_IDS=''):
