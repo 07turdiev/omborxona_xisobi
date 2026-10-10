@@ -335,7 +335,24 @@ chiqarish, xarajat va narx o'zgarishi haqida xabar boradi.
    TELEGRAM_CHAT_IDS=<id>,<id>,<id>
    ```
 
-5. Qayta ishga tushiring: `docker compose up -d`.
+5. Konteynerni qayta quring:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+   `--build` siz compose eski tasvirni qoldiradi va «Running» deb
+   o'tib ketadi — yangi kod ham, yangi sozlama ham yuklanmaydi.
+
+6. Tekshiring:
+
+   ```bash
+   docker compose exec backend python manage.py telegram_test
+   ```
+
+   Buyruq har hisobga sinov xabarini yuboradi va natijani qatorma-qator
+   ko'rsatadi. «chat not found» degani — o'sha odam botni topib
+   «Start» bosmagan.
 
 Ikkalasi bo'sh qoldirilsa modul jim turadi. Telegram javob bermasa
 sotuv baribir yakunlanadi: xabar alohida oqimda ketadi va xatosi

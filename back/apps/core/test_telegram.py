@@ -6,9 +6,11 @@ tranzaksiya bekor bo'lsa xabar ketmasligi kerak.
 """
 
 from decimal import Decimal
+from io import StringIO
 from unittest import mock
 
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 
 from apps.core import telegram
@@ -147,3 +149,42 @@ class NotificationTests(TestCase):
             self.sell(quantity=99)
 
         self.send.assert_not_called()
+
+
+@override_settings(**SETTINGS)
+class TelegramTestCommandTests(TestCase):
+    """`telegram_test` buyrug'i har hisobni alohida sinaydi."""
+
+    def run_command(self):
+        out = StringIO()
+
+        call_command('telegram_test', stdout=out)
+
+        return out.getvalue()
+
+    def test_every_recipient_is_reported(self):
+        with mock.patch('apps.core.telegram.send_to', return_value=(True, 'yuborildi')) as send:
+            output = self.run_command()
+
+        self.assertEqual(send.call_count, 2)
+        self.assertIn('42', output)
+        self.assertIn('77', output)
+        self.assertIn('Hammasiga yetib bordi', output)
+
+    def test_the_reason_is_shown(self):
+        """«/start» bosilmagan hisob jimgina o'tib ketmasligi kerak."""
+        def answer(chat, text):
+            return (False, 'chat not found') if chat == '42' else (True, 'yuborildi')
+
+        with mock.patch('apps.core.telegram.send_to', side_effect=answer):
+            output = self.run_command()
+
+        self.assertIn('chat not found', output)
+        self.assertIn('1 ta hisobga yetib bormadi', output)
+
+    def test_without_settings_it_explains_what_is_missing(self):
+        with override_settings(TELEGRAM_BOT_TOKEN='', TELEGRAM_CHAT_IDS=''):
+            output = self.run_command()
+
+        self.assertIn('TELEGRAM_BOT_TOKEN qo‘yilmagan', output)
+        self.assertIn('.env.production', output)

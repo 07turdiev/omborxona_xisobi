@@ -51,36 +51,58 @@ def configured() -> bool:
     return bool(getattr(settings, 'TELEGRAM_BOT_TOKEN', '')) and bool(chats())
 
 
+def send_to(chat: str, text: str) -> tuple[bool, str]:
+    """Bitta hisobga yuboradi va natijani qaytaradi.
+
+    Eng ko'p uchraydigan xato — odam botga hali `/start` bosmagan:
+    Telegram bunda «chat not found» deydi. Sababi ko'rinib tursin
+    deb javob matni qaytariladi.
+    """
+    payload = json.dumps(
+        {
+            'chat_id': chat,
+            'text': text,
+            'parse_mode': 'HTML',
+            'disable_web_page_preview': True,
+        }
+    ).encode()
+
+    request = urllib.request.Request(
+        API.format(token=settings.TELEGRAM_BOT_TOKEN),
+        data=payload,
+        headers={'Content-Type': 'application/json'},
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            if response.status == 200:
+                return True, 'yuborildi'
+
+            return False, f'javob {response.status}'
+    except urllib.error.HTTPError as error:
+        # Telegram sababni javob tanasida aytadi
+        try:
+            detail = json.loads(error.read()).get('description', str(error))
+        except (ValueError, OSError):
+            detail = str(error)
+
+        return False, detail
+    except (urllib.error.URLError, TimeoutError, OSError) as error:
+        return False, str(error)
+
+
 def _send(text: str) -> None:
     """Xabarni hamma qabul qiluvchiga yuboradi. Xatolik yutiladi.
 
-    Bittasiga yetib bormasa (hisob bloklagan, chat o'chirilgan),
+    Bittasiga yetib bormasa (hisob bloklagan, `/start` bosilmagan),
     qolganlari baribir oladi — shuning uchun har biri alohida
-    uriniladi.
+    uriniladi va xato faqat jurnalga yoziladi.
     """
     for chat in chats():
-        payload = json.dumps(
-            {
-                'chat_id': chat,
-                'text': text,
-                'parse_mode': 'HTML',
-                'disable_web_page_preview': True,
-            }
-        ).encode()
+        ok, detail = send_to(chat, text)
 
-        request = urllib.request.Request(
-            API.format(token=settings.TELEGRAM_BOT_TOKEN),
-            data=payload,
-            headers={'Content-Type': 'application/json'},
-        )
-
-        try:
-            with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-                if response.status != 200:
-                    logger.warning('Telegram javobi (%s): %s', chat, response.status)
-        except (urllib.error.URLError, TimeoutError, OSError) as error:
-            # Internet uzilgani sotuvni to'xtatmasligi kerak
-            logger.warning('Telegramga yuborilmadi (%s): %s', chat, error)
+        if not ok:
+            logger.warning('Telegramga yuborilmadi (%s): %s', chat, detail)
 
 
 def _dispatch(text: str) -> None:
