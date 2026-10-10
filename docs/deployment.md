@@ -326,7 +326,9 @@ chiqarish, xarajat va narx o'zgarishi haqida xabar boradi.
    Telegram botga o'sha odamga yozishga ruxsat bermaydi.
 3. Chat ID larni oling: `https://api.telegram.org/bot<TOKEN>/getUpdates`
    yoki har kishi @userinfobot ga yozsin.
-4. Serverdagi `.env` ga qo'ying (ID lar vergul bilan):
+4. Serverdagi **`/srv/dokon/.env.production`** ga qo'ying (ID lar
+   vergul bilan). Bu compose `env_file` orqali o'qiydigan fayl —
+   `back/.env` emas, u faqat ishlab chiqish kompyuteri uchun:
 
    ```
    TELEGRAM_BOT_TOKEN=<BotFather bergan token>
