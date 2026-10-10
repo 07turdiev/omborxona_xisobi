@@ -288,12 +288,12 @@ onMounted(async () => {
         />
       </label>
 
-      <!-- Omborga tushsa: tovar shkafning qaysi katagiga qo'yildi.
-           Ro'yxatdan tanlanadi — qo'lda yozilgan katak xato
-           bo'lishi va tovar yo'qolib qolishi mumkin. -->
+      <!-- Omborga tushsa: tovar qaysi javonga qo'yildi. Ro'yxatdan
+           tanlanadi — qo'lda yozilgan manzil xato bo'lishi va tovar
+           yo'qolib qolishi mumkin. -->
       <label v-if="cells?.length" class="price-field narrow">
-        <span>Shkafdagi joyi</span>
-        <select v-model="model.cell" aria-label="Shkafdagi joyi">
+        <span>Ombordagi javon</span>
+        <select v-model="model.cell" aria-label="Ombordagi javon">
           <option value="">Belgilanmagan</option>
           <option v-for="cell in cells" :key="cell" :value="cell">{{ cell }}</option>
         </select>

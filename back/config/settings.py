@@ -166,7 +166,9 @@ CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 # turadi — ishlab chiqish kompyuterida hech narsa yuborilmaydi.
 
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", default="")
-TELEGRAM_CHAT_ID = env("TELEGRAM_CHAT_ID", default="")
+
+#: Qabul qiluvchilar vergul bilan: do'konda bir necha rahbar bor
+TELEGRAM_CHAT_IDS = env("TELEGRAM_CHAT_IDS", default="")
 
 
 # --- Xavfsizlik -----------------------------------------------------------

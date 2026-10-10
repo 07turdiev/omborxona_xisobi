@@ -22,14 +22,14 @@ from apps.inventory.models import Location
 from apps.inventory.services import create_write_off
 from apps.sales.services import create_sale, void_sale
 
-SETTINGS = {'TELEGRAM_BOT_TOKEN': 'sinov-token', 'TELEGRAM_CHAT_ID': '42'}
+SETTINGS = {'TELEGRAM_BOT_TOKEN': 'sinov-token', 'TELEGRAM_CHAT_IDS': '42,77'}
 
 
 class TelegramModuleTests(TestCase):
 
     def test_silent_without_a_token(self):
         """Ishlab chiqish kompyuterida hech narsa yuborilmaydi."""
-        with override_settings(TELEGRAM_BOT_TOKEN='', TELEGRAM_CHAT_ID=''):
+        with override_settings(TELEGRAM_BOT_TOKEN='', TELEGRAM_CHAT_IDS=''):
             with mock.patch('apps.core.telegram._dispatch') as send:
                 telegram.notify('salom')
 
@@ -41,10 +41,37 @@ class TelegramModuleTests(TestCase):
         self.assertEqual(telegram.money(Decimal('1234567.00')), '1 234 567')
 
     @override_settings(**SETTINGS)
+    def test_every_recipient_gets_the_message(self):
+        """Do'konda bir necha rahbar bor, har biri o'z telefonida ko'radi."""
+        self.assertEqual(telegram.chats(), ['42', '77'])
+
+        with mock.patch('urllib.request.urlopen') as send:
+            telegram._send('salom')
+
+        self.assertEqual(send.call_count, 2)
+
+    @override_settings(**SETTINGS)
     def test_a_broken_connection_does_not_raise(self):
         """Internet uzilgani sotuvni to'xtatmasligi kerak."""
         with mock.patch('urllib.request.urlopen', side_effect=OSError('tarmoq yo‘q')):
             telegram._send('salom')
+
+    @override_settings(**SETTINGS)
+    def test_one_broken_chat_does_not_stop_the_others(self):
+        calls = []
+
+        def answer(request, timeout=None):
+            calls.append(request)
+
+            if len(calls) == 1:
+                raise OSError('bu hisob bloklagan')
+
+            raise OSError('qolganiga ham urinildi')
+
+        with mock.patch('urllib.request.urlopen', side_effect=answer):
+            telegram._send('salom')
+
+        self.assertEqual(len(calls), 2)
 
 
 @override_settings(**SETTINGS)

@@ -12,8 +12,8 @@ sezmaydi ham.
 
 Sozlash:
 
-    TELEGRAM_BOT_TOKEN=...   @BotFather bergan token
-    TELEGRAM_CHAT_ID=...     kimga yuboriladi
+    TELEGRAM_BOT_TOKEN=...    @BotFather bergan token
+    TELEGRAM_CHAT_IDS=...,... kimlarga yuboriladi (vergul bilan)
 
 Ikkalasi `.env` da. Token yo'q bo'lsa modul jim turadi — ishlab
 chiqish kompyuterida va testlarda hech narsa yuborilmaydi.
@@ -36,36 +36,51 @@ API = 'https://api.telegram.org/bot{token}/sendMessage'
 TIMEOUT = 10
 
 
+def chats() -> list[str]:
+    """Xabar boradigan Telegram hisoblari.
+
+    Sozlamada vergul bilan yoziladi: do'konda bir necha rahbar bor va
+    har biri o'z telefonida ko'radi.
+    """
+    raw = getattr(settings, 'TELEGRAM_CHAT_IDS', '') or ''
+
+    return [chat.strip() for chat in raw.split(',') if chat.strip()]
+
+
 def configured() -> bool:
-    return bool(getattr(settings, 'TELEGRAM_BOT_TOKEN', '')) and bool(
-        getattr(settings, 'TELEGRAM_CHAT_ID', '')
-    )
+    return bool(getattr(settings, 'TELEGRAM_BOT_TOKEN', '')) and bool(chats())
 
 
 def _send(text: str) -> None:
-    """Xabarni Telegramga yuboradi. Xatolik yutiladi."""
-    payload = json.dumps(
-        {
-            'chat_id': settings.TELEGRAM_CHAT_ID,
-            'text': text,
-            'parse_mode': 'HTML',
-            'disable_web_page_preview': True,
-        }
-    ).encode()
+    """Xabarni hamma qabul qiluvchiga yuboradi. Xatolik yutiladi.
 
-    request = urllib.request.Request(
-        API.format(token=settings.TELEGRAM_BOT_TOKEN),
-        data=payload,
-        headers={'Content-Type': 'application/json'},
-    )
+    Bittasiga yetib bormasa (hisob bloklagan, chat o'chirilgan),
+    qolganlari baribir oladi — shuning uchun har biri alohida
+    uriniladi.
+    """
+    for chat in chats():
+        payload = json.dumps(
+            {
+                'chat_id': chat,
+                'text': text,
+                'parse_mode': 'HTML',
+                'disable_web_page_preview': True,
+            }
+        ).encode()
 
-    try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-            if response.status != 200:
-                logger.warning('Telegram javobi: %s', response.status)
-    except (urllib.error.URLError, TimeoutError, OSError) as error:
-        # Internet uzilgani sotuvni to'xtatmasligi kerak
-        logger.warning('Telegramga yuborilmadi: %s', error)
+        request = urllib.request.Request(
+            API.format(token=settings.TELEGRAM_BOT_TOKEN),
+            data=payload,
+            headers={'Content-Type': 'application/json'},
+        )
+
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+                if response.status != 200:
+                    logger.warning('Telegram javobi (%s): %s', chat, response.status)
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            # Internet uzilgani sotuvni to'xtatmasligi kerak
+            logger.warning('Telegramga yuborilmadi (%s): %s', chat, error)
 
 
 def _dispatch(text: str) -> None:

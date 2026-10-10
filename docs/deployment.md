@@ -322,23 +322,30 @@ chiqarish, xarajat va narx o'zgarishi haqida xabar boradi.
 
 1. Telegramda **@BotFather** ga `/newbot` yozib bot yarating va
    tokenni oling.
-2. Botga bitta xabar yozing, so'ng chat ID ni oling:
-   `https://api.telegram.org/bot<TOKEN>/getUpdates`.
-3. Serverdagi `.env` ga qo'ying:
+2. **Har bir qabul qiluvchi botga bitta xabar yozsin** — aks holda
+   Telegram botga o'sha odamga yozishga ruxsat bermaydi.
+3. Chat ID larni oling: `https://api.telegram.org/bot<TOKEN>/getUpdates`
+   yoki har kishi @userinfobot ga yozsin.
+4. Serverdagi `.env` ga qo'ying (ID lar vergul bilan):
 
    ```
    TELEGRAM_BOT_TOKEN=<BotFather bergan token>
-   TELEGRAM_CHAT_ID=<chat id>
+   TELEGRAM_CHAT_IDS=<id>,<id>,<id>
    ```
 
-4. Qayta ishga tushiring: `docker compose up -d`.
+5. Qayta ishga tushiring: `docker compose up -d`.
 
 Ikkalasi bo'sh qoldirilsa modul jim turadi. Telegram javob bermasa
 sotuv baribir yakunlanadi: xabar alohida oqimda ketadi va xatosi
-faqat jurnalga yoziladi.
+faqat jurnalga yoziladi. Bir kishiga yetib bormasa (hisob bloklagan),
+qolganlari baribir oladi.
 
-Guruhga yuborish kerak bo'lsa, botni guruhga qo'shing va chat ID ni
-o'sha guruhniki (manfiy son) qilib qo'ying.
+Guruhga yuborish kerak bo'lsa, botni guruhga qo'shing va ro'yxatga
+o'sha guruhning ID sini (manfiy son) qo'shing.
+
+Token — parol kabi narsa: u faqat serverdagi `.env` da turadi va
+hech qachon repoga yozilmaydi. Tashqariga chiqib ketsa @BotFather
+dagi `/revoke` bilan yangilanadi.
 
 
 ## 5.2. Haqiqiy ish boshlanishidan oldin bazani tozalash
