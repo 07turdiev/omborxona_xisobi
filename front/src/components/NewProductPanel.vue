@@ -19,9 +19,13 @@ import type { Category, Color, Product, Size } from '@/types'
  * Chap tomonda rasmlar, o'ng tomonda ma'lumot. Kamida bitta rasm
  * majburiy: rasmsiz tovarni na javonda, na ro'yxatda tanib bo'ladi.
  *
- * Har rangga o'z rasmini biriktirish mumkin. Qora ko'ylakni
- * qidirayotgan xodim oq ko'ylakning suratini ko'rmasin: kassa savati
- * va tanlagich variantning o'z rangidagi rasmni ko'rsatadi.
+ * Rasmlar bitta ro'yxatda turadi va har birining yonida rang tanlovi
+ * bor (standart holatda «umumiy»). Rangga biriktirilgan surat kassa
+ * savatida va tanlagichda o'sha rang uchun chiqadi: qora ko'ylakni
+ * qidirayotgan xodim oq ko'ylakning suratini ko'rmasin.
+ *
+ * Bitta rang tanlangan bo'lsa rasm o'ziga biriktiriladi — eng ko'p
+ * uchraydigan holatda xodim hech narsa tanlamaydi.
  *
  * Nom yozilganda shu nomli tovar bor-yo'qligi tekshiriladi: bir tovar
  * ikki marta yaratilsa, qoldiq ikkiga bo'linib ketardi.
@@ -51,14 +55,17 @@ const ready = ref(false)
 const nameInput = ref<HTMLInputElement | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
 
-/** Tanlangan rasmlar — mahsulot yaratilgandan keyin yuklanadi */
-const photos = ref<{ file: File; url: string }[]>([])
+/**
+ * Tanlangan rasmlar — mahsulot yaratilgandan keyin yuklanadi.
+ *
+ * Har rasmning o'z rangi bor (`null` — umumiy). Ilgari ikkita
+ * alohida joy bor edi: chapda «mahsulot rasmi», pastda «rang
+ * bo'yicha rasm». Bitta narsa ikki joyda so'ralgani chalkash edi va
+ * majburiy asosiy rasm ustiga yana har rangga surat qo'yishga
+ * majbur qilardi. Endi bitta ro'yxat — tovar sahifasidagi kabi.
+ */
+const photos = ref<{ file: File; url: string; color: number | null }[]>([])
 
-/** Rang bo'yicha rasm: `{ rang id: fayl }` */
-const colorPhotos = ref<Record<number, { file: File; url: string }>>({})
-
-const colorPicker = ref<HTMLInputElement | null>(null)
-const pickingColor = ref<number | null>(null)
 const dragging = ref(false)
 
 const MAX_PHOTOS = 5
@@ -141,10 +148,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   for (const photo of photos.value) URL.revokeObjectURL(photo.url)
-  for (const photo of Object.values(colorPhotos.value)) URL.revokeObjectURL(photo.url)
 })
 
-/** Tanlangan ranglar — ular uchun rasm so'raladi. */
+/** Tanlangan ranglar — rasmni shulardan biriga biriktirish mumkin. */
 const chosenColors = computed(() =>
   colors.value.filter((item) => form.value.color_ids.includes(item.id)),
 )
@@ -156,39 +162,20 @@ function toggle(list: number[], id: number) {
   else list.splice(index, 1)
 }
 
-/** Rang bekor qilinsa, unga biriktirilgan rasm ham keraksiz bo'ladi. */
+/**
+ * Rang bekor qilinsa, unga biriktirilgan rasm umumiy bo'lib qoladi.
+ *
+ * O'chirilmaydi: xodim faylni qayta tanlashi kerak bo'lmasin —
+ * rangni tasodifan bosib yuborish oson.
+ */
 function toggleColor(id: number) {
   toggle(form.value.color_ids, id)
 
-  if (!form.value.color_ids.includes(id)) removeColorPhoto(id)
-}
+  if (form.value.color_ids.includes(id)) return
 
-function pickColorPhoto(id: number) {
-  pickingColor.value = id
-  colorPicker.value?.click()
-}
-
-function onColorPick(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  const id = pickingColor.value
-
-  input.value = ''
-  pickingColor.value = null
-
-  if (!file?.type.startsWith('image/') || id === null) return
-
-  removeColorPhoto(id)
-  colorPhotos.value[id] = { file, url: URL.createObjectURL(file) }
-}
-
-function removeColorPhoto(id: number) {
-  const photo = colorPhotos.value[id]
-
-  if (!photo) return
-
-  URL.revokeObjectURL(photo.url)
-  delete colorPhotos.value[id]
+  for (const photo of photos.value) {
+    if (photo.color === id) photo.color = null
+  }
 }
 
 function addPhotos(list: FileList | null) {
@@ -196,7 +183,15 @@ function addPhotos(list: FileList | null) {
     if (photos.value.length >= MAX_PHOTOS) break
     if (!file.type.startsWith('image/')) continue
 
-    photos.value.push({ file, url: URL.createObjectURL(file) })
+    // Rang hali tanlanmagan bo'lsa umumiy bo'lib tushadi; bitta rang
+    // tanlangan bo'lsa o'shaniki — eng ko'p uchraydigan holat
+    const [only] = chosenColors.value
+
+    photos.value.push({
+      file,
+      url: URL.createObjectURL(file),
+      color: chosenColors.value.length === 1 ? (only?.id ?? null) : null,
+    })
   }
 }
 
@@ -247,22 +242,14 @@ async function onSave() {
     // Rasmlar mahsulot yaratilgandan keyin yuklanadi: yuklashga
     // mahsulot `id` si kerak. Bittasi yuklanmasa ham mahsulot qoladi —
     // suratni tovar sahifasidan qo'shish mumkin.
-    const uploads: { file: File; color: number | null }[] = [
-      ...photos.value.map((photo) => ({ file: photo.file, color: null })),
-      ...Object.entries(colorPhotos.value).map(([id, photo]) => ({
-        file: photo.file,
-        color: Number(id),
-      })),
-    ]
-
-    if (uploads.length) {
+    if (photos.value.length) {
       uploading.value = true
 
       let failed = 0
 
-      for (const upload of uploads) {
+      for (const photo of photos.value) {
         try {
-          await catalogApi.uploadImage(product.id, upload.file, upload.color)
+          await catalogApi.uploadImage(product.id, photo.file, photo.color)
         } catch {
           failed += 1
         }
@@ -297,7 +284,7 @@ async function onSave() {
     <div class="panel-body">
         <!-- Kamida bitta rasm majburiy -->
         <aside class="photo-panel">
-          <span class="eyebrow">MAHSULOT RASMI</span>
+          <span class="eyebrow">MAHSULOT RASMLARI</span>
 
           <div
             class="drop-zone"
@@ -308,7 +295,7 @@ async function onSave() {
           >
             <div v-if="!photos.length" class="drop-empty">
               <svg aria-hidden="true"><use href="#i-image" /></svg>
-              <strong>Asosiy rasm — majburiy</strong>
+              <strong>Kamida bitta rasm kerak</strong>
               <span>Faylni shu yerga tashlang yoki tanlang</span>
             </div>
 
@@ -325,7 +312,21 @@ async function onSave() {
                   ×
                 </button>
 
-                <small v-if="index === 0">Asosiy</small>
+                <!-- Rasm rangga biriktirilsa, kassada aynan o'sha
+                     rang tanlanganda shu surat chiqadi -->
+                <select
+                  v-if="chosenColors.length"
+                  v-model="photo.color"
+                  :aria-label="`${index + 1}-rasm rangi`"
+                  @click.stop
+                >
+                  <option :value="null">Umumiy</option>
+                  <option v-for="item in chosenColors" :key="item.id" :value="item.id">
+                    {{ item.name }}
+                  </option>
+                </select>
+
+                <small v-else-if="index === 0">Asosiy</small>
               </li>
             </ul>
           </div>
@@ -353,6 +354,9 @@ async function onSave() {
             @change="onPick"
           />
 
+          <small class="field-hint">
+            Rangni tanlasangiz, kassada o‘sha rang bosilganda shu surat chiqadi.
+          </small>
         </aside>
 
         <!-- Ma'lumot -->
@@ -449,49 +453,6 @@ async function onSave() {
               </div>
             </div>
 
-            <!-- Har rangning o'z surati: kassada aynan o'sha ko'rinadi -->
-            <div v-if="chosenColors.length" class="field">
-              <span class="field-label">Rang bo‘yicha rasm (ixtiyoriy)</span>
-
-              <ul class="color-photos">
-                <li v-for="item in chosenColors" :key="item.id">
-                  <button
-                    type="button"
-                    :aria-label="`${item.name}: rasm tanlash`"
-                    @click="pickColorPhoto(item.id)"
-                  >
-                    <img v-if="colorPhotos[item.id]" :src="colorPhotos[item.id]!.url" alt="" />
-                    <span v-else class="color-photo-empty">
-                      <svg aria-hidden="true"><use href="#i-image" /></svg>
-                    </span>
-
-                    <span class="color-photo-name">
-                      <span class="swatch-dot" :style="{ background: item.hex_code }" />
-                      {{ item.name }}
-                    </span>
-                  </button>
-
-                  <button
-                    v-if="colorPhotos[item.id]"
-                    class="icon-button delete"
-                    type="button"
-                    :aria-label="`${item.name}: rasmni olib tashlash`"
-                    @click="removeColorPhoto(item.id)"
-                  >
-                    <svg><use href="#i-trash" /></svg>
-                  </button>
-                </li>
-              </ul>
-
-              <input
-                ref="colorPicker"
-                type="file"
-                accept="image/*"
-                hidden
-                data-testid="color-file-input"
-                @change="onColorPick"
-              />
-            </div>
           </template>
         </section>
       </div>
@@ -533,70 +494,15 @@ async function onSave() {
   letter-spacing: 2px;
 }
 
-/* Rang bo'yicha rasm: har rang uchun bitta katakcha */
-.color-photos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.color-photos li {
-  position: relative;
-}
-
-.color-photos li > button:first-child {
-  display: flex;
-  width: 96px;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  cursor: pointer;
-}
-
-.color-photos li > button:first-child:hover {
-  border-color: var(--accent);
-}
-
-.color-photos img,
-.color-photo-empty {
+/* Rasm katakchasidagi rang tanlovi: surat ostida, kichik */
+.photo-grid select {
   width: 100%;
-  height: 96px;
+  margin-top: 4px;
+  padding: 3px 4px;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  object-fit: cover;
-}
-
-.color-photo-empty {
-  display: grid;
-  place-items: center;
-  background: var(--surface-soft);
-}
-
-.color-photo-empty svg {
-  width: 22px;
-  height: 22px;
-  fill: none;
-  stroke: var(--text-muted);
-  stroke-width: 1.6;
-}
-
-.color-photo-name {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 13px;
-}
-
-.color-photos .icon-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   background: var(--surface);
+  font-size: 12px;
 }
 
 /* --- Rasmlar --- */

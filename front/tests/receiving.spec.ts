@@ -358,7 +358,7 @@ test('rasm majburiy, narx ustamadan taklif qilinadi', async ({ page, request }) 
   // Rasmsiz davom etib bo'lmaydi: rasmsiz tovarni ro'yxatdan tanib bo'lmaydi
   const next = form.getByRole('button', { name: 'Davom etish' })
 
-  await expect(form.locator('.drop-empty')).toContainText('majburiy')
+  await expect(form.locator('.drop-empty')).toContainText('Kamida bitta rasm')
   await expect(next).toBeDisabled()
 
   await form.getByTestId('file-input').setInputFiles(testPhoto())
@@ -374,7 +374,10 @@ test('rasm majburiy, narx ustamadan taklif qilinadi', async ({ page, request }) 
   expect(saved.images).toHaveLength(1)
 })
 
-test('har rangga alohida rasm biriktiriladi', async ({ page, request }) => {
+test('rasm rangga biriktiriladi', async ({ page, request }) => {
+  // Ilgari rasm ikki joydan so'ralardi: chapda «mahsulot rasmi»,
+  // pastda «rang bo'yicha rasm». Endi bitta ro'yxat, har rasmning
+  // yonida rang tanlovi bor.
   const name = `Ikki rangli ${Date.now()}`
   const [first, second] = [colors[0]!.name, colors[1]!.name]
 
@@ -383,7 +386,6 @@ test('har rangga alohida rasm biriktiriladi', async ({ page, request }) => {
   const form = panel(page)
 
   await form.getByLabel('Mahsulot nomi').fill(name)
-  await form.getByTestId('file-input').setInputFiles(testPhoto())
 
   for (const color of [first, second]) {
     await form
@@ -392,9 +394,14 @@ test('har rangga alohida rasm biriktiriladi', async ({ page, request }) => {
       .click()
   }
 
-  // Rang tanlangach, har biriga rasm katakchasi chiqadi
-  await form.getByRole('button', { name: `${first}: rasm tanlash` }).click()
-  await form.getByTestId('color-file-input').setInputFiles(testPhoto())
+  await form.getByTestId('file-input').setInputFiles([testPhoto(), testPhoto()])
+
+  const pickers = form.locator('.photo-grid select')
+
+  await expect(pickers).toHaveCount(2)
+
+  // Ikki rang tanlangan: rasmlar umumiy bo'lib tushadi, biriga rang beramiz
+  await pickers.nth(0).selectOption({ label: first })
 
   await form.getByRole('button', { name: 'Davom etish' }).click()
   await expect(grid(page)).toContainText(name)
@@ -402,10 +409,35 @@ test('har rangga alohida rasm biriktiriladi', async ({ page, request }) => {
   const saved = await findProduct(request, name)
   const colorIds = saved.images.map((image: { color: number | null }) => image.color)
 
-  // Umumiy rasm va birinchi rangning rasmi
+  // Biri rangga biriktirildi, ikkinchisi umumiy qoldi
   expect(colorIds).toHaveLength(2)
   expect(colorIds).toContain(null)
   expect(colorIds.filter(Boolean)).toHaveLength(1)
+})
+
+test('bitta rang tanlangan bo‘lsa rasm o‘ziga biriktiriladi', async ({ page, request }) => {
+  // Eng ko'p uchraydigan holat: bitta rangli model. Xodim rangni
+  // qo'lda tanlab o'tirmasin.
+  const name = `Bitta rangli ${Date.now()}`
+
+  await openApp(page, admin, '/purchases')
+
+  const form = panel(page)
+
+  await form.getByLabel('Mahsulot nomi').fill(name)
+  await form
+    .getByRole('group', { name: 'Ranglar' })
+    .getByRole('button', { name: colors[0]!.name, exact: true })
+    .click()
+
+  await form.getByTestId('file-input').setInputFiles(testPhoto())
+  await form.getByRole('button', { name: 'Davom etish' }).click()
+
+  await expect(grid(page)).toContainText(name)
+
+  const saved = await findProduct(request, name)
+
+  expect(saved.images[0].color, 'rasm rangga biriktirilmadi').not.toBeNull()
 })
 
 test('o‘lchamsiz tovar: sumka faqat ranglar bilan kiritiladi', async ({ page, request }) => {
