@@ -501,6 +501,22 @@ Migratsiya konteyner ishga tushganda o'zi qo'llanadi. Agar backend
 docker compose logs backend | tail -30
 ```
 
+### Qaysi buyruq qachon
+
+| Nima o'zgardi | Buyruq |
+|---|---|
+| Kod (`git pull` dan keyin) | `docker compose up -d --build` |
+| Faqat `.env.production` | `docker compose up -d` |
+| Hech narsa, dastur osilib qolgan | `docker compose restart` |
+
+Farqi muhim: **`restart` yangi kodni ham, yangi sozlamani ham
+olmaydi** — u o'sha konteynerni o'chirib yoqadi, xolos. `up -d`
+sozlama o'zgarganini sezadi va konteynerni qayta yaratadi, lekin
+tasvirni qayta qurmaydi. Kod o'zgarganda `--build` shart, aks holda
+compose «Running» deb o'tib ketadi va hech narsa yangilanmaydi.
+
+Faqat bittasini qayta ishga tushirish: `docker compose restart backend`.
+
 ---
 
 ## 9. Kuzatish
