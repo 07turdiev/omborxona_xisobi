@@ -13,10 +13,10 @@
 import { createServer as createHttpServer } from 'node:http'
 
 import { buildReceipt } from './escpos.js'
-import { buildLabels } from './tspl.js'
+import { buildLabels, buildShelfLabels } from './tspl.js'
 import { probe, send } from './printer.js'
 
-export const VERSION = '1.2.0'
+export const VERSION = '1.3.0'
 
 const MAX_BODY = 512 * 1024
 const TOKEN_HEADER = 'x-agent-token'
@@ -106,6 +106,28 @@ export function validateLabels(data) {
 
   return null
 }
+
+/** Ombor javonlarining yorliqlarini tekshiradi. */
+export function validateShelfLabels(data) {
+  if (!data || typeof data !== 'object') return 'yorliq ma’lumoti yo‘q'
+  if (!Array.isArray(data.labels) || data.labels.length === 0) return 'yorliq ro‘yxati bo‘sh'
+
+  for (const label of data.labels) {
+    if (!label || !String(label.cell ?? '').trim()) return 'yorliqda javon manzili yo‘q'
+
+    const quantity = Number(label.quantity ?? 1)
+
+    if (!Number.isFinite(quantity) || quantity < 1) return 'yorliq soni noto‘g‘ri'
+  }
+
+  return null
+}
+
+/** Yorliq printeriga boradigan manzillar: tekshiruv va TSPL yasovchi */
+const LABEL_ROUTES = new Map([
+  ['/labels', { validate: validateLabels, build: buildLabels }],
+  ['/shelf-labels', { validate: validateShelfLabels, build: buildShelfLabels }],
+])
 
 /**
  * Xizmatni yaratadi.
@@ -291,9 +313,11 @@ export function createServer(config, deps = {}) {
         return
       }
 
-      if (request.method === 'POST' && url.pathname === '/labels') {
+      const labelRoute = request.method === 'POST' ? LABEL_ROUTES.get(url.pathname) : undefined
+
+      if (labelRoute) {
         const data = await readBody(request)
-        const problem = validateLabels(data)
+        const problem = labelRoute.validate(data)
 
         if (problem) {
           sendJson(response, 400, { error: problem }, allowedOrigin)
@@ -307,7 +331,7 @@ export function createServer(config, deps = {}) {
           return
         }
 
-        const bytes = buildLabels(
+        const bytes = labelRoute.build(
           data,
           {
             density: printer.density,

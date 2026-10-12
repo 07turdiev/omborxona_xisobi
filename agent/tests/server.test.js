@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
 import { describe, it, before, after } from 'node:test'
 
-import { createServer, validateLabels, validateReceipt, VERSION } from '../src/server.js'
+import {
+  createServer,
+  validateLabels,
+  validateReceipt,
+  validateShelfLabels,
+  VERSION,
+} from '../src/server.js'
 
 const ORIGIN = 'http://127.0.0.1:5173'
 const TOKEN = 'sinov-token'
@@ -30,6 +36,15 @@ const LABELS = {
   widthMm: 40,
   heightMm: 30,
   labels: [{ name: 'Koʻylak', variant: 'M / Oq', price: '250 000', barcode: '2000000000015', quantity: 2 }],
+}
+
+const SHELF_LABELS = {
+  widthMm: 40,
+  heightMm: 30,
+  labels: [
+    { cell: 'A1', name: 'Chap devor', quantity: 1 },
+    { cell: 'A2', name: 'Chap devor', quantity: 2 },
+  ],
 }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', Origin: ORIGIN }
@@ -69,6 +84,28 @@ describe('validateLabels', () => {
     const bad = { labels: [{ name: 'A', barcode: '2000000000015', quantity: 0 }] }
 
     assert.match(validateLabels(bad), /soni/)
+  })
+})
+
+describe('validateShelfLabels', () => {
+  it('to‘g‘ri ro‘yxatni qabul qiladi', () => {
+    assert.equal(validateShelfLabels(SHELF_LABELS), null)
+  })
+
+  it('qator nomisiz ham qabul qiladi — manzilning o‘zi yetadi', () => {
+    assert.equal(validateShelfLabels({ labels: [{ cell: 'B3' }] }), null)
+  })
+
+  it('bo‘sh ro‘yxatni rad etadi', () => {
+    assert.match(validateShelfLabels({ labels: [] }), /bo‘sh/)
+  })
+
+  it('manzilsiz yorliqni rad etadi', () => {
+    assert.match(validateShelfLabels({ labels: [{ name: 'Chap devor', cell: ' ' }] }), /manzil/)
+  })
+
+  it('noto‘g‘ri sonni rad etadi', () => {
+    assert.match(validateShelfLabels({ labels: [{ cell: 'A1', quantity: 0 }] }), /soni/)
   })
 })
 
@@ -229,6 +266,44 @@ describe('HTTP xizmat', () => {
 
     assert.match(commands, /SIZE 40 mm,30 mm/)
     assert.match(commands, /PRINT 2,1/)
+  })
+
+  it('/shelf-labels javon yorliqlarini printerga yuboradi', async () => {
+    const response = await fetch(`${base}/shelf-labels`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(SHELF_LABELS),
+    })
+
+    const body = await response.json()
+
+    assert.equal(response.status, 200)
+    assert.equal(body.labels, 3)
+    assert.equal(printed.at(-1).printer, CONFIG.printers.label)
+
+    const commands = printed.at(-1).bytes.toString('latin1')
+
+    assert.match(commands, /SIZE 40 mm,30 mm/)
+    assert.match(commands, /"5",0,4,4,"A1"/)
+    assert.match(commands, /"5",0,4,4,"A2"/)
+    assert.equal(commands.includes('BARCODE'), false)
+  })
+
+  it('manzilsiz javon yorlig‘ida 400', async () => {
+    const response = await fetch(`${base}/shelf-labels`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ labels: [{ name: 'Chap devor' }] }),
+    })
+
+    assert.equal(response.status, 400)
+    assert.match((await response.json()).error, /manzil/)
+  })
+
+  it('/shelf-labels faqat POST', async () => {
+    const response = await fetch(`${base}/shelf-labels`, { headers: { Origin: ORIGIN } })
+
+    assert.equal(response.status, 404)
   })
 
   it('noto‘g‘ri chekda 400 va sababi qaytadi', async () => {

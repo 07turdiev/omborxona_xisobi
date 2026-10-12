@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import ShelfLabelPrint from '@/components/ShelfLabelPrint.vue'
+import type { ShelfLabel } from '@/api/agent'
 import { errorMessage } from '@/api/client'
 import { inventoryApi } from '@/api/inventory'
 import { useAuthStore } from '@/stores/auth'
@@ -94,6 +96,34 @@ async function place(item: CabinetItem, cell: string) {
   } finally {
     saving.value = 0
   }
+}
+
+// --- Javon yorliqlari -----------------------------------------------------
+
+const shelfPrint = ref<InstanceType<typeof ShelfLabelPrint> | null>(null)
+
+type CabinetRun = Cabinet['runs'][number]
+
+/** Qatordagi har javonga bitta yorliq: `A1`, `A2`… */
+function runLabels(run: CabinetRun): ShelfLabel[] {
+  return run.shelves.map((shelf) => ({ cell: shelf.cell, name: run.name }))
+}
+
+const allLabels = computed(() => (board.value?.runs ?? []).flatMap(runLabels))
+
+/** Yorliqlarni chop etadi: hammasini, bitta qatorni yoki bitta javonni. */
+function printShelves(list: ShelfLabel[]) {
+  if (list.length === 0) return
+
+  // Tasodifiy bosishda o'nlab yorliq bekorga ketmasin
+  if (
+    list.length > 1 &&
+    !window.confirm(`${list.length} ta yorliq chiqariladi. Davom etilsinmi?`)
+  ) {
+    return
+  }
+
+  void shelfPrint.value?.print(list)
 }
 
 // --- Javon qatorlarini sozlash --------------------------------------------
@@ -238,14 +268,21 @@ onMounted(load)
         <div class="card-head">
           <h3 class="card-title">Ombor javonlari</h3>
 
-          <button
-            v-if="auth.isAdmin"
-            class="button button-outline"
-            type="button"
-            @click="setupOpen = !setupOpen"
-          >
-            Qatorlarni sozlash
-          </button>
+          <div class="head-actions">
+            <button class="button button-outline" type="button" @click="printShelves(allLabels)">
+              <svg><use href="#i-print" /></svg>
+              <span>Yorliqlarni chop etish</span>
+            </button>
+
+            <button
+              v-if="auth.isAdmin"
+              class="button button-outline"
+              type="button"
+              @click="setupOpen = !setupOpen"
+            >
+              Qatorlarni sozlash
+            </button>
+          </div>
         </div>
 
         <div class="runs">
@@ -253,6 +290,16 @@ onMounted(load)
             <div class="run-head">
               <span class="run-letter">{{ run.code }}</span>
               <span class="run-where">{{ run.name }}</span>
+
+              <button
+                class="icon-button run-print"
+                type="button"
+                :aria-label="`${run.code} qatorining yorliqlarini chop etish`"
+                :title="`${run.code} qatorining yorliqlari`"
+                @click="printShelves(runLabels(run))"
+              >
+                <svg><use href="#i-print" /></svg>
+              </button>
             </div>
 
             <div class="shelves">
@@ -279,6 +326,16 @@ onMounted(load)
         <h3 class="card-title">{{ selected || 'Javonni tanlang' }}</h3>
 
         <p v-if="chosen" class="field-hint">{{ chosen.run.name }}</p>
+
+        <button
+          v-if="chosen"
+          class="button button-outline cell-print"
+          type="button"
+          @click="printShelves([{ cell: chosen.shelf.cell, name: chosen.run.name }])"
+        >
+          <svg><use href="#i-print" /></svg>
+          <span>Yorlig‘ini chop etish</span>
+        </button>
 
         <p v-if="!selected" class="field-hint">
           Ro‘yxatdan javonni bosing — ichida nima turgani shu yerda ko‘rinadi.
@@ -370,6 +427,8 @@ onMounted(load)
     </div>
 
     <p v-if="loading && !board" class="field-hint">Yuklanmoqda…</p>
+
+    <ShelfLabelPrint ref="shelfPrint" />
   </section>
 </template>
 
@@ -383,9 +442,27 @@ onMounted(load)
 
 .card-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Qator yorliqlari tugmasi qator boshining o'ng chekkasida */
+.run-print {
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+}
+
+.cell-print {
+  margin-top: 8px;
 }
 
 /* Qatorlar yonma-yon: har biri o'z bo'yi bilan, chunki devorlarda

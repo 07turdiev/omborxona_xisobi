@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { health, labelJob, receiptPayload, sendReceipt } from './agent'
+import {
+  health,
+  labelJob,
+  receiptPayload,
+  sendReceipt,
+  sendShelfLabels,
+  shelfLabelJob,
+} from './agent'
 import type { Sale, ShopSettings } from '@/types'
 
 const SALE = {
@@ -126,6 +133,52 @@ describe('labelJob', () => {
     const zero = [{ ...items[0]!, quantity: 0 }]
 
     expect(labelJob(zero, SHOP).labels[0]?.quantity).toBe(1)
+  })
+})
+
+describe('shelfLabelJob', () => {
+  const shelves = [
+    { cell: 'A1', name: 'Chap devor' },
+    { cell: 'A2', name: 'Chap devor' },
+  ]
+
+  it('har javonga bitta yorliq', () => {
+    expect(shelfLabelJob(shelves, SHOP).labels).toEqual([
+      { cell: 'A1', name: 'Chap devor', quantity: 1 },
+      { cell: 'A2', name: 'Chap devor', quantity: 1 },
+    ])
+  })
+
+  it('o‘lchamni do‘kon sozlamasidan oladi, yo‘q bo‘lsa 40×30 mm', () => {
+    const wide = { ...SHOP, label_width_mm: 58, label_height_mm: 40 } as ShopSettings
+
+    expect(shelfLabelJob(shelves, wide)).toMatchObject({ widthMm: 58, heightMm: 40 })
+    expect(shelfLabelJob(shelves, null)).toMatchObject({ widthMm: 40, heightMm: 30 })
+  })
+
+  it('manzilsiz javon yorliqqa tushmaydi', () => {
+    const mixed = [...shelves, { cell: '', name: 'Chap devor' }]
+
+    expect(shelfLabelJob(mixed, SHOP).labels).toHaveLength(2)
+  })
+})
+
+describe('sendShelfLabels', () => {
+  it('eski agent buyruqni bilmasa — yangilash kerakligini aytadi', async () => {
+    // Eski agentning javobi «bunday manzil yo'q» — ombor sahifasida bu
+    // javon manzili haqidagidek o'qilardi
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: 'bunday manzil yo‘q' }),
+      }),
+    )
+
+    await expect(sendShelfLabels(shelfLabelJob([{ cell: 'A1', name: '' }], SHOP))).rejects.toThrow(
+      'agent eski',
+    )
   })
 })
 

@@ -164,6 +164,14 @@ Joy uch joyda ko'rinadi:
 Joy qoldiq qatorida (`VariantStock.cell`) saqlanadi va tovar tugaganda
 ham o'chmaydi: keyingi kirimda xodim uni odatdagi joyiga qo'yadi.
 
+**Javon yorliqlari.** Har javonga manzili yozilgan yorliq yopishtiriladi:
+tepada qator nomi, ostida yorliqqa sig'adigan eng katta harf bilan
+`A1`. Ular «Ombor» ekranidan, odatdagi yorliq printeridan chiqadi:
+hammasi birdaniga, bitta qator (qator boshidagi printer belgisi) yoki
+tanlangan bitta javon. Bittadan ko'p yorliqda soni so'raladi.
+Yorliqda shtrix-kod yo'q: skaner rus klaviaturasida `A` harfini
+kirill qilib yuboradi (docs/hardware.md, 4-bo'lim).
+
 Javon qatori o'chirilsa, u yerdagi tovarlar «ro'yxatdan tashqarida»
 ro'yxatiga tushadi — tovar fizik javonda turibdi, uni jimgina
 yo'qotib bo'lmaydi.

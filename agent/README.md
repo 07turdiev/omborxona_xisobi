@@ -275,6 +275,7 @@ ishlatiladi — u xuddi shu seansda ishlaydi.
 | `GET /health?wait=1` | Printerlardan shu lahzada so'raydi. Sozlamalardagi «Qurilmalarni sinash» uchun |
 | `POST /receipt` | Chekni ESC/POS ga o'giradi va yuboradi |
 | `POST /labels` | Yorliqlarni TSPL ga o'giradi va yuboradi |
+| `POST /shelf-labels` | Ombor javonlarining yorliqlari: katta manzil (`A1`) va qator nomi. 1.3.0 dan |
 
 ### Nega `/health` kutmaydi
 
@@ -307,13 +308,14 @@ Himoya:
 | Yorliq ketmaydi, `lastError` da ENOENT | Ulashuv nomi boshqa yoki ulashuv o'chgan | `Get-Printer ... Select ShareName` bilan solishtiring |
 | Yorliq printeri "tekshirib bo'lmaydi" | Shunday bo'lishi kerak | Bu xato emas — yuqoridagi izohga qarang |
 | Sozlama e'tiborsiz qolyapti | Kalit xato yozilgan | Agent ishga tushganda beradigan ogohlantirishni o'qing |
+| Javon yorlig'ida "agent eski — uni yangilash kerak" | Kompyuterdagi agent 1.3.0 dan eski | Agentni yangilang ([docs/ornatish.md](../docs/ornatish.md), 7-bo'lim). Ungacha yorliq brauzer orqali chiqadi |
 
 ---
 
 ## Testlar
 
 ```bash
-cd agent && npm test        # 85 ta
+cd agent && npm test        # 111 ta
 ```
 
 ESC/POS va TSPL baytlari **golden fixture** bilan solishtiriladi:

@@ -98,6 +98,18 @@ export interface LabelJob {
   labels: LabelPayload[]
 }
 
+/** Ombor javonining yorlig'i: katta manzil (`A1`) va qator nomi */
+export interface ShelfLabel {
+  cell: string
+  name: string
+}
+
+export interface ShelfLabelJob {
+  widthMm: number
+  heightMm: number
+  labels: (ShelfLabel & { quantity: number })[]
+}
+
 async function request<T>(path: string, init: RequestInit, timeout: number): Promise<T> {
   const headers: Record<string, string> = {}
 
@@ -113,6 +125,10 @@ async function request<T>(path: string, init: RequestInit, timeout: number): Pro
     headers,
     signal: AbortSignal.timeout(timeout),
   })
+
+  // Eski agent yangi buyruqni bilmaydi. Uning «bunday manzil yo'q»
+  // degan javobi esa ombor sahifasida javon manzili haqidagidek o'qiladi
+  if (response.status === 404) throw new Error('agent eski — uni yangilash kerak')
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string }
@@ -149,6 +165,10 @@ export async function sendReceipt(receipt: ReceiptPayload): Promise<void> {
 
 export async function sendLabels(job: LabelJob): Promise<void> {
   await request('/labels', { method: 'POST', body: JSON.stringify(job) }, PRINT_TIMEOUT)
+}
+
+export async function sendShelfLabels(job: ShelfLabelJob): Promise<void> {
+  await request('/shelf-labels', { method: 'POST', body: JSON.stringify(job) }, PRINT_TIMEOUT)
 }
 
 /**
@@ -212,5 +232,16 @@ export function labelJob(items: LabelItem[], shop: ShopSettings | null): LabelJo
         barcode: item.barcode,
         quantity: Math.max(1, Math.trunc(item.quantity) || 1),
       })),
+  }
+}
+
+/** Javonlardan agent tushunadigan yorliq ishini yasaydi: har javonga bitta. */
+export function shelfLabelJob(shelves: ShelfLabel[], shop: ShopSettings | null): ShelfLabelJob {
+  return {
+    widthMm: shop?.label_width_mm ?? 40,
+    heightMm: shop?.label_height_mm ?? 30,
+    labels: shelves
+      .filter((shelf) => shelf.cell)
+      .map((shelf) => ({ cell: shelf.cell, name: shelf.name, quantity: 1 })),
   }
 }

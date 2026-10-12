@@ -24,6 +24,16 @@ export const DOTS_PER_MM = 8
 /** Ichki shriftlarda bitta belgi necha nuqta (x1 kattalashtirishda) */
 const FONT_WIDTH = { 1: 8, 2: 12, 3: 16, 4: 24, 5: 32 }
 
+/** Ichki shriftlarda belgining balandligi, nuqta (x1 kattalashtirishda) */
+const FONT_HEIGHT = { 1: 12, 2: 20, 3: 24, 4: 32, 5: 48 }
+
+/** TSPL belgini ko'pi bilan o'n barobar kattalashtiradi */
+const MAX_SCALE = 10
+
+/** Javon yorlig'ida: qator nomi va manzilning shrifti */
+const SHELF_NAME_FONT = 3
+const SHELF_CODE_FONT = 5
+
 /** Yorliq chetidan qoldiriladigan eng kam bo'shliq, nuqta */
 const MARGIN = 8
 
@@ -92,16 +102,7 @@ function centerBarcode(labelWidth, narrow) {
  */
 export function buildLabels(job, options = {}, where = 'yorliq printeri') {
   const settings = merge(LABEL_DEFAULTS, { ...options, ...clean(job) }, LABEL_RULES, where)
-  const lines = []
-
-  // O'lcham va zichlik — butun ish uchun bir marta
-  lines.push(`SIZE ${settings.widthMm} mm,${settings.heightMm} mm`)
-  lines.push(`GAP ${settings.gapMm} mm,0 mm`)
-  lines.push('DIRECTION 1')
-  lines.push('REFERENCE 0,0')
-  lines.push(`DENSITY ${settings.density}`)
-  lines.push(`SPEED ${settings.speed}`)
-  lines.push('CODEPAGE 1252')
+  const lines = header(settings)
 
   const width = settings.widthMm * DOTS_PER_MM
   const height = settings.heightMm * DOTS_PER_MM
@@ -143,6 +144,84 @@ export function buildLabels(job, options = {}, where = 'yorliq printeri') {
   }
 
   return Buffer.from(`${lines.join('\r\n')}\r\n`, 'latin1')
+}
+
+/**
+ * Ombor javonlarining yorliqlarini TSPL ga o'giradi.
+ *
+ * Yorliq javonga yopishtiriladi va uzoqdan o'qilishi kerak: tepada
+ * qator nomi («O'ng devor»), qolgan joyning hammasida manzil (`A1`).
+ *
+ * Manzil 5-shriftni butun songa kattalashtirib chiziladi. O'lchanadigan
+ * shriftlar har printer modelida bor emas, kattalashtirishni esa hamma
+ * TSPL printer bir xil bajaradi. Balandlik eng avval tanlanadi va hamma
+ * manzilda bir xil: `A10` eniga sig'masa harflar torroq bo'ladi,
+ * pastroq emas — bir devordagi yorliqlar bir xil ko'rinsin.
+ *
+ * @param {object} job - { widthMm, heightMm, gapMm, labels: [{ cell, name, quantity }] }
+ * @param {object} options - LABEL_DEFAULTS ustidan yoziladigan qiymatlar
+ * @param {string} where - ogohlantirishlarda ko'rsatiladigan printer nomi
+ */
+export function buildShelfLabels(job, options = {}, where = 'yorliq printeri') {
+  const settings = merge(LABEL_DEFAULTS, { ...options, ...clean(job) }, LABEL_RULES, where)
+  const lines = header(settings)
+
+  const width = settings.widthMm * DOTS_PER_MM
+  const height = settings.heightMm * DOTS_PER_MM
+
+  for (const label of job.labels ?? []) {
+    const quantity = Math.max(1, Number(label.quantity) || 1)
+    const name = fit(label.name ?? '', width, SHELF_NAME_FONT)
+    const code = quote(label.cell).toUpperCase()
+
+    lines.push('CLS')
+
+    let top = MARGIN
+
+    if (name) {
+      lines.push(
+        `TEXT ${centerText(width, name, SHELF_NAME_FONT)},${top},"${SHELF_NAME_FONT}",0,1,1,"${name}"`,
+      )
+
+      top += FONT_HEIGHT[SHELF_NAME_FONT] + MARGIN
+    }
+
+    // Qolgan joy — manzilga
+    const room = height - top - MARGIN
+    const tall = scale(room / FONT_HEIGHT[SHELF_CODE_FONT])
+    const wide = scale(
+      Math.min(tall, (width - MARGIN * 2) / (code.length * FONT_WIDTH[SHELF_CODE_FONT])),
+    )
+
+    const x = Math.max(
+      MARGIN,
+      Math.round((width - code.length * FONT_WIDTH[SHELF_CODE_FONT] * wide) / 2),
+    )
+    const y = top + Math.max(0, Math.floor((room - FONT_HEIGHT[SHELF_CODE_FONT] * tall) / 2))
+
+    lines.push(`TEXT ${x},${y},"${SHELF_CODE_FONT}",0,${wide},${tall},"${code}"`)
+    lines.push(`PRINT ${quantity},1`)
+  }
+
+  return Buffer.from(`${lines.join('\r\n')}\r\n`, 'latin1')
+}
+
+/** O'lcham va zichlik — butun ish uchun bir marta beriladi. */
+function header(settings) {
+  return [
+    `SIZE ${settings.widthMm} mm,${settings.heightMm} mm`,
+    `GAP ${settings.gapMm} mm,0 mm`,
+    'DIRECTION 1',
+    'REFERENCE 0,0',
+    `DENSITY ${settings.density}`,
+    `SPEED ${settings.speed}`,
+    'CODEPAGE 1252',
+  ]
+}
+
+/** Kattalashtirish TSPL ruxsat bergan oraliqda: 1–10 barobar. */
+function scale(value) {
+  return Math.min(MAX_SCALE, Math.max(1, Math.floor(value)))
 }
 
 /** So'rovdan faqat ma'lum sozlamalarni oladi. */

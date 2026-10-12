@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it } from 'node:test'
 
-import { buildLabels, DOTS_PER_MM } from '../src/tspl.js'
+import { buildLabels, buildShelfLabels, DOTS_PER_MM } from '../src/tspl.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const FIXTURE = join(HERE, 'fixtures', 'label.hex')
@@ -167,6 +167,114 @@ describe('buildLabels — to‘liq bo‘lmagan sozlama', () => {
     const commands = buildLabels({ ...JOB, gapMm: 0 }).toString('latin1')
 
     assert.match(commands, /GAP 0 mm,0 mm/)
+  })
+})
+
+describe('buildShelfLabels — javon yorlig‘i', () => {
+  const SHELVES = {
+    widthMm: 40,
+    heightMm: 30,
+    gapMm: 2,
+    labels: [{ cell: 'A1', name: 'Oʻng devor', quantity: 1 }],
+  }
+
+  const shelf = (labels, job = SHELVES) =>
+    buildShelfLabels({ ...job, labels }).toString('latin1')
+
+  /** `TEXT x,y,"5",0,eni,bo'yi,"A1"` dan sonlarni ajratib oladi */
+  function code(commands) {
+    const [, x, y, wide, tall, value] =
+      /TEXT (\d+),(\d+),"5",0,(\d+),(\d+),"([^"]*)"/.exec(commands)
+
+    return { x: +x, y: +y, wide: +wide, tall: +tall, value }
+  }
+
+  it('o‘lcham, oraliq va zichlik mahsulot yorlig‘idagidek', () => {
+    const commands = buildShelfLabels(SHELVES, { density: 12, speed: 2 }).toString('latin1')
+
+    assert.match(commands, /^SIZE 40 mm,30 mm\r\nGAP 2 mm,0 mm\r\n/)
+    assert.match(commands, /DENSITY 12/)
+    assert.match(commands, /SPEED 2/)
+    assert.equal(commands.includes('BARCODE'), false)
+  })
+
+  it('tepada qator nomi, ostida katta manzil', () => {
+    const commands = shelf(SHELVES.labels)
+
+    // 3-shrift 16×24: (320 - 10*16) / 2 = 80
+    assert.match(commands, /TEXT 80,8,"3",0,1,1,"O'ng devor"/)
+
+    // Nomdan keyin 192 nuqta joy qoladi: 48 × 4 = 192 (24 mm)
+    assert.deepEqual(code(commands), { x: 32, y: 40, wide: 4, tall: 4, value: 'A1' })
+  })
+
+  it('uch belgili manzil torayadi, lekin pasaymaydi', () => {
+    const short = code(shelf([{ cell: 'A9', name: 'Chap devor' }]))
+    const long = code(shelf([{ cell: 'A10', name: 'Chap devor' }]))
+
+    assert.equal(long.tall, short.tall)
+    assert.equal(long.wide, 3)
+    // (320 - 3*32*3) / 2 = 16
+    assert.equal(long.x, 16)
+  })
+
+  it('nomsiz yorliqda manzil o‘rtaga tushadi', () => {
+    const commands = shelf([{ cell: 'B2' }])
+
+    assert.equal(commands.includes('"3",0,1,1'), false)
+    // Joy: 240 - 2*8 = 224, manzil 192 — tepadan 8 + 16
+    assert.deepEqual(code(commands), { x: 32, y: 24, wide: 4, tall: 4, value: 'B2' })
+  })
+
+  it('kichik harf kattaga aylanadi', () => {
+    assert.equal(code(shelf([{ cell: 'd3' }])).value, 'D3')
+  })
+
+  it('manzil yorliqdan chiqib ketmaydi', () => {
+    for (const [widthMm, heightMm] of [[40, 30], [58, 40], [30, 20], [100, 60]]) {
+      const width = widthMm * DOTS_PER_MM
+      const height = heightMm * DOTS_PER_MM
+
+      for (const cell of ['A1', 'Z30']) {
+        const { x, y, wide, tall } = code(
+          shelf([{ cell, name: 'Eshik tepasi' }], { widthMm, heightMm }),
+        )
+
+        assert.ok(tall >= 1 && tall <= 10 && wide >= 1 && wide <= 10, `${widthMm}×${heightMm}`)
+        assert.ok(x + cell.length * 32 * wide <= width, `${cell}: ${widthMm} mm ga sig‘madi`)
+        assert.ok(y + 48 * tall <= height, `${cell}: ${heightMm} mm ga sig‘madi`)
+      }
+    }
+  })
+
+  it('katta yorliqda manzil ham kattalashadi', () => {
+    // 58×40: 464×320 nuqta, nomdan keyin 272 — 48 × 5 = 240
+    const big = code(shelf([{ cell: 'A1', name: 'Chap devor' }], { widthMm: 58, heightMm: 40 }))
+
+    assert.equal(big.tall, 5)
+    assert.equal(big.wide, 5)
+  })
+
+  it('har javon — alohida yorliq, nusxasi PRINT da', () => {
+    const commands = shelf([
+      { cell: 'A1', quantity: 2 },
+      { cell: 'A2' },
+    ])
+
+    assert.equal(commands.match(/CLS/g).length, 2)
+    assert.match(commands, /PRINT 2,1\r\n[\s\S]*PRINT 1,1/)
+    assert.equal(commands.includes('FORMFEED'), false)
+  })
+
+  it('buyruqlarda "undefined" yoki "NaN" bo‘lmaydi', () => {
+    const commands = buildShelfLabels(
+      { labels: [{ cell: 'A1' }] },
+      { density: undefined, speed: undefined },
+    ).toString('latin1')
+
+    assert.match(commands, /SIZE 40 mm,30 mm/)
+    assert.equal(commands.includes('undefined'), false)
+    assert.equal(commands.includes('NaN'), false)
   })
 })
 
