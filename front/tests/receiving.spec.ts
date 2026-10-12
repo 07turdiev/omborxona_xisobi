@@ -127,7 +127,7 @@ async function fillNewProduct(
 
   // Rasm majburiy: usiz «Davom etish» ochilmaydi
   await form.getByTestId('file-input').setInputFiles(testPhoto())
-  await expect(form.locator('.photo-grid li')).toHaveCount(1)
+  await expect(form.locator('.photo-list li')).toHaveCount(1)
 
   await form.getByRole('button', { name: 'Davom etish' }).click()
   await expect(form.locator('.load-error')).toHaveCount(0)
@@ -396,7 +396,7 @@ test('rasm rangga biriktiriladi', async ({ page, request }) => {
 
   await form.getByTestId('file-input').setInputFiles([testPhoto(), testPhoto()])
 
-  const pickers = form.locator('.photo-grid select')
+  const pickers = form.locator('.photo-list select')
 
   await expect(pickers).toHaveCount(2)
 
@@ -794,4 +794,20 @@ test('tugallangan hujjatda bitta qatorning yorlig‘i qayta chiqadi', async ({ p
 
   // Faqat o'sha qatorning donasi chiqadi
   await expect(page.locator('.print-sheet .label')).toHaveCount(2)
+})
+
+test('kategoriya yo‘q bo‘lsa sababi aytiladi', async ({ page }) => {
+  // Toza bazada ma'lumotnomalar bo'sh bo'ladi. «Davom etish» o'chiq
+  // turgani sababini aytmasak, xodim tugmani bosib ko'rib qoladi.
+  await page.route('**/api/categories/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  )
+
+  await openApp(page, admin, '/purchases')
+
+  const form = panel(page)
+
+  await expect(form.locator('.setup-note')).toContainText('Avval kategoriya kiriting')
+  await expect(form.getByRole('link', { name: /Kategoriya, o‘lcham, rang/ })).toBeVisible()
+  await expect(form.getByRole('button', { name: 'Davom etish' })).toBeDisabled()
 })

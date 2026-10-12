@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import AmountField from '@/components/AmountField.vue'
 import { catalogApi } from '@/api/catalog'
@@ -150,6 +151,17 @@ onBeforeUnmount(() => {
   for (const photo of photos.value) URL.revokeObjectURL(photo.url)
 })
 
+/**
+ * Ma'lumotnomalar bo'shligi.
+ *
+ * Toza bazada kategoriya, o'lcham va rang yo'q. Kategoriyasiz tovar
+ * umuman yaratilmaydi — «Davom etish» o'chiq turadi. Buni aytmasak,
+ * xodim tugmani bosib ko'rib, nega ishlamayotganini tushunmaydi.
+ */
+const needsCategory = computed(() => !categories.value.length)
+const needsSizes = computed(() => !sizes.value.length)
+const needsColors = computed(() => !colors.value.length)
+
 /** Tanlangan ranglar — rasmni shulardan biriga biriktirish mumkin. */
 const chosenColors = computed(() =>
   colors.value.filter((item) => form.value.color_ids.includes(item.id)),
@@ -288,7 +300,7 @@ async function onSave() {
 
           <div
             class="drop-zone"
-            :class="{ dragging }"
+            :class="{ dragging, filled: photos.length }"
             @dragover.prevent="dragging = true"
             @dragleave="dragging = false"
             @drop.prevent="onDrop"
@@ -299,34 +311,39 @@ async function onSave() {
               <span>Faylni shu yerga tashlang yoki tanlang</span>
             </div>
 
-            <ul v-else class="photo-grid">
+            <!-- Ro'yxat, tor ustunda tor tor ustun emas: surat yonida
+                 rang tanlovi va o'chirish tugmasi erkin joylashadi -->
+            <ul v-else class="photo-list">
               <li v-for="(photo, index) in photos" :key="photo.url">
                 <img :src="photo.url" alt="" />
 
+                <div class="photo-meta">
+                  <span class="photo-role">
+                    {{ index === 0 ? 'Asosiy rasm' : `${index + 1}-rasm` }}
+                  </span>
+
+                  <!-- Rangga biriktirilsa, kassada o'sha rang
+                       bosilganda aynan shu surat chiqadi -->
+                  <select
+                    v-if="chosenColors.length"
+                    v-model="photo.color"
+                    :aria-label="`${index + 1}-rasm rangi`"
+                  >
+                    <option :value="null">Umumiy</option>
+                    <option v-for="item in chosenColors" :key="item.id" :value="item.id">
+                      {{ item.name }}
+                    </option>
+                  </select>
+                </div>
+
                 <button
+                  class="icon-button delete"
                   type="button"
-                  class="photo-remove"
                   :aria-label="`${index + 1}-rasmni olib tashlash`"
                   @click="removePhoto(index)"
                 >
-                  ×
+                  <svg><use href="#i-trash" /></svg>
                 </button>
-
-                <!-- Rasm rangga biriktirilsa, kassada aynan o'sha
-                     rang tanlanganda shu surat chiqadi -->
-                <select
-                  v-if="chosenColors.length"
-                  v-model="photo.color"
-                  :aria-label="`${index + 1}-rasm rangi`"
-                  @click.stop
-                >
-                  <option :value="null">Umumiy</option>
-                  <option v-for="item in chosenColors" :key="item.id" :value="item.id">
-                    {{ item.name }}
-                  </option>
-                </select>
-
-                <small v-else-if="index === 0">Asosiy</small>
               </li>
             </ul>
           </div>
@@ -364,6 +381,19 @@ async function onSave() {
           <span class="eyebrow">MAHSULOT MA’LUMOTLARI</span>
 
           <p v-if="error" class="load-error">{{ error }}</p>
+
+          <!-- Toza bazada ma'lumotnomalar bo'sh: tugma o'chiq turgani
+               sababini aytib qo'yamiz -->
+          <div v-if="needsCategory" class="setup-note">
+            <strong>Avval kategoriya kiriting</strong>
+            <p>
+              Kategoriyasiz tovarni saqlab bo‘lmaydi. O‘lcham va ranglarni ham
+              o‘sha yerda qo‘shasiz.
+            </p>
+            <RouterLink class="button button-outline" to="/products/attributes">
+              Kategoriya, o‘lcham, rang sahifasi
+            </RouterLink>
+          </div>
 
           <p v-if="barcode" class="field-hint barcode-note">
             Shtrix-kod: <strong>{{ barcode }}</strong>
@@ -419,6 +449,11 @@ async function onSave() {
             <div class="field">
               <span class="field-label">Qaysi o‘lchamlar keldi?</span>
 
+              <p v-if="needsSizes" class="field-hint">
+                O‘lchamlar hali kiritilmagan. O‘lchamsiz tovar (sumka, taqinchoq)
+                uchun bu shart emas.
+              </p>
+
               <div class="chips" role="group" aria-label="O‘lchamlar">
                 <button
                   v-for="item in sizes"
@@ -436,6 +471,10 @@ async function onSave() {
 
             <div class="field">
               <span class="field-label">Qaysi ranglar keldi?</span>
+
+              <p v-if="needsColors" class="field-hint">
+                Ranglar hali kiritilmagan. Rangsiz tovar uchun bu shart emas.
+              </p>
 
               <div class="swatches" role="group" aria-label="Ranglar">
                 <button
@@ -494,15 +533,23 @@ async function onSave() {
   letter-spacing: 2px;
 }
 
-/* Rasm katakchasidagi rang tanlovi: surat ostida, kichik */
-.photo-grid select {
-  width: 100%;
-  margin-top: 4px;
-  padding: 3px 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  font-size: 12px;
+/* Ma'lumotnomalar bo'sh bo'lganda chiqadigan eslatma */
+.setup-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-card);
+  background: var(--accent-soft);
+}
+
+.setup-note p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13.5px;
 }
 
 /* --- Rasmlar --- */
@@ -555,47 +602,59 @@ async function onSave() {
   font-size: 13px;
 }
 
-.photo-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.drop-zone.filled {
+  place-items: stretch;
+  min-height: 0;
+}
+
+.photo-list {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
-.photo-grid li {
-  position: relative;
+.photo-list li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
 }
 
-.photo-grid img {
+.photo-list img {
   display: block;
-  width: 100%;
-  aspect-ratio: 4 / 5;
+  width: 44px;
+  aspect-ratio: 3 / 4;
   object-fit: cover;
   border-radius: var(--radius-small);
 }
 
-.photo-grid small {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 11px;
-  text-align: center;
+.photo-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-.photo-remove {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 22px;
-  height: 22px;
+.photo-role {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.photo-list select {
+  width: 100%;
+  padding: 4px 6px;
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: var(--radius);
   background: var(--surface);
-  color: var(--red);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
+  font-size: 13px;
 }
 
 .photo-buttons {
