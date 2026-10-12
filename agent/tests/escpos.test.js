@@ -176,6 +176,70 @@ describe('buildReceipt — to‘liq bo‘lmagan sozlama', () => {
   })
 })
 
+describe('buildReceipt — logotip', () => {
+  /** 16 × 2 nuqtali logotip: hamma nuqtasi qora */
+  const LOGO = { width: 16, height: 2, data: Buffer.alloc(4, 0xff).toString('base64') }
+
+  const withLogo = (logo, options) => buildReceipt({ ...SAMPLE, logo }, { columns: 48, ...options })
+
+  /** `GS v 0` buyrug'i: [bir qatordagi bayt, qatorlar, nuqtalar] */
+  function raster(bytes) {
+    const at = bytes.indexOf(Buffer.from([0x1d, 0x76, 0x30, 0x00]))
+
+    if (at < 0) return null
+
+    const widthBytes = bytes[at + 4] + bytes[at + 5] * 256
+    const height = bytes[at + 6] + bytes[at + 7] * 256
+
+    return { widthBytes, height, data: bytes.subarray(at + 8, at + 8 + widthBytes * height) }
+  }
+
+  it('do‘kon nomi o‘rnida logotip chiqadi', () => {
+    const bytes = withLogo(LOGO)
+
+    assert.ok(raster(bytes), 'GS v 0 yo‘q')
+    assert.equal(bytes.toString('latin1').includes('Madlen sen'), false)
+  })
+
+  it('logotip qog‘oz o‘rtasida: chap va o‘ngga oq ustunlar qo‘shiladi', () => {
+    const { widthBytes, height, data } = raster(withLogo(LOGO))
+
+    // 80 mm lenta: 48 ustun × 12 = 576 nuqta = 72 bayt
+    assert.equal(widthBytes, 72)
+    assert.equal(height, 2)
+
+    // (72 - 2) / 2 = 35 bayt oq, 2 bayt qora, 35 bayt oq
+    const row = [...data.subarray(0, 72)]
+
+    assert.deepEqual(row.slice(34, 38), [0, 0xff, 0xff, 0])
+    assert.equal(row.filter(Boolean).length, 2)
+  })
+
+  it('tor lentada qog‘oz eni ham torayadi', () => {
+    // 58 mm lenta: 32 ustun × 12 = 384 nuqta = 48 bayt
+    assert.equal(raster(withLogo(LOGO, { columns: 32 })).widthBytes, 48)
+  })
+
+  it('buzilgan logotipda chek baribir chiqadi — do‘kon nomi bilan', () => {
+    for (const [logo, reason] of [
+      [{ ...LOGO, width: 12 }, 'eni 8 ga karrali emas'],
+      [{ ...LOGO, width: 640 }, 'qog‘ozdan keng'],
+      [{ ...LOGO, height: 3 }, 'nuqtalar soni mos emas'],
+      [{ ...LOGO, data: undefined }, 'nuqtalar yo‘q'],
+      ['logo.png', 'shakli noto‘g‘ri'],
+    ]) {
+      const bytes = withLogo(logo)
+
+      assert.equal(raster(bytes), null, reason)
+      assert.ok(bytes.toString('latin1').includes('Madlen sen'), reason)
+    }
+  })
+
+  it('logotipsiz chek o‘zgarmaydi', () => {
+    assert.deepEqual(withLogo(null), build())
+  })
+})
+
 describe('buildReceipt — o‘zgarmaganligi (golden fixture)', () => {
   it('baytlar saqlangan namunaga aynan teng', () => {
     const current = build().toString('hex')

@@ -63,11 +63,13 @@ defineExpose({ printLabels })
 .label {
   width: var(--label-w);
   height: var(--label-h);
-  padding: 1mm;
+  /* Tepada 2.5 mm: printer yorliqni biroz siljitib boshlasa ham do'kon
+     nomi qog'ozda qoladi (1 mm da chiqib ketardi). Ko'prog'iga joy yo'q:
+     o'lchamli tovarda mazmun 30 mm ga shunda sig'adi. */
+  padding: 2.5mm 1mm 1mm;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
   overflow: hidden;
   color: #000;
   font-family: 'Segoe UI', sans-serif;
@@ -90,7 +92,10 @@ defineExpose({ printLabels })
   line-height: 1.1;
 }
 
+/* Nom, o'lcham va narx — bir guruh, shtrix-kod ustida. Ortiqcha joy
+   do'kon nomi bilan nom orasida qoladi, guruh ichida emas */
 .label-name {
+  margin-top: auto;
   font-size: 2.6mm;
   font-weight: 600;
   line-height: 1.1;

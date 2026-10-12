@@ -273,7 +273,7 @@ ishlatiladi — u xuddi shu seansda ishlaydi.
 |---|---|
 | `GET /health` | Versiya, kod sahifasi, printerlar, har biri bo'yicha oxirgi xato. **Darhol** javob beradi: printer holati keshdan olinadi, so'rov fonda yangilanadi |
 | `GET /health?wait=1` | Printerlardan shu lahzada so'raydi. Sozlamalardagi «Qurilmalarni sinash» uchun |
-| `POST /receipt` | Chekni ESC/POS ga o'giradi va yuboradi |
+| `POST /receipt` | Chekni ESC/POS ga o'giradi va yuboradi. `logo` bo'lsa — do'kon nomi o'rnida rasm (`GS v 0`), buzilgan bo'lsa nom yoziladi |
 | `POST /labels` | Yorliqlarni TSPL ga o'giradi va yuboradi |
 | `POST /shelf-labels` | Ombor javonlarining yorliqlari: o'rtada manzil (`A1`), harf balandligi so'rovda (`textMm`). 1.3.1 dan |
 
@@ -315,7 +315,7 @@ Himoya:
 ## Testlar
 
 ```bash
-cd agent && npm test        # 110 ta
+cd agent && npm test        # 119 ta
 ```
 
 ESC/POS va TSPL baytlari **golden fixture** bilan solishtiriladi:

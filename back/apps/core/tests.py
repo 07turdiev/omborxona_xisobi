@@ -1,13 +1,16 @@
 """Loyiha holati: migratsiyalar va namuna ma'lumotlari buyrug'i."""
 
+import base64
 import shutil
 import tempfile
-from io import StringIO
+from io import BytesIO, StringIO
 from unittest import mock
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, TransactionTestCase, override_settings
+from PIL import Image, ImageDraw
 
 from apps.accounts.models import User
 from apps.catalog.models import Product, Variant
@@ -82,6 +85,135 @@ class ShopSettingsTests(TestCase):
             )
 
             self.assertEqual(response.status_code, 400, f'{field}={value}')
+
+
+def _png(size, draw=None, mode='RGB', background='white') -> SimpleUploadedFile:
+    """Sinov rasmi: `draw(ImageDraw)` chizadi."""
+    image = Image.new(mode, size, background)
+
+    if draw:
+        draw(ImageDraw.Draw(image))
+
+    buffer = BytesIO()
+    image.save(buffer, format='PNG')
+
+    return SimpleUploadedFile('logo.png', buffer.getvalue(), content_type='image/png')
+
+
+def _square() -> SimpleUploadedFile:
+    """Eng oddiy logotip: oq fonda qora kvadrat."""
+    return _png((100, 100), lambda d: d.rectangle((10, 10, 90, 90), fill='black'))
+
+
+def _rows(logo) -> list[bytes]:
+    """Logotip nuqtalari qatorma-qator (1 — qora)."""
+    raster = base64.b64decode(logo['raster'])
+    step = logo['width'] // 8
+
+    return [raster[index : index + step] for index in range(0, len(raster), step)]
+
+
+class ShopLogoTests(TestCase):
+    """Chek logotipi: yuklangan rasm chek printeri chiza oladigan nuqtalarga aylanadi."""
+
+    def setUp(self):
+        from apps.core.factories import api_client, create_admin, create_cashier
+
+        self.admin = api_client(create_admin())
+        self.cashier = api_client(create_cashier())
+
+    def upload(self, file, client=None):
+        data = {} if file is None else {'logo': file}
+
+        return (client or self.admin).post('/api/settings/logo/', data, format='multipart')
+
+    def test_logo_fits_receipt_and_is_ready_for_printer(self):
+        wide = _png((800, 300), lambda d: d.rectangle((100, 50, 700, 250), fill='black'))
+        response = self.upload(wide)
+
+        self.assertEqual(response.status_code, 200, response.content)
+
+        logo = response.json()['receipt_logo']
+
+        # Eni 8 ga karrali (printer qatorni baytlab oladi) va 48 × 24 mm dan oshmaydi
+        self.assertEqual(logo['width'] % 8, 0)
+        self.assertLessEqual(logo['width'], 384)
+        self.assertLessEqual(logo['height'], 192)
+        self.assertEqual(len(base64.b64decode(logo['raster'])), logo['width'] // 8 * logo['height'])
+        self.assertTrue(logo['png'].startswith('data:image/png;base64,'))
+
+        # Hamma o'qiydi: kassa chekni shu yerdan oladi
+        self.assertEqual(self.cashier.get('/api/settings/').json()['receipt_logo'], logo)
+
+    def test_empty_margins_are_cut(self):
+        """Rasm chetidagi bo'sh joy kesiladi — logotip chekda keraksiz kichik chiqmaydi."""
+        logo = self.upload(
+            _png((1000, 1000), lambda d: d.rectangle((450, 475, 549, 524), fill='black'))
+        ).json()['receipt_logo']
+
+        # 100 × 50 lik to'rtburchak qoldi va chegaragacha kattalashdi
+        self.assertEqual((logo['width'], logo['height']), (384, 192))
+        self.assertTrue(all(byte == 0xFF for row in _rows(logo) for byte in row))
+
+    def test_transparent_background_is_white_paper(self):
+        """Shaffof nuqtalar odatda (0, 0, 0, 0) — kulrangga o'tganda qora bo'lmasin."""
+        logo = self.upload(
+            _png(
+                (400, 400),
+                lambda d: d.ellipse((0, 0, 399, 399), fill=(0, 0, 0, 255)),
+                mode='RGBA',
+                background=(0, 0, 0, 0),
+            )
+        ).json()['receipt_logo']
+
+        rows = _rows(logo)
+
+        # Doiraning burchaklari — shaffof edi, oq bo'lishi kerak
+        self.assertEqual(rows[0][0] & 0x80, 0, 'chap tepa burchak qora chiqdi')
+        # Markazi — qora
+        middle = rows[len(rows) // 2]
+        self.assertEqual(middle[len(middle) // 2], 0xFF)
+
+    def test_cashier_cannot_change_logo(self):
+        response = self.upload(_square(), self.cashier)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_bad_files_are_rejected(self):
+        not_image = SimpleUploadedFile('logo.png', b'rasm emas', content_type='image/png')
+
+        for file, reason in (
+            (not_image, 'rasm emas'),
+            (_png((200, 100)), 'chiziladigan narsa'),
+        ):
+            response = self.upload(file)
+
+            self.assertEqual(response.status_code, 400, reason)
+            self.assertIn(reason, response.json()['logo'][0])
+
+        self.assertEqual(self.upload(None).status_code, 400, 'fayl yo‘q')
+        self.assertIsNone(ShopSettings.load().receipt_logo)
+
+    def test_logo_can_be_removed(self):
+        self.upload(_square())
+
+        response = self.admin.delete('/api/settings/logo/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()['receipt_logo'])
+        self.assertIsNone(ShopSettings.load().receipt_logo)
+
+    def test_logo_is_not_changed_through_settings_form(self):
+        """Sozlamalar shakli logotipni bilmaydi: saqlanganda u o'chib ketmasin."""
+        self.upload(_square())
+
+        response = self.admin.patch(
+            '/api/settings/', {'shop_name': 'MADLEN SEN', 'receipt_logo': None}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()['shop_name'], 'MADLEN SEN')
+        self.assertIsNotNone(response.json()['receipt_logo'])
 
 
 class SeedDemoTests(TestCase):

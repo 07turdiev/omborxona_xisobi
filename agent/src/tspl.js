@@ -24,12 +24,28 @@ export const DOTS_PER_MM = 8
 /** Ichki shriftlarda bitta belgi necha nuqta (x1 kattalashtirishda) */
 const FONT_WIDTH = { 1: 8, 2: 12, 3: 16, 4: 24, 5: 32 }
 
+/** Ichki shriftlarda belgining balandligi, nuqta (x1 kattalashtirishda) */
+const FONT_HEIGHT = { 1: 12, 2: 20, 3: 24, 4: 32, 5: 48 }
+
 /** TSPL belgini ko'pi bilan o'n barobar kattalashtiradi */
 const MAX_SCALE = 10
 
+/**
+ * Do'kon nomi yorliqning tepa chetidan shuncha pastda, nuqta (3 mm).
+ *
+ * Avval 1 mm edi va do'kon nomi qog'ozdan chiqib ketardi: printer
+ * yorliqni bir-ikki millimetr siljib boshlashi mumkin.
+ */
+const TOP_MARGIN = 24
+
+/** Nom, o'lcham va narx qatorlari orasidagi bo'shliq, nuqta */
+const LINE_GAP = 4
+
+/** Narx bilan shtrix-kod orasidagi bo'shliq, nuqta */
+const BARCODE_GAP = 6
+
 /** Javon manzilining shrifti: 5-shrift, x1 da 32×48 nuqta (6 mm baland) */
 const SHELF_FONT = 5
-const SHELF_FONT_HEIGHT = 48
 
 /** So'rovda harf balandligi bo'lmasa, mm */
 const SHELF_TEXT_MM = 12
@@ -121,20 +137,37 @@ export function buildLabels(job, options = {}, where = 'yorliq printeri') {
       lines.push(`TEXT ${centerText(width, text, font)},${y},"${font}",0,1,1,"${text}"`)
     }
 
-    if (label.shopName) put(8, 1, label.shopName)
+    if (label.shopName) put(TOP_MARGIN, 1, label.shopName)
 
-    put(30, 2, label.name)
+    // Pastda shtrix-kod (ostida raqamlari uchun 40 nuqta)
+    const barcodeY = height - settings.barcodeHeight - 40
 
-    if (label.variant) put(58, 1, label.variant)
-    if (label.price) put(80, 3, label.price)
+    // Nom, o'lcham va narx — bir guruh, shtrix-kodning ustida. Pastdan
+    // tepaga teriladi: o'lcham bo'lmasa nom narxning ustiga tushadi va
+    // orada bo'sh joy qolmaydi
+    const block = [
+      [2, label.name],
+      [1, label.variant],
+      [3, label.price],
+    ].filter(([font, value]) => fit(value, width, font))
+
+    const rows = []
+    let bottom = barcodeY - BARCODE_GAP
+
+    for (const [font, value] of block.reverse()) {
+      bottom -= FONT_HEIGHT[font]
+      rows.unshift([bottom, font, value])
+      bottom -= LINE_GAP
+    }
+
+    for (const [y, font, value] of rows) put(y, font, value)
 
     // Shtrix-kodni printerning o'zi chizadi — rasm yuborilmaydi
     if (label.barcode) {
-      const y = height - settings.barcodeHeight - 40
       const x = centerBarcode(width, settings.barcodeNarrow)
 
       lines.push(
-        `BARCODE ${x},${y},"EAN13",${settings.barcodeHeight},1,0,` +
+        `BARCODE ${x},${barcodeY},"EAN13",${settings.barcodeHeight},1,0,` +
           `${settings.barcodeNarrow},${settings.barcodeWide},"${quote(label.barcode)}"`,
       )
     }
@@ -176,12 +209,12 @@ export function buildShelfLabels(job, options = {}, where = 'yorliq printeri') {
   // Balandlik hamma yorliqda bir xil: so'ralgani, lekin yorliqdan oshmasin
   const tall = scale(
     Math.min(
-      Math.round((textMm * DOTS_PER_MM) / SHELF_FONT_HEIGHT),
-      (height - MARGIN * 2) / SHELF_FONT_HEIGHT,
+      Math.round((textMm * DOTS_PER_MM) / FONT_HEIGHT[SHELF_FONT]),
+      (height - MARGIN * 2) / FONT_HEIGHT[SHELF_FONT],
     ),
   )
 
-  const y = Math.max(MARGIN, Math.round((height - SHELF_FONT_HEIGHT * tall) / 2))
+  const y = Math.max(MARGIN, Math.round((height - FONT_HEIGHT[SHELF_FONT] * tall) / 2))
 
   for (const label of job.labels ?? []) {
     const quantity = Math.max(1, Number(label.quantity) || 1)

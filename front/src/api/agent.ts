@@ -8,7 +8,7 @@
  */
 
 import { formatSum, isZero } from '@/utils/money'
-import type { Sale, ShopSettings } from '@/types'
+import type { ReceiptLogo, Sale, ShopSettings } from '@/types'
 
 /** Agent faqat shu kompyuterda tinglaydi */
 const BASE = 'http://127.0.0.1:7777'
@@ -72,6 +72,8 @@ export interface ReceiptPayload {
   barcode: string
   footer: string
   openDrawer?: boolean
+  /** Do'kon nomi o'rnida — oq-qora nuqtalar (`ReceiptLogo.raster`) */
+  logo?: { width: number; height: number; data: string }
 }
 
 /** Yorliqqa chiqadigan tovar — ro'yxatlar shu shaklda beradi */
@@ -191,8 +193,21 @@ function formatDateTime(iso: string): string {
   )
 }
 
-/** Sotuvdan agent tushunadigan chek yasaydi. */
-export function receiptPayload(sale: Sale, shopName: string): ReceiptPayload {
+/** Chek sarlavhasidagi logotip — agent tushunadigan shaklda */
+export function logoPayload(logo: ReceiptLogo | null | undefined): ReceiptPayload['logo'] {
+  return logo ? { width: logo.width, height: logo.height, data: logo.raster } : undefined
+}
+
+/**
+ * Sotuvdan agent tushunadigan chek yasaydi.
+ *
+ * Logotip bo'lsa chekda do'kon nomi o'rnida u chiqadi.
+ */
+export function receiptPayload(
+  sale: Sale,
+  shopName: string,
+  logo?: ReceiptLogo | null,
+): ReceiptPayload {
   const payload: ReceiptPayload = {
     shopName,
     number: sale.number,
@@ -217,6 +232,8 @@ export function receiptPayload(sale: Sale, shopName: string): ReceiptPayload {
   // Pul qutisi naqd to'lovda ochiladi. Boshqa holatda kalit umuman
   // yuborilmaydi — qutini ochish-ochmaslikni agent sozlamasi hal qiladi.
   if (!isZero(sale.cash_amount)) payload.openDrawer = true
+
+  if (logo) payload.logo = logoPayload(logo)
 
   return payload
 }

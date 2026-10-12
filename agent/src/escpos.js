@@ -40,6 +40,12 @@ const RECEIPT_RULES = {
   positive: ['columns', 'feedBeforeCut', 'barcodeHeight', 'barcodeWidth'],
 }
 
+/** A shriftda bitta belgining eni, nuqta: 48 ustun × 12 = 576 nuqta (72 mm) */
+const CHAR_DOTS = 12
+
+/** Logotipning eng katta bo'yi, nuqta (50 mm) */
+const LOGO_MAX_HEIGHT = 400
+
 /** Buyruqlar va matnni ketma-ket yig'adigan kichik yordamchi. */
 class Builder {
   constructor(codePage) {
@@ -78,6 +84,13 @@ class Builder {
     return this.raw(ESC, 0x64, lines)
   }
 
+  /** Rasm: `GS v 0` — qatorma-qator nuqtalar, 1 — qora. */
+  raster(widthBytes, height, data) {
+    this.raw(GS, 0x76, 0x30, 0x00, widthBytes & 0xff, widthBytes >> 8, height & 0xff, height >> 8)
+    this.parts.push(data)
+    return this
+  }
+
   build() {
     return Buffer.concat(this.parts)
   }
@@ -102,6 +115,45 @@ function barcode(builder, value, height, width) {
     .text(data)
 
   return builder
+}
+
+/**
+ * Chek logotipini tekshiradi va qog'oz eniga markazlab qo'yadi.
+ *
+ * Logotip bezak: u buzilgan yoki qog'ozga sig'masa ham chek chiqishi
+ * shart. Shunday holatda `null` qaytadi va sarlavhada do'kon nomi
+ * yoziladi.
+ *
+ * Markazlash nuqtalarning o'zida qilinadi — chap va o'ngga oq ustunlar
+ * qo'shiladi. Rasm uchun `ESC a` ni hamma printer ham hisobga olmaydi.
+ *
+ * @param {object} logo - { width, height, data } — eni nuqtada (8 ga
+ *   karrali), `data` — qatorma-qator baytlar base64 da
+ * @param {number} paperDots - qog'ozning bosiladigan eni, nuqta
+ */
+export function prepareLogo(logo, paperDots) {
+  if (!logo || typeof logo !== 'object' || typeof logo.data !== 'string') return null
+
+  const width = Number(logo.width)
+  const height = Number(logo.height)
+
+  if (!Number.isInteger(width) || width < 8 || width % 8 !== 0 || width > paperDots) return null
+  if (!Number.isInteger(height) || height < 1 || height > LOGO_MAX_HEIGHT) return null
+
+  const source = Buffer.from(logo.data, 'base64')
+  const rowBytes = width / 8
+
+  if (source.length !== rowBytes * height) return null
+
+  const paperBytes = Math.floor(paperDots / 8)
+  const left = Math.floor((paperBytes - rowBytes) / 2)
+  const data = Buffer.alloc(paperBytes * height)
+
+  for (let row = 0; row < height; row += 1) {
+    source.copy(data, row * paperBytes + left, row * rowBytes, (row + 1) * rowBytes)
+  }
+
+  return { widthBytes: paperBytes, height, data }
 }
 
 /** Kesish buyrug'i. */
@@ -131,10 +183,18 @@ export function buildReceipt(receipt, options = {}, where = 'chek printeri') {
     .raw(ESC, 0x40) // boshlang'ich holat
     .raw(ESC, 0x74, page) // kod sahifasi
 
-  // --- Sarlavha
-  builder.align('center').bold(true)
-  for (const row of wrap(receipt.shopName ?? '', columns)) builder.line(row)
-  builder.bold(false)
+  // --- Sarlavha: logotip bo'lsa — u, bo'lmasa do'kon nomi
+  const logo = prepareLogo(receipt.logo, columns * CHAR_DOTS)
+
+  builder.align('center')
+
+  if (logo) {
+    builder.raster(logo.widthBytes, logo.height, logo.data).line()
+  } else {
+    builder.bold(true)
+    for (const row of wrap(receipt.shopName ?? '', columns)) builder.line(row)
+    builder.bold(false)
+  }
 
   if (receipt.dateTime) builder.line(receipt.dateTime)
   if (receipt.number) builder.line(`Chek: ${receipt.number}`)

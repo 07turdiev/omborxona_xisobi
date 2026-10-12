@@ -14,7 +14,10 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
             'receipt_page_height_mm',
             'max_discount_percent',
             'price_rounding_step',
+            'receipt_logo',
         )
+        # Logotip fayl bo'lib keladi va alohida manzilda tayyorlanadi
+        read_only_fields = ('receipt_logo',)
 
     def validate_max_discount_percent(self, value):
         if value < 0 or value > 100:

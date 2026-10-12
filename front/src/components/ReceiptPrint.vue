@@ -15,6 +15,9 @@ const auth = useAuthStore()
 
 const shopName = computed(() => auth.shop?.shop_name ?? 'Do‘kon')
 
+/** Bo'lsa — sarlavhada do'kon nomi o'rnida */
+const logo = computed(() => auth.shop?.receipt_logo ?? null)
+
 /** Qog'oz o'lchami — sozlamalardan, drayverdagi qog'oz bilan bir xil */
 const pageWidth = computed(() => auth.shop?.receipt_width_mm ?? 80)
 const pageHeight = computed(() => auth.shop?.receipt_page_height_mm ?? 110)
@@ -81,7 +84,15 @@ defineExpose({ printReceipt })
   <Teleport to="body">
     <div v-if="sale" ref="sheet" class="print-sheet receipt">
       <div class="receipt-head">
-        <strong>{{ shopName }}</strong>
+        <!-- Logotip printerdagidek o'lchamda: 8 nuqta = 1 mm -->
+        <img
+          v-if="logo"
+          class="receipt-logo"
+          :src="logo.png"
+          :alt="shopName"
+          :style="{ width: `${logo.width / 8}mm` }"
+        />
+        <strong v-else>{{ shopName }}</strong>
         <span>{{ printedAt }}</span>
         <span>Chek: {{ sale.number }}</span>
         <span>Kassir: {{ sale.cashier_name ?? '—' }}</span>
@@ -167,6 +178,12 @@ defineExpose({ printReceipt })
 
 .receipt-head strong {
   font-size: 4.5mm;
+}
+
+.receipt-logo {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
 .receipt-lines {

@@ -77,7 +77,67 @@ describe('buildLabels — tuzilishi', () => {
     }).toString('latin1')
 
     assert.equal(risky.includes('"Ko"ylak'), false)
-    assert.match(risky, /TEXT \d+,30,"2",0,1,1,"Koylaktest"/)
+    assert.match(risky, /TEXT \d+,40,"2",0,1,1,"Koylaktest"/)
+  })
+
+  /** Yorliqdagi yozuvlar tepadan pastga: [y, shrift, matn] */
+  function rows(commands) {
+    return [...commands.matchAll(/TEXT \d+,(\d+),"(\d)",0,1,1,"([^"]*)"/g)].map(
+      ([, y, font, value]) => [Number(y), Number(font), value],
+    )
+  }
+
+  it('do‘kon nomi tepa chetdan 3 mm pastda — qog‘ozdan chiqib ketmaydi', () => {
+    // Avval 1 mm da edi va printer yorliqni siljitib boshlaganda kesilib qolardi
+    assert.deepEqual(rows(text())[0], [24, 1, 'Madlen sen'])
+  })
+
+  it('nom, o‘lcham va narx shtrix-kod ustida zich guruh', () => {
+    // Shriftlar balandligi: 2 — 20, 1 — 12, 3 — 24 nuqta; orada 4 nuqta
+    assert.deepEqual(rows(text()).slice(1), [
+      [40, 2, "Yozgi ko'ylak"],
+      [64, 1, 'M / Oq'],
+      [80, 3, "250 000 so'm"],
+    ])
+
+    // Narxdan shtrix-kodgacha 6 nuqta: 80 + 24 + 6 = 110
+    assert.match(text(), /BARCODE \d+,110,/)
+  })
+
+  it('o‘lcham bo‘lmasa nom narxning ustiga tushadi — orada bo‘sh joy qolmaydi', () => {
+    const plain = buildLabels({
+      ...JOB,
+      labels: [{ ...JOB.labels[0], variant: '' }],
+    }).toString('latin1')
+
+    assert.deepEqual(
+      rows(plain).map(([y, font]) => [y, font]),
+      [
+        [24, 1],
+        [56, 2],
+        [80, 3],
+      ],
+    )
+  })
+
+  it('yozuvlar bir-birining va shtrix-kodning ustiga chiqmaydi', () => {
+    const height = { 1: 12, 2: 20, 3: 24 }
+
+    for (const [widthMm, heightMm] of [[40, 30], [58, 40], [60, 40]]) {
+      const commands = buildLabels({ ...JOB, widthMm, heightMm }).toString('latin1')
+      const [, barcodeY] = /BARCODE \d+,(\d+),/.exec(commands)
+      const found = rows(commands)
+
+      for (let i = 1; i < found.length; i += 1) {
+        const [y, font] = found[i - 1]
+
+        assert.ok(y + height[font] <= found[i][0], `${widthMm}×${heightMm}: ${i}-qator ustma-ust`)
+      }
+
+      const [lastY, lastFont] = found.at(-1)
+
+      assert.ok(lastY + height[lastFont] <= Number(barcodeY), `${widthMm}×${heightMm}: narx kodga tegdi`)
+    }
   })
 
   it('shtrix-kod yorliq ichida qoladi', () => {

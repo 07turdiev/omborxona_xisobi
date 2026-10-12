@@ -243,6 +243,65 @@ test('kirim yorliqlari: 3 dona + 2 qo‘shimcha — 5 sahifa', async ({ page, re
   expect(info.pages, '3 dona + 2 qo‘shimcha = 5 yorliq').toBe(5)
 })
 
+/**
+ * Tovar yorlig'ining ichki joylashuvi.
+ *
+ * Do'kon nomi yorliqning tepa chetiga yopishib turardi va printer
+ * yorliqni biroz siljitib boshlaganda qog'ozdan chiqib ketardi. Nom
+ * bilan narx esa bo'sh joy bo'ylab tarqalib qolardi.
+ */
+test('tovar yorlig‘i: do‘kon nomi chetdan uzoq, nom va narx shtrix-kod ustida', async ({
+  page,
+  request,
+}) => {
+  const purchase = await createPurchaseWithThreeUnits(request)
+
+  await openApp(page, '/purchases')
+
+  await page.locator('tr', { hasText: purchase.number }).click()
+  await page
+    .getByTestId('opened-purchase')
+    .getByRole('button', { name: /Yorliqlar chop etish/ })
+    .click()
+
+  await expect(page.locator('body.printing')).toHaveCount(1)
+
+  const label = page.locator('.labels .label').first()
+
+  // Yorliq tepasidan har bir qismgacha, mm
+  const box = await label.evaluate((element) => {
+    const mm = (px: number) => Math.round((px * 254) / 96) / 10
+    const origin = element.getBoundingClientRect().top
+
+    const part = (selector: string) => {
+      const rect = element.querySelector(selector)!.getBoundingClientRect()
+
+      return { top: mm(rect.top - origin), bottom: mm(rect.bottom - origin) }
+    }
+
+    return {
+      height: mm(element.getBoundingClientRect().height),
+      shop: part('.label-shop'),
+      name: part('.label-name'),
+      variant: part('.label-variant'),
+      price: part('.label-price'),
+      // Chiziqlar va ostidagi raqamlar birga
+      barcode: part('.barcode-block'),
+    }
+  })
+
+  console.log(`    tovar yorlig‘i, mm: ${JSON.stringify(box)}`)
+
+  expect(box.shop.top, 'do‘kon nomi tepa chetga juda yaqin').toBeGreaterThanOrEqual(2.5)
+
+  // Nom, o'lcham va narx bir guruh: oralig'i 1 mm dan oshmaydi
+  expect(box.variant.top - box.name.bottom, 'nom va o‘lcham orasi').toBeLessThanOrEqual(1)
+  expect(box.price.top - box.variant.bottom, 'o‘lcham va narx orasi').toBeLessThanOrEqual(1)
+  expect(box.barcode.top - box.price.bottom, 'narx va shtrix-kod orasi').toBeLessThanOrEqual(1.5)
+
+  expect(box.barcode.bottom, 'shtrix-kod yorliqdan chiqib ketgan').toBeLessThanOrEqual(box.height)
+})
+
 test('sinov cheki: 1 sahifa, 80 mm en, chizg‘ich 50 mm', async ({ page }) => {
   await openApp(page, '/settings/devices')
 

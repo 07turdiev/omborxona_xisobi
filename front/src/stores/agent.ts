@@ -86,7 +86,11 @@ export const useAgentStore = defineStore('agent', () => {
 
   async function printReceipt(sale: Sale): Promise<boolean> {
     const auth = useAuthStore()
-    const payload = agentApi.receiptPayload(sale, auth.shop?.shop_name ?? '')
+    const payload = agentApi.receiptPayload(
+      sale,
+      auth.shop?.shop_name ?? '',
+      auth.shop?.receipt_logo,
+    )
 
     return trySend(() => agentApi.sendReceipt(payload), `${sale.number} — printerga yuborildi`)
   }

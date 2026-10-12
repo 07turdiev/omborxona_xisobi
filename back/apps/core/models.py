@@ -25,6 +25,11 @@ class ShopSettings(TimeStampedModel):
 
     shop_name = models.CharField(_('Do‘kon nomi'), max_length=120, default='Do‘kon')
 
+    #: Chekda do'kon nomi o'rnida chiqadigan logotip — yuklanganda
+    #: tayyorlangan oq-qora nuqtalar va PNG (`apps/core/logo.py`).
+    #: Bo'sh bo'lsa chekda nom yoziladi.
+    receipt_logo = models.JSONField(_('Chek logotipi'), null=True, blank=True)
+
     label_width_mm = models.PositiveSmallIntegerField(_('Yorliq eni, mm'), default=40)
     label_height_mm = models.PositiveSmallIntegerField(_('Yorliq bo‘yi, mm'), default=30)
 

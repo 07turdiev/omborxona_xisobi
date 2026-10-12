@@ -87,6 +87,21 @@ describe('receiptPayload', () => {
     expect(receiptPayload(SALE, '').dateTime).toBe('18.09.2026 14:35')
   })
 
+  it('logotip bo‘lsa — agent tushunadigan shaklda qo‘shiladi', () => {
+    const logo = { width: 16, height: 2, raster: '//////8=', png: 'data:image/png;base64,' }
+
+    expect(receiptPayload(SALE, 'Madlen sen', logo).logo).toEqual({
+      width: 16,
+      height: 2,
+      data: '//////8=',
+    })
+  })
+
+  it('logotip bo‘lmasa kalit umuman yuborilmaydi — chekda nom chiqadi', () => {
+    expect('logo' in receiptPayload(SALE, 'Madlen sen', null)).toBe(false)
+    expect('logo' in receiptPayload(SALE, 'Madlen sen')).toBe(false)
+  })
+
   it('pul qutisi faqat naqd to‘lovda ochiladi', () => {
     expect(receiptPayload(SALE, '').openDrawer).toBe(true)
 

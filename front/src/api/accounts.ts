@@ -44,4 +44,26 @@ export const settingsApi = {
     const { data } = await api.patch<ShopSettings>('/settings/', payload)
     return data
   },
+
+  /**
+   * Chek logotipi: server uni oq-qora qilib, chekka moslab saqlaydi.
+   *
+   * `Content-Type` ataylab ko'rsatilgan — izoh: `catalogApi.uploadImage`.
+   */
+  async uploadLogo(file: File) {
+    const body = new FormData()
+
+    body.append('logo', file)
+
+    const { data } = await api.post<ShopSettings>('/settings/logo/', body, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+
+    return data
+  },
+
+  async removeLogo() {
+    const { data } = await api.delete<ShopSettings>('/settings/logo/')
+    return data
+  },
 }

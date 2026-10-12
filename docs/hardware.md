@@ -313,6 +313,24 @@ ishlab turgan bo'lsa ham. Bu bandni **o'chiring**.
 - Shtrix-kod skanerlansin.
 - Chek oxiri avtomatik kesilsin.
 
+### 3.5. Chekdagi logotip
+
+**Sozlamalar → Chek logotipi** da rasm yuklanadi. Chekda do'kon nomi
+o'rnida u chiqadi, logotip yo'q bo'lsa — nom.
+
+Server rasmni bir marta tayyorlaydi: shaffof joyni oq qiladi, atrofidagi
+bo'sh hoshiyani kesadi, eni 48 mm va bo'yi 24 mm gacha sig'diradi va
+oq-qora nuqtalarga aylantiradi. Sozlamalarda ko'ringan rasm qog'ozda
+aynan shunday chiqadi.
+
+- Oq fonda **to'q rangli** logotip yaxshi chiqadi. Och ranglar (sariq,
+  och kulrang) oq bo'lib, yo'qolib qoladi.
+- Agent orqali chop etishda logotip nuqtama-nuqta yuboriladi
+  (`GS v 0`) — agent 1.3.1 dan. Eski agent logotipni e'tiborsiz
+  qoldiradi va nomni yozadi.
+- **Qurilmalarni sinash → Agent orqali sinov cheki** logotipni ham
+  chiqaradi.
+
 ---
 
 ## 4. Skaner — "7710"

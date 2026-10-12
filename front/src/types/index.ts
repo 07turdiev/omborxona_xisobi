@@ -32,6 +32,19 @@ export interface ShopSettings {
   max_discount_percent: string
   /** Kirimda ustamadan taklif qilingan narx shu qadamga yaxlitlanadi */
   price_rounding_step: number
+  /** Chekda do'kon nomi o'rnida chiqadi; yo'q bo'lsa — nom */
+  receipt_logo: ReceiptLogo | null
+}
+
+/** Chek logotipi — yuklanganda tayyorlangan oq-qora nuqtalar */
+export interface ReceiptLogo {
+  /** Nuqtada, 8 ga karrali (203 dpi: 8 nuqta = 1 mm) */
+  width: number
+  height: number
+  /** Qatorma-qator baytlar, 1 — qora; base64. Chop etish agenti uchun */
+  raster: string
+  /** O'sha nuqtalar PNG bo'lib — brauzer va Sozlamalar uchun */
+  png: string
 }
 
 export interface Category {

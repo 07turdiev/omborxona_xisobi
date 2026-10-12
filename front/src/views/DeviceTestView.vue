@@ -124,6 +124,8 @@ function sendTestReceipt() {
       payments: { cash: '100000.00', card: '0.00' },
       barcode: TEST_RECEIPT_CODE,
       footer: 'Sinov cheki — hisobga olinmaydi',
+      // Sozlamalarda yuklangan logotip qog'ozda qanday chiqishini ham ko'rsatadi
+      logo: agentApi.logoPayload(auth.shop?.receipt_logo),
     }),
   )
 }
