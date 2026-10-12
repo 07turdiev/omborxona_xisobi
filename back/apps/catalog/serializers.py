@@ -3,7 +3,12 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from apps.catalog.models import Category, Color, Product, ProductImage, Size, Variant
-from apps.catalog.services import add_product_image, set_primary_image, sync_variant_matrix
+from apps.catalog.services import (
+    add_product_image,
+    set_primary_image,
+    sync_variant_matrix,
+    variant_image,
+)
 from apps.core import telegram
 from apps.core.redaction import HideFromCashierMixin
 
@@ -96,16 +101,10 @@ def variant_thumb(variant, request=None) -> str | None:
     Rangiga biriktirilgani afzal: qora ko'ylakni qidirayotgan odam oq
     ko'ylakning suratini ko'rmasin. Bo'lmasa mahsulotning asosiy rasmi.
     """
-    images = list(variant.product.images.all())
+    chosen = variant_image(variant)
 
-    if not images:
+    if chosen is None:
         return None
-
-    chosen = (
-        next((image for image in images if image.color_id == variant.color_id), None)
-        or next((image for image in images if image.is_primary), None)
-        or images[0]
-    )
 
     url = chosen.thumb.url
 

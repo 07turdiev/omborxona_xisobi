@@ -14,6 +14,8 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 
 from apps.core import telegram
+from apps.catalog.services import add_product_image
+from apps.catalog.tests import image_upload
 from apps.core.factories import (
     api_client,
     create_admin,
@@ -110,6 +112,32 @@ class NotificationTests(TestCase):
 
         self.assertIn('Sotuv', self.messages())
         self.assertIn('Kassir', self.messages())
+
+    def test_the_message_names_the_garment(self):
+        """«Qaysi kiyim sotildi» degan savolga xabarning o'zi javob bersin."""
+        self.sell()
+
+        text = self.messages()
+
+        self.assertIn(self.product.name, text)
+        self.assertIn(self.variant.label, text)
+        self.assertIn('× 1', text)
+
+    def test_the_photo_goes_with_it(self):
+        """Rasm WebP da saqlanadi, Telegram esa JPEG kutadi."""
+        add_product_image(self.product, image_upload())
+
+        self.sell()
+
+        photo = self.send.call_args.kwargs.get('photo') or self.send.call_args.args[1]
+
+        self.assertTrue(photo, 'rasm yuborilmadi')
+        self.assertTrue(photo.startswith(bytes.fromhex('ffd8')), 'JPEG emas')
+
+    def test_a_product_without_a_photo_still_notifies(self):
+        self.sell()
+
+        self.assertIn('Sotuv', self.messages())
 
     def test_a_voided_receipt_is_announced(self):
         sale = self.sell()

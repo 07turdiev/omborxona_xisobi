@@ -17,6 +17,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.catalog.services import variant_image
 from apps.core import telegram
 from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
@@ -196,8 +197,18 @@ def create_sale(
     return sale
 
 
+#: Xabarda shuncha qator ko'rsatiladi, qolgani «va yana N ta» bo'lib
+#: yig'iladi: Telegram rasm ostidagi izohni 1024 belgi bilan cheklaydi
+NOTIFY_LINES = 8
+
+
 def notify_sale(sale: Sale) -> None:
-    """Boshliqqa sotuv haqida xabar."""
+    """Boshliqqa sotuv haqida xabar — tovar rasmi bilan.
+
+    Rasm birinchi qatorning variantidan olinadi: ko'p sotuv bir-ikki
+    donadan iborat, shuning uchun bitta surat savolning ko'pini
+    yopadi. Qaysi kiyim ketgani matnda to'liq sanaladi.
+    """
     payment = []
 
     if sale.cash_amount:
@@ -206,16 +217,48 @@ def notify_sale(sale: Sale) -> None:
     if sale.card_amount:
         payment.append(f'karta {telegram.money(sale.card_amount)}')
 
-    lines = [
-        f'<b>Sotuv {sale.number}</b>',
-        f'{telegram.money(sale.total)} so‘m — {" + ".join(payment) or "to‘lovsiz"}',
-        f'Kassir: {telegram.who(sale.cashier)}',
-    ]
+    rows = list(
+        sale.lines.select_related('variant__product', 'variant__size', 'variant__color')
+        .prefetch_related('variant__product__images')
+    )
+
+    message = [f'<b>Sotuv {sale.number}</b>', '']
+
+    for line in rows[:NOTIFY_LINES]:
+        label = line.variant.label
+
+        message.append(
+            f'{line.variant.product.name}'
+            f'{f" — {label}" if label else ""}'
+            f' × {line.quantity} — {telegram.money(line.line_total)}'
+        )
+
+    if len(rows) > NOTIFY_LINES:
+        message.append(f'…va yana {len(rows) - NOTIFY_LINES} ta')
+
+    message.append('')
+    message.append(
+        f'<b>Jami: {telegram.money(sale.total)} so‘m</b>'
+        f' — {" + ".join(payment) or "to‘lovsiz"}'
+    )
 
     if sale.discount_total:
-        lines.append(f'Chegirma: {telegram.money(sale.discount_total)} so‘m')
+        message.append(f'Chegirma: {telegram.money(sale.discount_total)} so‘m')
 
-    telegram.notify('\n'.join(lines))
+    message.append(f'Kassir: {telegram.who(sale.cashier)}')
+
+    telegram.notify('\n'.join(message), photo=sale_photo(rows))
+
+
+def sale_photo(rows) -> bytes:
+    """Chekdagi birinchi rasmli tovarning surati."""
+    for line in rows:
+        image = variant_image(line.variant)
+
+        if image is not None:
+            return telegram.photo_bytes(image.medium)
+
+    return b''
 
 
 @transaction.atomic

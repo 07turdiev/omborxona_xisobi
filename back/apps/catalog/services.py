@@ -208,3 +208,25 @@ def reorder_images(product, image_ids: list[int]) -> None:
     for image in product.images.filter(pk__in=positions):
         image.sort_order = positions[image.pk]
         image.save(update_fields=['sort_order'])
+
+
+def variant_image(variant) -> ProductImage | None:
+    """Variantga mos rasm.
+
+    Rangiga biriktirilgani afzal: qora ko'ylakni qidirayotgan odam oq
+    ko'ylakning suratini ko'rmasin. Bo'lmasa mahsulotning asosiy
+    rasmi, u ham bo'lmasa birinchisi.
+
+    Ro'yxat oldindan olingan bo'lsa (`prefetch_related('images')`)
+    qo'shimcha so'rov bo'lmaydi.
+    """
+    images = list(variant.product.images.all())
+
+    if not images:
+        return None
+
+    return (
+        next((image for image in images if image.color_id == variant.color_id), None)
+        or next((image for image in images if image.is_primary), None)
+        or images[0]
+    )

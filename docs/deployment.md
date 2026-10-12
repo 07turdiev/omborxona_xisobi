@@ -318,7 +318,8 @@ standart chegarasi 1 MB: proxyda unutilsa, tovar rasmi yuklanganda
 ## 5.1. Telegram bildirishnomalari
 
 Do'kon egasiga sotuv, qabul, bekor qilish, qaytarish, hisobdan
-chiqarish, xarajat va narx o'zgarishi haqida xabar boradi.
+chiqarish, xarajat va narx o'zgarishi haqida xabar boradi. Sotuv
+xabarida qaysi kiyim ketgani sanalib, tovarning rasmi ham yuboriladi.
 
 1. Telegramda **@BotFather** ga `/newbot` yozib bot yarating va
    tokenni oling.
@@ -352,7 +353,16 @@ chiqarish, xarajat va narx o'zgarishi haqida xabar boradi.
 
    Buyruq har hisobga sinov xabarini yuboradi va natijani qatorma-qator
    ko'rsatadi. «chat not found» degani — o'sha odam botni topib
-   «Start» bosmagan.
+   «Start» bosmagan; chiqishda botning havolasi ham beriladi.
+
+   Rasm bilan ham sinash uchun:
+
+   ```bash
+   docker compose exec backend python manage.py telegram_test --photo
+   ```
+
+   Bu bazadagi birinchi mahsulot suratini oladi, uni JPEG ga o'giradi
+   va sotuvdagi kabi yuklaydi — ya'ni haqiqiy yo'l tekshiriladi.
 
 Ikkalasi bo'sh qoldirilsa modul jim turadi. Telegram javob bermasa
 sotuv baribir yakunlanadi: xabar alohida oqimda ketadi va xatosi

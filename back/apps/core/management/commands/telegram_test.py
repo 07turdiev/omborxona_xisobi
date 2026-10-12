@@ -24,6 +24,11 @@ class Command(BaseCommand):
             default='Sinov xabari — bildirishnomalar ishlayapti.',
             help='Yuboriladigan matn',
         )
+        parser.add_argument(
+            '--photo',
+            action='store_true',
+            help='Tovar rasmi bilan yuboradi (sotuvdagi kabi)',
+        )
 
     def handle(self, *args, **options):
         token = getattr(telegram.settings, 'TELEGRAM_BOT_TOKEN', '')
@@ -49,12 +54,27 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(f'Token bor, qabul qiluvchilar: {len(recipients)} ta')
+
+        photo = self._photo() if options['photo'] else b''
+
+        if options['photo']:
+            self.stdout.write(
+                f'Rasm: {len(photo)} bayt JPEG' if photo else 'Rasm topilmadi — matn yuboriladi'
+            )
+
         self.stdout.write('')
 
         failed = 0
+        file_id = ''
 
         for chat in recipients:
-            ok, detail = telegram.send_to(chat, options['text'])
+            if photo:
+                ok, detail, sent = telegram.send_photo_to(
+                    chat, options['text'], photo=b'' if file_id else photo, file_id=file_id
+                )
+                file_id = file_id or (sent if ok else '')
+            else:
+                ok, detail = telegram.send_to(chat, options['text'])
 
             if ok:
                 self.stdout.write(self.style.SUCCESS(f'  {chat:<14} {detail}'))
@@ -82,3 +102,15 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('Hammasiga yetib bordi.'))
 
         self.stdout.write('')
+
+    def _photo(self) -> bytes:
+        """Sinov uchun rasm: bazadagi birinchi mahsulot surati.
+
+        Aynan haqiqiy yo'l sinaladi — WebP fayl JPEG ga o'giriladi va
+        `multipart` bilan yuklanadi. Rasm bo'lmasa bo'sh qaytadi.
+        """
+        from apps.catalog.models import ProductImage
+
+        image = ProductImage.objects.order_by('id').first()
+
+        return telegram.photo_bytes(image.medium) if image else b''
