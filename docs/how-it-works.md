@@ -253,6 +253,23 @@ ham topadi.
 
 ---
 
+### Xato kiritilgan tovarni olib tashlash
+
+Tovar sahifasida «O'chirish» tugmasi bor (administrator uchun). Ikki
+xil tugaydi:
+
+- **Tarixi yo'q tovar** — sinov uchun kiritilgan, hech qachon qabul
+  qilinmagan — variantlari va rasm fayllari bilan butunlay o'chadi.
+- **Qabul qilingan yoki sotilgan tovar** o'chmaydi: baza `PROTECT`
+  bilan to'xtatadi, chunki ombor jurnali va hisobotlar unga suyanadi.
+  Dastur sababini aytib, **arxivlashni** taklif qiladi.
+
+Arxivdagi tovar ro'yxatlarda ham, kassada ham ko'rinmaydi, lekin
+hisobotlar buzilmaydi. Uning sahifasini faqat administrator ocha
+oladi va o'sha yerdan qaytarib ham oladi.
+
+---
+
 ## 8. Tovar qabul qilish
 
 Do'konga tovar **shtrix-kodsiz** keladi: qutida, o'lchamlari aralash,

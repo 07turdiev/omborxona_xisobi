@@ -7,9 +7,10 @@
  * kassir esa o'sha sahifani tannarx va amallarsiz ko'radi.
  */
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
 import {
+  API,
   createTestProduct,
   login,
   moveToWarehouse,
@@ -185,4 +186,64 @@ test('boshqaruv panelidan tugayotganlar ro‘yxatiga', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/products$/)
   await expect(page.locator('.check', { hasText: 'Tugayotganlar' }).locator('input')).toBeChecked()
+})
+
+/** Tarixi yo'q tovar: yaratildi, lekin hech qachon qabul qilinmagan. */
+async function createBareProduct(request: APIRequestContext) {
+  const headers = { Authorization: `Bearer ${admin.access}` }
+  const categories = await (await request.get(`${API}/api/categories/`, { headers })).json()
+
+  const response = await request.post(`${API}/api/products/`, {
+    headers,
+    data: {
+      category: categories[0].id,
+      name: `O‘chiriladigan ${Date.now()}`,
+      sale_price: '100000',
+    },
+  })
+
+  expect(response.ok(), `tovar yaratilmadi: ${await response.text()}`).toBeTruthy()
+
+  return response.json()
+}
+
+test('xato kiritilgan tovar sahifadan o‘chiriladi', async ({ page, request }) => {
+  // Sinov uchun kiritilgan tovar izsiz ketishi kerak: qoldiq ham,
+  // harakat ham yo'q.
+  const fresh = await createBareProduct(request)
+
+  page.on('dialog', (dialog) => dialog.accept())
+
+  await openApp(page, admin, `/products/${fresh.id}`)
+  await page.getByRole('button', { name: 'O‘chirish' }).click()
+
+  await expect(page).toHaveURL(/\/products$/)
+
+  const gone = await request.get(`${API}/api/catalog/${fresh.id}/`, {
+    headers: { Authorization: `Bearer ${admin.access}` },
+  })
+
+  expect(gone.status()).toBe(404)
+})
+
+test('qabul qilingan tovar o‘chmaydi, arxivlanadi', async ({ page, request }) => {
+  // Ombor jurnali va hisobotlar yolg'on bo'lib qolmasin
+  const stocked = await createTestProduct(request, admin)
+
+  page.on('dialog', (dialog) => dialog.accept())
+
+  await openApp(page, admin, `/products/${stocked.id}`)
+  await page.getByRole('button', { name: 'O‘chirish' }).click()
+
+  // Sahifa joyida qoladi, tugma esa arxiv holatini ko'rsatadi
+  await expect(page).toHaveURL(new RegExp(`/products/${stocked.id}$`))
+  await expect(page.getByRole('button', { name: 'Arxivdan qaytarish' })).toBeVisible()
+  await expect(page.locator('.archived')).toBeVisible()
+
+  const still = await request.get(`${API}/api/catalog/${stocked.id}/`, {
+    headers: { Authorization: `Bearer ${admin.access}` },
+  })
+
+  expect(still.status()).toBe(200)
+  expect((await still.json()).is_active).toBe(false)
 })

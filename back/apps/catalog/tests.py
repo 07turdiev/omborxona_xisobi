@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 from io import BytesIO
+from pathlib import Path
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -12,6 +13,7 @@ from PIL import Image
 from apps.catalog.images import MAX_UPLOAD_BYTES
 from apps.catalog.models import Color, Product, ProductImage, Size, Variant
 from apps.catalog.services import (
+    add_product_image,
     add_variant,
     ean13_check_digit,
     next_internal_barcode,
@@ -717,3 +719,75 @@ class AddVariantTests(TestCase):
 
         self.assertEqual(response.status_code, 403, response.content)
         self.assertEqual(self.product.variants.count(), 2)
+
+
+class ProductDeleteTests(MediaTestCase):
+    """Xato kiritilgan tovarni o'chirish."""
+
+    def setUp(self):
+        self.admin = create_admin()
+        self.cashier = create_cashier()
+        self.client = api_client(self.admin)
+
+    def test_a_product_without_history_is_deleted(self):
+        """Sinov uchun kiritilgan tovar izsiz ketishi kerak."""
+        product = create_product(sizes=('M',), colors=('qora',))
+
+        response = self.client.delete(f'/api/products/{product.pk}/')
+
+        self.assertEqual(response.status_code, 204, response.content)
+        self.assertFalse(Product.objects.filter(pk=product.pk).exists())
+        self.assertFalse(Variant.objects.filter(product=product).exists())
+
+    def test_the_photo_files_go_too(self):
+        """Qator o'chib, fayl diskda qolsa ombor joyi behuda to'ladi."""
+        product = create_product(sizes=('M',), colors=('qora',))
+        image = add_product_image(product, image_upload())
+
+        paths = [field.path for field in (image.thumb, image.medium, image.large)]
+
+        for path in paths:
+            self.assertTrue(Path(path).exists())
+
+        # Fayllar tranzaksiya yakunlangandan keyin o'chadi
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.delete(f'/api/products/{product.pk}/')
+
+        for path in paths:
+            self.assertFalse(Path(path).exists(), path)
+
+    def test_a_product_with_history_is_refused_with_a_reason(self):
+        """Sotilgan tovar o'chsa, jurnal va hisobot yolg'on bo'lib qolardi."""
+        product = create_product(sizes=('M',), colors=('qora',))
+        variant = product.variants.get()
+
+        receive_stock(variant, 3, '100000')
+
+        response = self.client.delete(f'/api/products/{product.pk}/')
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn('arxivlang', response.content.decode().lower())
+        self.assertTrue(Product.objects.filter(pk=product.pk).exists())
+
+    def test_such_a_product_can_be_archived(self):
+        product = create_product(sizes=('M',), colors=('qora',))
+
+        receive_stock(product.variants.get(), 3, '100000')
+
+        response = self.client.patch(
+            f'/api/products/{product.pk}/', {'is_active': False}, format='json'
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+
+        product.refresh_from_db()
+
+        self.assertFalse(product.is_active)
+
+    def test_a_cashier_cannot_delete(self):
+        product = create_product(sizes=('M',), colors=('qora',))
+
+        response = api_client(self.cashier).delete(f'/api/products/{product.pk}/')
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Product.objects.filter(pk=product.pk).exists())

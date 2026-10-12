@@ -233,6 +233,63 @@ function printLabels() {
   setTimeout(() => labels.value?.printLabels(), 50)
 }
 
+// --- O'chirish va arxivlash -------------------------------------------------
+
+const removing = ref(false)
+
+/**
+ * Tovarni o'chiradi; tarixi bo'lsa arxivlashni taklif qiladi.
+ *
+ * Sinov uchun kiritilgan tovar izsiz ketishi kerak. Qabul qilingani
+ * esa o'chmaydi: ombor jurnali va hisobotlar yolg'on bo'lib qolardi.
+ */
+async function onRemove() {
+  if (!product.value) return
+
+  if (!product.value.is_active) {
+    await archive(true)
+
+    return
+  }
+
+  if (!window.confirm(`«${product.value.name}» butunlay o‘chirilsinmi?`)) return
+
+  removing.value = true
+
+  try {
+    await catalogApi.removeProduct(product.value.id)
+    toast.show('Tovar o‘chirildi')
+    router.push('/products')
+  } catch (err) {
+    const message = errorMessage(err, 'O‘chirib bo‘lmadi.')
+
+    if (!window.confirm(`${message}
+
+Arxivlansinmi?`)) return
+
+    await archive(false)
+  } finally {
+    removing.value = false
+  }
+}
+
+/** Arxivdagi tovar ro'yxatlarda va kassada ko'rinmaydi. */
+async function archive(restore: boolean) {
+  if (!product.value) return
+
+  removing.value = true
+
+  try {
+    await catalogApi.updateProduct(product.value.id, { is_active: restore })
+    product.value.is_active = restore
+    toast.show(restore ? 'Tovar arxivdan qaytarildi' : 'Tovar arxivlandi')
+  } catch (err) {
+    toast.show(errorMessage(err, 'Saqlab bo‘lmadi.'), 'error')
+  } finally {
+    removing.value = false
+  }
+}
+
 // --- Hisobdan chiqarish -----------------------------------------------------
 
 const writeOffOpen = ref(false)
@@ -380,6 +437,10 @@ function when(value: string) {
 
           <p class="info-price">{{ formatSum(variant?.price ?? product.sale_price) }}</p>
 
+          <p v-if="!product.is_active" class="pill pill-red archived">
+            Arxivda — ro‘yxatlarda va kassada ko‘rinmaydi
+          </p>
+
           <div v-if="auth.isAdmin" class="admin-actions">
             <!-- Shu tovar yana kelgan bo'lsa: qabul qilish ekrani darhol
                  shu modelning katakchasi bilan ochiladi -->
@@ -407,6 +468,23 @@ function when(value: string) {
 
             <button class="button button-outline danger" type="button" @click="openWriteOff">
               Hisobdan chiqarish
+            </button>
+
+            <!-- Xato kiritilgan tovarni ro'yxatdan olib tashlash.
+                 Tarixi bor tovar o'chmaydi — u arxivlanadi. -->
+            <button
+              class="button button-outline danger"
+              type="button"
+              :disabled="removing"
+              @click="onRemove"
+            >
+              {{
+                removing
+                  ? 'Bajarilmoqda…'
+                  : product.is_active
+                    ? 'O‘chirish'
+                    : 'Arxivdan qaytarish'
+              }}
             </button>
           </div>
 
@@ -1063,6 +1141,11 @@ function when(value: string) {
 .more {
   display: flex;
   margin: 8px auto 12px;
+}
+
+.archived {
+  display: inline-flex;
+  margin: 0 0 10px;
 }
 
 /* --- Hisobdan chiqarish oynasi --- */

@@ -350,6 +350,8 @@ class CatalogProductSerializer(CatalogProductListSerializer):
         fields = CatalogProductListSerializer.Meta.fields + (
             'description', 'material', 'care', 'image_groups', 'colors',
             'sizes', 'variants',
+            # Arxivdagi tovar sahifada shunday deb ko'rsatiladi
+            'is_active',
         )
 
     def get_image_groups(self, product):

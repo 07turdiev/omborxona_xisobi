@@ -1,8 +1,9 @@
-from django.db.models import Count, Exists, OuterRef, Q, Subquery, Sum
+from django.db.models import Count, Exists, OuterRef, ProtectedError, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 
 from apps.catalog.models import (
@@ -23,7 +24,12 @@ from apps.catalog.serializers import (
     SizeSerializer,
     VariantSerializer,
 )
-from apps.catalog.services import add_variant, remove_product_image, reorder_images
+from apps.catalog.services import (
+    add_variant,
+    remove_product,
+    remove_product_image,
+    reorder_images,
+)
 from apps.core.permissions import IsAdmin, IsAdminOrReadOnly
 from apps.inventory.models import VariantStock
 from apps.inventory.queries import low_stock_variants
@@ -57,6 +63,28 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     serializer_class = ProductSerializer
     permission_classes = [IsAdminOrReadOnly]
+
+    def perform_destroy(self, instance):
+        """Tarixi yo'q tovarni o'chiradi.
+
+        Xato kiritilgan tovarni ro'yxatdan olib tashlashning yagona
+        yo'li shu. Qabul qilingan yoki sotilgan tovar esa o'chmaydi:
+        uning o'rniga arxivlash bor. Sababi aytilmasa, baza
+        `ProtectedError` ni 500 bo'lib qaytarardi.
+        """
+        try:
+            remove_product(instance)
+        except ProtectedError as error:
+            raise DRFValidationError(
+                {
+                    'detail': (
+                        'Bu tovar bo‘yicha harakat bor '
+                        '(qabul, sotuv yoki ko‘chirish), shuning uchun o‘chirib '
+                        'bo‘lmaydi. Uni arxivlang — ro‘yxatlarda va kassada '
+                        'ko‘rinmaydi, hisobotlar esa buzilmaydi.'
+                    )
+                }
+            ) from error
 
     def get_queryset(self):
         queryset = Product.objects.select_related('category').prefetch_related(
@@ -201,7 +229,12 @@ class CatalogViewSet(viewsets.ReadOnlyModelViewSet):
         if params.get('low_stock') == 'true':
             queryset = queryset.filter(Exists(low_stock_variants(variants)))
 
-        if params.get('active') != 'false':
+        # Arxivdagi tovar ro'yxatlarda va kassada ko'rinmaydi. Lekin
+        # administrator uning sahifasini ocha olishi kerak — aks holda
+        # arxivlangan tovarni qaytarib bo'lmasdi.
+        looking = self.action == 'retrieve' and getattr(self.request.user, 'is_admin', False)
+
+        if params.get('active') != 'false' and not looking:
             queryset = queryset.filter(is_active=True)
 
         ordering = self.ORDERING.get(params.get('ordering', ''), self.ORDERING['newest'])

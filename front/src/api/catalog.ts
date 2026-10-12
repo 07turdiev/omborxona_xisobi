@@ -118,6 +118,11 @@ export const catalogApi = {
     return data
   },
 
+  /** Tarixi yo'q tovarni butunlay o'chiradi (rasmlari bilan). */
+  async removeProduct(id: number) {
+    await api.delete(`/products/${id}/`)
+  },
+
   async updateProduct(id: number, payload: Partial<ProductInput>) {
     const { data } = await api.patch<Product>(`/products/${id}/`, payload)
     return data

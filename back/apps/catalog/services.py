@@ -230,3 +230,31 @@ def variant_image(variant) -> ProductImage | None:
         or next((image for image in images if image.is_primary), None)
         or images[0]
     )
+
+
+@transaction.atomic
+def remove_product(product: Product) -> None:
+    """Mahsulotni variantlari va rasmlari bilan o'chiradi.
+
+    Faqat tarixi yo'q tovar o'chadi: bir marta qabul qilingan, sotilgan
+    yoki ko'chirilgan bo'lsa, baza `PROTECT` bilan to'xtatadi — ombor
+    jurnali va hisobotlar yolg'on bo'lib qolmasin. Bunday tovarni
+    arxivlash kerak (`is_active = False`).
+
+    Rasm fayllari tranzaksiya yakunlangandan keyin o'chiriladi: orqaga
+    qaytsa qator ham, fayl ham joyida qoladi.
+    """
+    files = [
+        (field.storage, field.name)
+        for image in product.images.all()
+        for field in (image.thumb, image.medium, image.large)
+        if field
+    ]
+
+    product.delete()
+
+    def delete_files():
+        for storage, name in files:
+            storage.delete(name)
+
+    transaction.on_commit(delete_files)

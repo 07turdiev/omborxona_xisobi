@@ -111,6 +111,8 @@ export interface CatalogProduct extends CatalogCard {
   colors: Color[]
   sizes: Size[]
   variants: CatalogVariant[]
+  /** Arxivdagi tovar ro'yxatlarda va kassada ko'rinmaydi */
+  is_active: boolean
 }
 
 export type LocationKind = 'warehouse' | 'shop'
