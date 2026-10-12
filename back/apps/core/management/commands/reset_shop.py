@@ -10,8 +10,10 @@ toza bazadan boshlaydi.
 - ishga tushirishdan oldin zaxira nusxa olish eslatiladi
   (`docs/deployment.md`, 7-bo'lim).
 
-Tozalashdan keyin ombor, savdo zali va do'kon sozlamalari o'zi
-qaytadan yaratiladi — ularsiz ilova umuman ishlamaydi. Xodimlar esa
+Tozalashdan keyin ombor va savdo zali qaytadan yaratiladi — ularsiz
+ilova umuman ishlamaydi. Do'kon sozlamalari (nomi, yorliq va chek
+o'lchamlari, chegirma chegarasi) ham saqlanib qoladi: ular sinov
+ma'lumoti emas, qurilmaga moslab sozlangan qiymatlar. Xodimlar esa
 qaytarilmaydi: administratorni qo'lda yaratasiz.
 
     docker compose exec backend python manage.py reset_shop
@@ -25,6 +27,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
+from django.forms.models import model_to_dict
 
 from apps.core.models import ShopSettings
 from apps.inventory.models import Location
@@ -53,6 +56,11 @@ class Command(BaseCommand):
         shop = ShopSettings.load()
         expected = shop.shop_name.strip()
 
+        # Sozlamalar `flush` da o'chadi va standart qiymat bilan qayta
+        # yaratilardi. Chekda «Do‘kon» deb chiqib qolmasin, yorliq
+        # o'lchami ham adashmasin deb ular saqlab qo'yiladi.
+        kept = model_to_dict(shop, exclude=['id'])
+
         self.stdout.write('')
         self.stdout.write(self.style.WARNING('BAZA BUTUNLAY TOZALANADI'))
         self.stdout.write('')
@@ -68,6 +76,7 @@ class Command(BaseCommand):
 
         self.stdout.write('')
         self.stdout.write('  Qoladi:  ombor va savdo zali, do‘kon sozlamalari')
+        self.stdout.write(f'           (do‘kon nomi: {expected})')
         self.stdout.write('')
         self.stdout.write(self.style.WARNING('  Ortga qaytarib bo‘lmaydi. Zaxira nusxa oldingizmi?'))
         self.stdout.write('')
@@ -90,7 +99,8 @@ class Command(BaseCommand):
         # yo'q bo'lsa o'zi yaratadi.
         Location.warehouse()
         Location.shop()
-        ShopSettings.load()
+
+        ShopSettings.objects.update_or_create(pk=1, defaults=kept)
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('Baza tozalandi.'))

@@ -190,6 +190,20 @@ class ResetShopTests(TransactionTestCase):
         self.assertEqual(Location.objects.filter(kind=Location.Kind.SHOP).count(), 1)
         self.assertEqual(ShopSettings.objects.count(), 1)
 
+    def test_shop_settings_survive(self):
+        """Chekdagi nom va yorliq o'lchami sozlangan qiymat bo'lib qolsin."""
+        shop = ShopSettings.load()
+        shop.shop_name = 'Madlen sen'
+        shop.label_width_mm = 58
+        shop.save(update_fields=['shop_name', 'label_width_mm'])
+
+        self.run_reset()
+
+        restored = ShopSettings.load()
+
+        self.assertEqual(restored.shop_name, 'Madlen sen')
+        self.assertEqual(restored.label_width_mm, 58)
+
     def test_wrong_name_changes_nothing(self):
         """Tasdiq noto'g'ri bo'lsa baza tegilmaydi."""
         with mock.patch('builtins.input', return_value='boshqa nom'):
