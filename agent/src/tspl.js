@@ -24,15 +24,15 @@ export const DOTS_PER_MM = 8
 /** Ichki shriftlarda bitta belgi necha nuqta (x1 kattalashtirishda) */
 const FONT_WIDTH = { 1: 8, 2: 12, 3: 16, 4: 24, 5: 32 }
 
-/** Ichki shriftlarda belgining balandligi, nuqta (x1 kattalashtirishda) */
-const FONT_HEIGHT = { 1: 12, 2: 20, 3: 24, 4: 32, 5: 48 }
-
 /** TSPL belgini ko'pi bilan o'n barobar kattalashtiradi */
 const MAX_SCALE = 10
 
-/** Javon yorlig'ida: qator nomi va manzilning shrifti */
-const SHELF_NAME_FONT = 3
-const SHELF_CODE_FONT = 5
+/** Javon manzilining shrifti: 5-shrift, x1 da 32×48 nuqta (6 mm baland) */
+const SHELF_FONT = 5
+const SHELF_FONT_HEIGHT = 48
+
+/** So'rovda harf balandligi bo'lmasa, mm */
+const SHELF_TEXT_MM = 12
 
 /** Yorliq chetidan qoldiriladigan eng kam bo'shliq, nuqta */
 const MARGIN = 8
@@ -149,16 +149,18 @@ export function buildLabels(job, options = {}, where = 'yorliq printeri') {
 /**
  * Ombor javonlarining yorliqlarini TSPL ga o'giradi.
  *
- * Yorliq javonga yopishtiriladi va uzoqdan o'qilishi kerak: tepada
- * qator nomi («O'ng devor»), qolgan joyning hammasida manzil (`A1`).
+ * Yorliqda faqat manzil (`A1`) bor va u yorliqning o'rtasida turadi.
+ * Harf balandligini so'rov beradi (`textMm`): ko'rinishni o'zgartirish
+ * uchun kassadagi agentni yangilash shart bo'lmasin, ilovaning o'zi
+ * yetsin.
  *
- * Manzil 5-shriftni butun songa kattalashtirib chiziladi. O'lchanadigan
- * shriftlar har printer modelida bor emas, kattalashtirishni esa hamma
- * TSPL printer bir xil bajaradi. Balandlik eng avval tanlanadi va hamma
- * manzilda bir xil: `A10` eniga sig'masa harflar torroq bo'ladi,
- * pastroq emas — bir devordagi yorliqlar bir xil ko'rinsin.
+ * Manzil 5-shriftni butun songa kattalashtirib chiziladi: x1 — 6 mm,
+ * x2 — 12 mm va hokazo. O'lchanadigan shriftlar har printer modelida
+ * bor emas, kattalashtirishni esa hamma TSPL printer bir xil bajaradi.
+ * Yorliqqa sig'masa kichraytiriladi: `A10` eniga sig'masa harflar
+ * torroq bo'ladi, pastroq emas — yorliqlar bir xil balandlikda chiqsin.
  *
- * @param {object} job - { widthMm, heightMm, gapMm, labels: [{ cell, name, quantity }] }
+ * @param {object} job - { widthMm, heightMm, gapMm, textMm, labels: [{ cell, quantity }] }
  * @param {object} options - LABEL_DEFAULTS ustidan yoziladigan qiymatlar
  * @param {string} where - ogohlantirishlarda ko'rsatiladigan printer nomi
  */
@@ -169,37 +171,28 @@ export function buildShelfLabels(job, options = {}, where = 'yorliq printeri') {
   const width = settings.widthMm * DOTS_PER_MM
   const height = settings.heightMm * DOTS_PER_MM
 
+  const textMm = Number(job.textMm) > 0 ? Number(job.textMm) : SHELF_TEXT_MM
+
+  // Balandlik hamma yorliqda bir xil: so'ralgani, lekin yorliqdan oshmasin
+  const tall = scale(
+    Math.min(
+      Math.round((textMm * DOTS_PER_MM) / SHELF_FONT_HEIGHT),
+      (height - MARGIN * 2) / SHELF_FONT_HEIGHT,
+    ),
+  )
+
+  const y = Math.max(MARGIN, Math.round((height - SHELF_FONT_HEIGHT * tall) / 2))
+
   for (const label of job.labels ?? []) {
     const quantity = Math.max(1, Number(label.quantity) || 1)
-    const name = fit(label.name ?? '', width, SHELF_NAME_FONT)
     const code = quote(label.cell).toUpperCase()
+    const charWidth = FONT_WIDTH[SHELF_FONT]
+
+    const wide = scale(Math.min(tall, (width - MARGIN * 2) / (code.length * charWidth)))
+    const x = Math.max(MARGIN, Math.round((width - code.length * charWidth * wide) / 2))
 
     lines.push('CLS')
-
-    let top = MARGIN
-
-    if (name) {
-      lines.push(
-        `TEXT ${centerText(width, name, SHELF_NAME_FONT)},${top},"${SHELF_NAME_FONT}",0,1,1,"${name}"`,
-      )
-
-      top += FONT_HEIGHT[SHELF_NAME_FONT] + MARGIN
-    }
-
-    // Qolgan joy — manzilga
-    const room = height - top - MARGIN
-    const tall = scale(room / FONT_HEIGHT[SHELF_CODE_FONT])
-    const wide = scale(
-      Math.min(tall, (width - MARGIN * 2) / (code.length * FONT_WIDTH[SHELF_CODE_FONT])),
-    )
-
-    const x = Math.max(
-      MARGIN,
-      Math.round((width - code.length * FONT_WIDTH[SHELF_CODE_FONT] * wide) / 2),
-    )
-    const y = top + Math.max(0, Math.floor((room - FONT_HEIGHT[SHELF_CODE_FONT] * tall) / 2))
-
-    lines.push(`TEXT ${x},${y},"${SHELF_CODE_FONT}",0,${wide},${tall},"${code}"`)
+    lines.push(`TEXT ${x},${y},"${SHELF_FONT}",0,${wide},${tall},"${code}"`)
     lines.push(`PRINT ${quantity},1`)
   }
 

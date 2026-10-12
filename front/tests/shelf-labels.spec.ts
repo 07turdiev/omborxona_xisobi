@@ -1,5 +1,5 @@
 /**
- * Ombor javonlarining yorliqlari: katta manzil (`A1`) va qator nomi.
+ * Ombor javonlarining yorliqlari: yorliqning o'rtasida manzil (`A1`).
  *
  * Yorliq javonga yopishtiriladi va xodim tovarni shu manzil bo'yicha
  * topadi. Testlar uch yo'lni tekshiradi — hamma javon, bitta qator,
@@ -25,7 +25,8 @@ const CORS = {
 interface ShelfJob {
   widthMm: number
   heightMm: number
-  labels: { cell: string; name: string; quantity: number }[]
+  textMm: number
+  labels: { cell: string; quantity: number }[]
 }
 
 let admin: Session
@@ -77,14 +78,11 @@ function printCalls(page: Page) {
   return page.evaluate(() => (window as unknown as { printCalls: number }).printCalls)
 }
 
-/** Sahifadagi qator: harfi, nomi va javonlari */
-async function readRun(page: Page, code: string) {
+/** Sahifadagi qatorning javon manzillari: `D1`, `D2`… */
+async function runCells(page: Page, code: string) {
   const run = page.locator('.run', { has: page.locator('.run-letter', { hasText: code }) })
 
-  return {
-    name: (await run.locator('.run-where').textContent())?.trim() ?? '',
-    cells: (await run.locator('.shelf-cell').allTextContents()).map((cell) => cell.trim()),
-  }
+  return (await run.locator('.shelf-cell').allTextContents()).map((cell) => cell.trim())
 }
 
 test('hamma javonning yorlig‘i bitta bosishda printerga ketadi', async ({ page }) => {
@@ -95,7 +93,6 @@ test('hamma javonning yorlig‘i bitta bosishda printerga ketadi', async ({ page
   await expect(page.locator('.shelf').first()).toBeVisible()
 
   const total = await page.locator('.shelf').count()
-  const first = await readRun(page, 'A')
 
   // Ko'p yorliq so'ralmasdan chiqib ketmasin
   let question = ''
@@ -114,8 +111,8 @@ test('hamma javonning yorlig‘i bitta bosishda printerga ketadi', async ({ page
 
   expect(jobs).toHaveLength(1)
   expect(jobs[0]!.body.labels).toHaveLength(total)
-  expect(jobs[0]!.body.labels[0]).toEqual({ cell: 'A1', name: first.name, quantity: 1 })
-  expect(jobs[0]!.body).toMatchObject({ widthMm: 40, heightMm: 30 })
+  expect(jobs[0]!.body.labels[0]).toEqual({ cell: 'A1', quantity: 1 })
+  expect(jobs[0]!.body).toMatchObject({ widthMm: 40, heightMm: 30, textMm: 12 })
 
   // Agent ishlagan — brauzer oynasi ochilmaydi
   expect(await printCalls(page)).toBe(0)
@@ -127,26 +124,23 @@ test('bitta qatorning yorliqlari', async ({ page }) => {
   await openApp(page, admin, '/warehouse', { agent: 'fake' })
   await expect(page.locator('.shelf').first()).toBeVisible()
 
-  const run = await readRun(page, 'D')
+  const cells = await runCells(page, 'D')
 
   page.once('dialog', (dialog) => void dialog.accept())
 
   await page.getByRole('button', { name: 'D qatorining yorliqlarini chop etish' }).click()
 
-  await expect(page.getByText(`${run.cells.length} ta javon yorlig‘i`)).toBeVisible()
+  await expect(page.getByText(`${cells.length} ta javon yorlig‘i`)).toBeVisible()
 
   const job = sent.find((item) => item.path === '/shelf-labels')!.body
 
-  expect(job.labels.map((label) => label.cell)).toEqual(run.cells)
-  expect(job.labels.every((label) => label.name === run.name)).toBe(true)
+  expect(job.labels.map((label) => label.cell)).toEqual(cells)
 })
 
 test('bitta javonning yorlig‘i so‘ramasdan chiqadi', async ({ page }) => {
   const sent = await agentOnline(page)
 
   await openApp(page, admin, '/warehouse', { agent: 'fake' })
-
-  const run = await readRun(page, 'C')
 
   // Bitta yorliq uchun tasdiq so'ralmaydi
   const questions: string[] = []
@@ -163,7 +157,7 @@ test('bitta javonning yorlig‘i so‘ramasdan chiqadi', async ({ page }) => {
 
   const job = sent.find((item) => item.path === '/shelf-labels')!.body
 
-  expect(job.labels).toEqual([{ cell: 'C3', name: run.name, quantity: 1 }])
+  expect(job.labels).toEqual([{ cell: 'C3', quantity: 1 }])
   expect(questions).toEqual([])
 })
 
@@ -189,19 +183,16 @@ test('agent bo‘lmasa yorliq brauzer orqali chiqadi', async ({ page }) => {
   await countPrints(page)
   await openApp(page, admin, '/warehouse')
 
-  const run = await readRun(page, 'B')
-
   await page.getByRole('button', { name: /^B2:/ }).click()
   await page.getByRole('button', { name: 'Yorlig‘ini chop etish' }).click()
 
   await expect.poll(() => printCalls(page)).toBe(1)
 
-  // Varaqda bitta yorliq: qator nomi va katta manzil
+  // Varaqda bitta yorliq va unda faqat manzil
   const label = page.locator('.shelf-labels .shelf-label')
 
   await expect(label).toHaveCount(1)
-  await expect(label.locator('.shelf-name')).toHaveText(run.name)
-  await expect(label.locator('.shelf-code')).toHaveText('B2')
+  await expect(label).toHaveText('B2')
 
   // Qog'oz o'lchami yorliq o'lchamiga teng. <head> dagi <style> ko'rinmaydi,
   // shuning uchun matni to'g'ridan-to'g'ri o'qiladi

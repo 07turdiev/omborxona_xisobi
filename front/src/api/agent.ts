@@ -98,16 +98,20 @@ export interface LabelJob {
   labels: LabelPayload[]
 }
 
-/** Ombor javonining yorlig'i: katta manzil (`A1`) va qator nomi */
-export interface ShelfLabel {
-  cell: string
-  name: string
-}
+/**
+ * Javon yorlig'idagi manzilning balandligi, mm.
+ *
+ * Agentga so'rov bilan boradi: o'lchamni o'zgartirish uchun kassadagi
+ * agentni yangilash shart emas, ilovaning o'zi yetadi.
+ */
+export const SHELF_TEXT_MM = 12
 
+/** Ombor javonlarining yorliqlari: har javonga bitta, o'rtasida manzil (`A1`) */
 export interface ShelfLabelJob {
   widthMm: number
   heightMm: number
-  labels: (ShelfLabel & { quantity: number })[]
+  textMm: number
+  labels: { cell: string; quantity: number }[]
 }
 
 async function request<T>(path: string, init: RequestInit, timeout: number): Promise<T> {
@@ -235,13 +239,12 @@ export function labelJob(items: LabelItem[], shop: ShopSettings | null): LabelJo
   }
 }
 
-/** Javonlardan agent tushunadigan yorliq ishini yasaydi: har javonga bitta. */
-export function shelfLabelJob(shelves: ShelfLabel[], shop: ShopSettings | null): ShelfLabelJob {
+/** Javon manzillaridan agent tushunadigan yorliq ishini yasaydi: har javonga bitta. */
+export function shelfLabelJob(cells: string[], shop: ShopSettings | null): ShelfLabelJob {
   return {
     widthMm: shop?.label_width_mm ?? 40,
     heightMm: shop?.label_height_mm ?? 30,
-    labels: shelves
-      .filter((shelf) => shelf.cell)
-      .map((shelf) => ({ cell: shelf.cell, name: shelf.name, quantity: 1 })),
+    textMm: SHELF_TEXT_MM,
+    labels: cells.filter(Boolean).map((cell) => ({ cell, quantity: 1 })),
   }
 }

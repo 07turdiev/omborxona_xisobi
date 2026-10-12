@@ -165,8 +165,10 @@ Joy qoldiq qatorida (`VariantStock.cell`) saqlanadi va tovar tugaganda
 ham o'chmaydi: keyingi kirimda xodim uni odatdagi joyiga qo'yadi.
 
 **Javon yorliqlari.** Har javonga manzili yozilgan yorliq yopishtiriladi:
-tepada qator nomi, ostida yorliqqa sig'adigan eng katta harf bilan
-`A1`. Ular «Ombor» ekranidan, odatdagi yorliq printeridan chiqadi:
+yorliqning o'rtasida faqat `A1`, 12 mm balandlikda. O'lcham ilovada
+(`SHELF_TEXT_MM`, `front/src/api/agent.ts`) va agentga so'rov bilan
+boradi — uni o'zgartirish uchun kassadagi agentni yangilash shart emas.
+Yorliqlar «Ombor» ekranidan, odatdagi yorliq printeridan chiqadi:
 hammasi birdaniga, bitta qator (qator boshidagi printer belgisi) yoki
 tanlangan bitta javon. Bittadan ko'p yorliqda soni so'raladi.
 Yorliqda shtrix-kod yo'q: skaner rus klaviaturasida `A` harfini

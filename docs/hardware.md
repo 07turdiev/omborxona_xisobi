@@ -133,8 +133,8 @@ agentsiz ham ishlaydi.
 
 ### 2.7. Ombor javonlari uchun yorliq
 
-**Ombor** sahifasidan har javonga katta manzil (`A1`, `D3`…) chiqadi —
-o'sha 40 × 30 mm yorliqqa, shu printerning o'zidan.
+**Ombor** sahifasidan har javonga manzil (`A1`, `D3`…) chiqadi —
+o'sha 40 × 30 mm yorliqning o'rtasiga, shu printerning o'zidan.
 
 XP-365B — to'g'ridan-to'g'ri termal printer: uning yorlig'i yorug'lik
 va issiqda bir necha oyda oqarib qoladi. Javonda uzoq tursin desangiz,

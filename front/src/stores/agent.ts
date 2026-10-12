@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import * as agentApi from '@/api/agent'
-import type { AgentHealth, LabelItem, ShelfLabel } from '@/api/agent'
+import type { AgentHealth, LabelItem } from '@/api/agent'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import type { Sale } from '@/types'
@@ -102,9 +102,9 @@ export const useAgentStore = defineStore('agent', () => {
     return trySend(() => agentApi.sendLabels(job), `${count} ta yorliq printerga yuborildi`)
   }
 
-  async function printShelfLabels(shelves: ShelfLabel[]): Promise<boolean> {
+  async function printShelfLabels(cells: string[]): Promise<boolean> {
     const auth = useAuthStore()
-    const job = agentApi.shelfLabelJob(shelves, auth.shop)
+    const job = agentApi.shelfLabelJob(cells, auth.shop)
 
     if (job.labels.length === 0) return false
 

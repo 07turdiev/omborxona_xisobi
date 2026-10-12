@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 
 import ShelfLabelPrint from '@/components/ShelfLabelPrint.vue'
-import type { ShelfLabel } from '@/api/agent'
 import { errorMessage } from '@/api/client'
 import { inventoryApi } from '@/api/inventory'
 import { useAuthStore } from '@/stores/auth'
@@ -102,28 +101,19 @@ async function place(item: CabinetItem, cell: string) {
 
 const shelfPrint = ref<InstanceType<typeof ShelfLabelPrint> | null>(null)
 
-type CabinetRun = Cabinet['runs'][number]
-
-/** Qatordagi har javonga bitta yorliq: `A1`, `A2`… */
-function runLabels(run: CabinetRun): ShelfLabel[] {
-  return run.shelves.map((shelf) => ({ cell: shelf.cell, name: run.name }))
-}
-
-const allLabels = computed(() => (board.value?.runs ?? []).flatMap(runLabels))
-
 /** Yorliqlarni chop etadi: hammasini, bitta qatorni yoki bitta javonni. */
-function printShelves(list: ShelfLabel[]) {
-  if (list.length === 0) return
+function printShelves(cells: string[]) {
+  if (cells.length === 0) return
 
   // Tasodifiy bosishda o'nlab yorliq bekorga ketmasin
   if (
-    list.length > 1 &&
-    !window.confirm(`${list.length} ta yorliq chiqariladi. Davom etilsinmi?`)
+    cells.length > 1 &&
+    !window.confirm(`${cells.length} ta yorliq chiqariladi. Davom etilsinmi?`)
   ) {
     return
   }
 
-  void shelfPrint.value?.print(list)
+  void shelfPrint.value?.print(cells)
 }
 
 // --- Javon qatorlarini sozlash --------------------------------------------
@@ -269,7 +259,7 @@ onMounted(load)
           <h3 class="card-title">Ombor javonlari</h3>
 
           <div class="head-actions">
-            <button class="button button-outline" type="button" @click="printShelves(allLabels)">
+            <button class="button button-outline" type="button" @click="printShelves(allCells)">
               <svg><use href="#i-print" /></svg>
               <span>Yorliqlarni chop etish</span>
             </button>
@@ -296,7 +286,7 @@ onMounted(load)
                 type="button"
                 :aria-label="`${run.code} qatorining yorliqlarini chop etish`"
                 :title="`${run.code} qatorining yorliqlari`"
-                @click="printShelves(runLabels(run))"
+                @click="printShelves(run.shelves.map((shelf) => shelf.cell))"
               >
                 <svg><use href="#i-print" /></svg>
               </button>
@@ -331,7 +321,7 @@ onMounted(load)
           v-if="chosen"
           class="button button-outline cell-print"
           type="button"
-          @click="printShelves([{ cell: chosen.shelf.cell, name: chosen.run.name }])"
+          @click="printShelves([chosen.shelf.cell])"
         >
           <svg><use href="#i-print" /></svg>
           <span>Yorlig‘ini chop etish</span>

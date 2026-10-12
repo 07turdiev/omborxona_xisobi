@@ -6,6 +6,7 @@ import {
   receiptPayload,
   sendReceipt,
   sendShelfLabels,
+  SHELF_TEXT_MM,
   shelfLabelJob,
 } from './agent'
 import type { Sale, ShopSettings } from '@/types'
@@ -137,29 +138,28 @@ describe('labelJob', () => {
 })
 
 describe('shelfLabelJob', () => {
-  const shelves = [
-    { cell: 'A1', name: 'Chap devor' },
-    { cell: 'A2', name: 'Chap devor' },
-  ]
+  const cells = ['A1', 'A2']
 
   it('har javonga bitta yorliq', () => {
-    expect(shelfLabelJob(shelves, SHOP).labels).toEqual([
-      { cell: 'A1', name: 'Chap devor', quantity: 1 },
-      { cell: 'A2', name: 'Chap devor', quantity: 1 },
+    expect(shelfLabelJob(cells, SHOP).labels).toEqual([
+      { cell: 'A1', quantity: 1 },
+      { cell: 'A2', quantity: 1 },
     ])
+  })
+
+  it('harf balandligini ilova beradi — agentni yangilash shart emas', () => {
+    expect(shelfLabelJob(cells, SHOP).textMm).toBe(SHELF_TEXT_MM)
   })
 
   it('o‘lchamni do‘kon sozlamasidan oladi, yo‘q bo‘lsa 40×30 mm', () => {
     const wide = { ...SHOP, label_width_mm: 58, label_height_mm: 40 } as ShopSettings
 
-    expect(shelfLabelJob(shelves, wide)).toMatchObject({ widthMm: 58, heightMm: 40 })
-    expect(shelfLabelJob(shelves, null)).toMatchObject({ widthMm: 40, heightMm: 30 })
+    expect(shelfLabelJob(cells, wide)).toMatchObject({ widthMm: 58, heightMm: 40 })
+    expect(shelfLabelJob(cells, null)).toMatchObject({ widthMm: 40, heightMm: 30 })
   })
 
-  it('manzilsiz javon yorliqqa tushmaydi', () => {
-    const mixed = [...shelves, { cell: '', name: 'Chap devor' }]
-
-    expect(shelfLabelJob(mixed, SHOP).labels).toHaveLength(2)
+  it('bo‘sh manzil yorliqqa tushmaydi', () => {
+    expect(shelfLabelJob([...cells, ''], SHOP).labels).toHaveLength(2)
   })
 })
 
@@ -176,9 +176,7 @@ describe('sendShelfLabels', () => {
       }),
     )
 
-    await expect(sendShelfLabels(shelfLabelJob([{ cell: 'A1', name: '' }], SHOP))).rejects.toThrow(
-      'agent eski',
-    )
+    await expect(sendShelfLabels(shelfLabelJob(['A1'], SHOP))).rejects.toThrow('agent eski')
   })
 })
 

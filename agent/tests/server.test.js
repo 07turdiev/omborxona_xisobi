@@ -41,9 +41,10 @@ const LABELS = {
 const SHELF_LABELS = {
   widthMm: 40,
   heightMm: 30,
+  textMm: 12,
   labels: [
-    { cell: 'A1', name: 'Chap devor', quantity: 1 },
-    { cell: 'A2', name: 'Chap devor', quantity: 2 },
+    { cell: 'A1', quantity: 1 },
+    { cell: 'A2', quantity: 2 },
   ],
 }
 
@@ -92,16 +93,12 @@ describe('validateShelfLabels', () => {
     assert.equal(validateShelfLabels(SHELF_LABELS), null)
   })
 
-  it('qator nomisiz ham qabul qiladi — manzilning o‘zi yetadi', () => {
-    assert.equal(validateShelfLabels({ labels: [{ cell: 'B3' }] }), null)
-  })
-
   it('bo‘sh ro‘yxatni rad etadi', () => {
     assert.match(validateShelfLabels({ labels: [] }), /bo‘sh/)
   })
 
   it('manzilsiz yorliqni rad etadi', () => {
-    assert.match(validateShelfLabels({ labels: [{ name: 'Chap devor', cell: ' ' }] }), /manzil/)
+    assert.match(validateShelfLabels({ labels: [{ cell: ' ' }] }), /manzil/)
   })
 
   it('noto‘g‘ri sonni rad etadi', () => {
@@ -284,8 +281,8 @@ describe('HTTP xizmat', () => {
     const commands = printed.at(-1).bytes.toString('latin1')
 
     assert.match(commands, /SIZE 40 mm,30 mm/)
-    assert.match(commands, /"5",0,4,4,"A1"/)
-    assert.match(commands, /"5",0,4,4,"A2"/)
+    assert.match(commands, /"5",0,2,2,"A1"/)
+    assert.match(commands, /"5",0,2,2,"A2"/)
     assert.equal(commands.includes('BARCODE'), false)
   })
 
@@ -293,7 +290,7 @@ describe('HTTP xizmat', () => {
     const response = await fetch(`${base}/shelf-labels`, {
       method: 'POST',
       headers: JSON_HEADERS,
-      body: JSON.stringify({ labels: [{ name: 'Chap devor' }] }),
+      body: JSON.stringify({ labels: [{ quantity: 1 }] }),
     })
 
     assert.equal(response.status, 400)
