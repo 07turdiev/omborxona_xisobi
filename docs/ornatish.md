@@ -240,4 +240,17 @@ qaytadi — kassir Ctrl+P bosgandek chiqaradi. Agent keyin ko'tarilsa,
 ilova uni o'zi topadi: sahifani yangilash shart emas.
 
 Rejalashtirilgan vazifa har 5 daqiqada ham urinib ko'radi, shuning
-uchun to'xtab qolgan agent o'zi tiklanadi.
+uchun to'xtab qolgan agent o'zi tiklanadi. Sinovda o'ldirilgan agent
+5 daqiqa ichida qayta ko'tarildi.
+
+> 2026-yil 13-oktabrgacha o'rnatilgan agentda bu takrorlash faqat
+> o'rnatilgandan keyingi birinchi Windows'ga kirishdan boshlab ishlardi.
+> Agentni yangilaganda (`ORNAT.cmd`) vazifa yangi sozlama bilan qayta
+> yoziladi.
+
+### Tok o'chib qolsa
+
+Agent kassir Windows'ga **kirganda** ko'tariladi. Kompyuter tokdan
+keyin o'zi yonib, parol oynasida to'xtab tursa, kassir kirmaguncha
+agent ishlamaydi. Kassa kompyuterida Windows'ga avtomatik kirishni
+yoqish tavsiya etiladi.

@@ -59,7 +59,7 @@ $action = New-ScheduledTaskAction `
 
 if (-not $TaskUser) { $TaskUser = "$env:USERDOMAIN\$env:USERNAME" }
 
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User $TaskUser
+$atLogOn = New-ScheduledTaskTrigger -AtLogOn -User $TaskUser
 
 # Kirishdan tashqari har 5 daqiqada ham uriniladi.
 #
@@ -68,11 +68,17 @@ $trigger = New-ScheduledTaskTrigger -AtLogOn -User $TaskUser
 # o'lik qolardi - kassir esa kun bo'yi brauzer oynasini yopib o'tirardi.
 # `IgnoreNew` tufayli agent ishlab turganda takroriy urinish e'tiborsiz
 # qoladi, ya'ni ikkinchi nusxa ko'tarilmaydi.
-$repeat = New-ScheduledTaskTrigger `
+#
+# Takrorlash ALOHIDA vaqt tetigida. Ilgari u kirish tetigining ichida
+# edi va faqat o'rnatilgandan keyingi birinchi kirishdan boshlab
+# ishlardi: o'rnatilgan kuni yiqilgan agent kompyuter qayta yoqilguncha
+# o'lik qolardi (sinovda 400 soniya kutildi - ko'tarilmadi). Vaqt tetigi
+# o'rnatilgan zahoti ishlaydi va qayta yoqishdan keyin ham saqlanadi.
+$every5 = New-ScheduledTaskTrigger `
     -Once -At (Get-Date) `
     -RepetitionInterval (New-TimeSpan -Minutes 5)
 
-$trigger.Repetition = $repeat.Repetition
+$trigger = @($atLogOn, $every5)
 
 # Vazifa uzluksiz ishlaydi: vaqt chegarasi yo'q, uzilsa qayta uriniladi
 $settings = New-ScheduledTaskSettingsSet `
