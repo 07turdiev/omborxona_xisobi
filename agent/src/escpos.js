@@ -213,6 +213,9 @@ export function buildReceipt(receipt, options = {}, where = 'chek printeri') {
     for (const row of twoColumns(left, formatAmount(line.lineTotal), columns)) {
       builder.line(row)
     }
+
+    // Aksiya: mijoz narx nega arzonligini chekdan ko'rsin
+    if (line.promo) builder.line(`  ${line.promo}`.slice(0, columns))
   }
 
   builder.line('-'.repeat(columns))

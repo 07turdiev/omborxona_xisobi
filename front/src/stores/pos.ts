@@ -18,7 +18,16 @@ export interface CartLine {
   price: string
   quantity: number
   stock: number
+  /** Kassir bergan chegirma — aksiyaga qo'shiladi */
   discountPercent: string
+  /** Bugungi aksiya. Server ham shuni qo'llaydi va farq qilsa sotuvni rad etadi */
+  promotion?: CartPromotion | null
+}
+
+export interface CartPromotion {
+  id: number
+  name: string
+  percent: string
 }
 
 export type DiscountMode = 'percent' | 'amount'
@@ -83,9 +92,12 @@ export const usePosStore = defineStore('pos', () => {
   const lineTotals = computed(() =>
     lines.value.map((line) => {
       const base = multiplyMoney(line.price, line.quantity)
-      const discount = percentOf(base, line.discountPercent || '0')
 
-      return { base, discount, total: subtractMoney(base, discount) }
+      // Aksiya va kassir chegirmasi — ikkalasi ham qator summasidan (server ham shunday)
+      const promo = line.promotion ? percentOf(base, line.promotion.percent) : '0'
+      const discount = addMoney(promo, percentOf(base, line.discountPercent || '0'))
+
+      return { base, promo, discount, total: subtractMoney(base, discount) }
     }),
   )
 
@@ -98,6 +110,11 @@ export const usePosStore = defineStore('pos', () => {
   )
 
   const afterLineDiscounts = computed(() => subtractMoney(subtotal.value, lineDiscounts.value))
+
+  /** Aksiyalar bergan chegirma — kassir chegarasiga kirmaydi */
+  const promoTotal = computed(() =>
+    lineTotals.value.reduce((sum, item) => addMoney(sum, item.promo), '0'),
+  )
 
   /** Chek chegirmasi: foiz yoki to'g'ridan-to'g'ri summa. */
   const receiptDiscount = computed(() => {
@@ -151,6 +168,13 @@ export const usePosStore = defineStore('pos', () => {
         quantity,
         stock: available,
         discountPercent: '0',
+        promotion: variant.promotion
+          ? {
+              id: variant.promotion.id,
+              name: variant.promotion.name,
+              percent: variant.promotion.percent,
+            }
+          : null,
       })
     }
 
@@ -200,11 +224,13 @@ export const usePosStore = defineStore('pos', () => {
     }
   }
 
-  /** Chegirma kassirga ruxsat etilganidan oshmasinmi. */
+  /** Kassir bergan chegirma ruxsat etilganidan oshmasinmi. Aksiya hisobga kirmaydi. */
   function discountExceeds(limitPercent: string): boolean {
     if (toCents(subtotal.value) === 0n) return false
 
-    return compareMoney(discountTotal.value, percentOf(subtotal.value, limitPercent)) > 0
+    const own = subtractMoney(discountTotal.value, promoTotal.value)
+
+    return compareMoney(own, percentOf(subtotal.value, limitPercent)) > 0
   }
 
   return {
@@ -217,6 +243,7 @@ export const usePosStore = defineStore('pos', () => {
     lineTotals,
     subtotal,
     discountTotal,
+    promoTotal,
     total,
     add,
     setQuantity,

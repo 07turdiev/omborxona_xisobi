@@ -47,6 +47,7 @@ export const SECTION_TABS: Record<string, Tab[]> = {
   products: [
     { to: '/products', label: 'Tovarlar' },
     { to: '/products/attributes', label: 'Kategoriya, o‘lcham, rang', admin: true },
+    { to: '/products/promotions', label: 'Aksiyalar', admin: true },
   ],
   purchases: [
     { to: '/purchases', label: 'Qabul qilish' },

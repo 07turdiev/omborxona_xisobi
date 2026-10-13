@@ -18,6 +18,7 @@ function variant(id: number, size: number, color: number, stock: number): Catalo
     color_name: null,
     barcode: `20000000000${id}`,
     price: '250000.00',
+    promotion: null,
     stock_quantity: stock,
     is_active: true,
   }

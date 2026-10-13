@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addMoney,
   compareMoney,
+  formatPercent,
   formatMoney,
   formatSum,
   fromCents,
@@ -127,5 +128,13 @@ describe('kirimda narx taklifi', () => {
   it('bo‘sh tannarxda nol qaytaradi', () => {
     expect(suggestPrice('', '60', 1000)).toBe('0.00')
     expect(suggestPrice('0', '60', 1000)).toBe('0.00')
+  })
+})
+
+describe('foiz', () => {
+  it('ortiqcha nollar ko‘rsatilmaydi', () => {
+    expect(formatPercent('30.00')).toBe('30')
+    expect(formatPercent('12.50')).toBe('12.5')
+    expect(formatPercent(null)).toBe('0')
   })
 })

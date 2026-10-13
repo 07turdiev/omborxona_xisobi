@@ -32,6 +32,7 @@ function variant(id: number, size: number, sizeName: string, color: number, colo
     barcode: `200000000000${id}`,
     sale_price: null,
     price: '400000.00',
+    promotion: null,
     stock_quantity: 0,
     min_stock: 0,
     is_active: true,

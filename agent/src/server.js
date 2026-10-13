@@ -16,7 +16,7 @@ import { buildReceipt } from './escpos.js'
 import { buildLabels, buildShelfLabels } from './tspl.js'
 import { probe, send } from './printer.js'
 
-export const VERSION = '1.3.1'
+export const VERSION = '1.4.0'
 
 const MAX_BODY = 512 * 1024
 const TOKEN_HEADER = 'x-agent-token'

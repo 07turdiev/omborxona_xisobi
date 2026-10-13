@@ -221,6 +221,33 @@ Chegirma esa mumkin: qatorga yoki butun chekka. Kassir uchun chegirma
 chegarasi sozlamalarda (`max_discount_percent`), administrator uchun
 cheklov yo'q.
 
+### Aksiyalar
+
+**Tovarlar → Aksiyalar** da administrator tanlangan tovarlarga yoki
+butun kategoriyaga muddatli chegirma e'lon qiladi (`Promotion`):
+nomi, foizi (1–90 %), boshlanish va tugash kuni (ikkalasi ham kiradi).
+
+- **Narx o'zgarmaydi.** Aksiya narx ustidan chegirma bo'lib qo'llanadi,
+  shuning uchun muddat tugaganda tovar o'z narxiga o'zi qaytadi.
+- **Aksiyani server qo'llaydi** (`apps/catalog/promotions.py`). Kassa
+  skanerlashda aksiyani ko'radi (`Variant.promotion`) va sotuvda uning
+  raqamini yuboradi. Serverdagidan farq qilsa, ya'ni aksiya shu orada
+  boshlangan yoki tugagan bo'lsa, sotuv "aksiya o'zgargan" deb rad
+  etiladi: chekdagi summa kassir aytganidan boshqa bo'lib chiqmasin.
+- **Bir nechta aksiya to'g'ri kelsa**, eng kattasi olinadi, ular qo'shilmaydi.
+- **Kassir chegirmasi aksiyaga qo'shiladi**, ikkalasi ham qator
+  summasidan hisoblanadi. Kassir chegarasi faqat kassir bergan qismga
+  qo'llanadi.
+- **Sotuv qatorida** aksiya, uning foizi va chegirmasi nusxa bo'lib
+  saqlanadi (`SaleLine.promotion*`). Aksiya keyin tahrirlansa ham eski
+  chek o'zgarmaydi.
+- **Aksiya o'chirilmaydi**, faqat to'xtatiladi: o'tgan cheklar unga
+  bog'langan.
+- **Hisobotda** "Aksiyalar" jadvali bor: dona, tushum va berilgan
+  chegirma.
+- **Yorliqda** eski narx kichik qilib chizilgan holda, yonida aksiya
+  narxi chiqadi. **Chekda** qator ostida "Aksiya -30%" yoziladi.
+
 ---
 
 ## 6. Hujjatlar va raqamlar

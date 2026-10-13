@@ -13,7 +13,15 @@ import { shopStock, warehouseStock } from '@/utils/stock'
 import { salesApi } from '@/api/sales'
 import { useAuthStore } from '@/stores/auth'
 import { usePosStore, type CartLine } from '@/stores/pos'
-import { compareMoney, formatMoney, formatSum, normalizeMoneyInput, subtractMoney } from '@/utils/money'
+import {
+  compareMoney,
+  formatMoney,
+  formatPercent,
+  formatSum,
+  normalizeMoneyInput,
+  subtractMoney,
+  toCents,
+} from '@/utils/money'
 import type { Sale, Variant } from '@/types'
 
 const auth = useAuthStore()
@@ -382,6 +390,7 @@ async function onComplete() {
         quantity: line.quantity,
         unit_price: line.price,
         discount_percent: line.discountPercent || '0',
+        promotion: line.promotion?.id ?? null,
       })),
       discount_percent: pos.discountMode === 'percent' ? pos.discountValue || '0' : undefined,
       discount_amount:
@@ -581,6 +590,11 @@ onBeforeUnmount(() => {
                       />
                       {{ line.label || line.sku }} · {{ formatMoney(line.price) }} so‘m
                     </small>
+
+                    <!-- Aksiyani kassir ham, mijoz ham ko'rsin: narx nega arzon -->
+                    <span v-if="line.promotion" class="promo-badge" :title="line.promotion.name">
+                      Aksiya −{{ formatPercent(line.promotion.percent) }} %
+                    </span>
                   </div>
                 </div>
               </td>
@@ -692,6 +706,11 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
+        <div v-if="toCents(pos.promoTotal) > 0n">
+          <span>Shundan aksiya</span>
+          <strong>{{ formatMoney(pos.promoTotal) }}</strong>
+        </div>
+
         <div>
           <span>Chegirma</span>
           <strong>{{ formatMoney(pos.discountTotal) }}</strong>
@@ -799,6 +818,18 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Aksiya belgisi savat qatorida: narx nega arzonligini kassir ham ko'rsin */
+.promo-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: var(--radius);
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* 1366×768 ekranda hamma narsa sig'adi: faqat savat ro'yxati va
    tanlagich ichkaridan suriladi, sahifaning o'zi surilmaydi. */
 /* 1366 px ekranda yon menyudan keyin ~1070 px qoladi: tanlagich va hisob

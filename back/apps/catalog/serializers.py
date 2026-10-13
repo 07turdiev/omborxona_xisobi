@@ -2,7 +2,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from apps.catalog.models import Category, Color, Product, ProductImage, Size, Variant
+from apps.catalog import promotions
+from apps.catalog.models import Category, Color, Product, ProductImage, Promotion, Size, Variant
 from apps.catalog.services import (
     add_product_image,
     set_primary_image,
@@ -111,6 +112,13 @@ def variant_thumb(variant, request=None) -> str | None:
     return request.build_absolute_uri(url) if request else url
 
 
+def variant_promotion(variant, context) -> dict | None:
+    """Bugungi aksiya: foizi, tugash kuni va aksiya narxi. Yo'q bo'lsa `None`."""
+    applied = promotions.from_context(context).for_variant(variant)
+
+    return applied.as_dict(variant.price) if applied else None
+
+
 class VariantSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     """Variant. Tannarxni faqat administrator ko'radi."""
 
@@ -130,12 +138,15 @@ class VariantSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     color_hex = serializers.CharField(source='color.hex_code', read_only=True, default='')
     image = serializers.SerializerMethodField()
 
+    #: Bugungi aksiya — kassa narxni shundan oladi
+    promotion = serializers.SerializerMethodField()
+
     class Meta:
         model = Variant
         fields = (
             'id', 'product', 'product_name', 'size', 'size_name', 'color', 'color_name',
             'color_hex', 'image',
-            'label', 'sku', 'barcode', 'sale_price', 'price', 'average_cost',
+            'label', 'sku', 'barcode', 'sale_price', 'price', 'promotion', 'average_cost',
             'stock_quantity', 'stocks', 'min_stock', 'is_active',
         )
         read_only_fields = (
@@ -147,6 +158,9 @@ class VariantSerializer(HideFromCashierMixin, serializers.ModelSerializer):
 
     def get_image(self, variant) -> str | None:
         return variant_thumb(variant, self.context.get('request'))
+
+    def get_promotion(self, variant) -> dict | None:
+        return variant_promotion(variant, self.context)
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -246,15 +260,21 @@ class CatalogVariantSerializer(HideFromCashierMixin, serializers.ModelSerializer
     price = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     stocks = serializers.SerializerMethodField()
 
+    #: Bugungi aksiya — yorliqda eski narx chizilib, yangisi yoziladi
+    promotion = serializers.SerializerMethodField()
+
     class Meta:
         model = Variant
         fields = (
             'id', 'size', 'size_name', 'color', 'color_name', 'barcode', 'stocks',
-            'price', 'average_cost', 'stock_quantity', 'is_active',
+            'price', 'promotion', 'average_cost', 'stock_quantity', 'is_active',
         )
 
     def get_stocks(self, variant) -> list[dict]:
         return location_stocks(variant)
+
+    def get_promotion(self, variant) -> dict | None:
+        return variant_promotion(variant, self.context)
 
 
 class CatalogProductListSerializer(HideFromCashierMixin, serializers.ModelSerializer):
@@ -402,3 +422,73 @@ class CatalogProductSerializer(CatalogProductListSerializer):
         ordered = sorted(seen.values(), key=lambda size: (size.position, size.name))
 
         return SizeSerializer(ordered, many=True).data
+
+
+class PromotionSerializer(serializers.ModelSerializer):
+    """Aksiya: nomi, foizi, muddati va nimaga tegishli ekani."""
+
+    products = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Product.objects.all(), required=False
+    )
+    categories = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Category.objects.all(), required=False
+    )
+
+    #: Ro'yxatda nomlari ko'rinsin — raqamlar emas
+    product_names = serializers.SerializerMethodField()
+    category_names = serializers.SerializerMethodField()
+
+    #: `running` — amalda, `upcoming` — hali boshlanmagan, `ended` — tugagan,
+    #: `stopped` — qo'lda to'xtatilgan
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Promotion
+        fields = (
+            'id', 'name', 'percent', 'starts_on', 'ends_on', 'products', 'categories',
+            'product_names', 'category_names', 'is_active', 'status', 'created_at',
+        )
+        read_only_fields = ('id', 'created_at')
+
+    def get_product_names(self, promo) -> list[str]:
+        return [product.name for product in promo.products.all()]
+
+    def get_category_names(self, promo) -> list[str]:
+        return [category.name for category in promo.categories.all()]
+
+    def get_status(self, promo) -> str:
+        day = promotions.today()
+
+        if not promo.is_active:
+            return 'stopped'
+
+        if promo.starts_on > day:
+            return 'upcoming'
+
+        if promo.ends_on < day:
+            return 'ended'
+
+        return 'running'
+
+    def validate(self, attrs):
+        starts = attrs.get('starts_on', getattr(self.instance, 'starts_on', None))
+        ends = attrs.get('ends_on', getattr(self.instance, 'ends_on', None))
+
+        if starts and ends and ends < starts:
+            raise serializers.ValidationError({'ends_on': 'Tugash kuni boshlanishidan oldin bo‘lmasin.'})
+
+        products = attrs.get('products')
+        categories = attrs.get('categories')
+
+        if self.instance is not None:
+            if products is None:
+                products = list(self.instance.products.all())
+            if categories is None:
+                categories = list(self.instance.categories.all())
+
+        if not products and not categories:
+            raise serializers.ValidationError(
+                'Aksiya nimaga tegishli? Kamida bitta tovar yoki kategoriya tanlang.'
+            )
+
+        return attrs

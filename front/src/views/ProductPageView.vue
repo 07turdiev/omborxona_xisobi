@@ -168,7 +168,7 @@ const labelCounts = ref<Record<string, number>>({})
  */
 type LabelTarget = Pick<
   Variant,
-  'barcode' | 'size_name' | 'color_name' | 'price' | 'stock_quantity'
+  'barcode' | 'size_name' | 'color_name' | 'price' | 'promotion' | 'stock_quantity'
 >
 
 const labelTargets = ref<LabelTarget[]>([])
@@ -223,7 +223,9 @@ function printLabels() {
       barcode: item.barcode,
       name: data.name,
       label: [item.size_name, item.color_name].filter(Boolean).join(' / '),
-      price: item.price,
+      // Aksiyada: yorliqda eski narx chizilib, yonida aksiya narxi
+      price: item.promotion?.price ?? item.price,
+      oldPrice: item.promotion ? item.price : undefined,
       quantity: labelCounts.value[item.barcode]!,
     }))
 

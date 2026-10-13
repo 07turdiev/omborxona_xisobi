@@ -114,6 +114,7 @@ def sales_report(date_from, date_to) -> dict:
         },
         'by_category': by_category(date_from, date_to),
         'by_cashier': by_cashier(date_from, date_to),
+        'by_promotion': by_promotion(date_from, date_to),
         'loss_rows': losses['rows'],
         'expense_rows': expenses['rows'],
     }
@@ -135,6 +136,31 @@ def by_category(date_from, date_to) -> list[dict]:
             'revenue': row['revenue'],
             'cost': row['cost'],
             'profit': row['revenue'] - row['cost'],
+        }
+        for row in rows
+    ]
+
+
+def by_promotion(date_from, date_to) -> list[dict]:
+    """Aksiya kesimida: nechta sotildi, qancha tushdi va qancha chegirma berildi."""
+    rows = (
+        SaleLine.objects.filter(sale__in=_sales(date_from, date_to), promotion__isnull=False)
+        .values('promotion', name=F('promotion__name'))
+        .annotate(
+            units=unit_sum(),
+            revenue=money_sum('line_total'),
+            discount=money_sum('promotion_discount'),
+        )
+        .order_by('-revenue')
+    )
+
+    return [
+        {
+            'id': row['promotion'],
+            'name': row['name'],
+            'quantity': row['units'],
+            'revenue': row['revenue'],
+            'discount': row['discount'],
         }
         for row in rows
     ]

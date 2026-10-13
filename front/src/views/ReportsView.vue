@@ -171,6 +171,31 @@ onMounted(load)
           </table>
         </div>
 
+        <!-- Aksiya bo'lmagan davrda jadval chiqmaydi: bo'sh ro'yxat foydasiz -->
+        <div v-if="report.by_promotion?.length" class="table-card">
+          <h3 class="card-title">Aksiyalar</h3>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Aksiya</th>
+                <th class="num">Dona</th>
+                <th class="num">Tushum</th>
+                <th class="num">Chegirma</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="row in report.by_promotion" :key="row.id">
+                <td>{{ row.name }}</td>
+                <td class="num">{{ row.quantity }}</td>
+                <td class="num">{{ formatMoney(row.revenue) }}</td>
+                <td class="num">{{ formatMoney(row.discount) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <div class="table-card">
           <h3 class="card-title">Yo‘qotishlar</h3>
 

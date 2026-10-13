@@ -146,21 +146,24 @@ export function buildLabels(job, options = {}, where = 'yorliq printeri') {
     // tepaga teriladi: o'lcham bo'lmasa nom narxning ustiga tushadi va
     // orada bo'sh joy qolmaydi
     const block = [
-      [2, label.name],
-      [1, label.variant],
-      [3, label.price],
+      [2, label.name, 'name'],
+      [1, label.variant, 'variant'],
+      [3, label.price, 'price'],
     ].filter(([font, value]) => fit(value, width, font))
 
     const rows = []
     let bottom = barcodeY - BARCODE_GAP
 
-    for (const [font, value] of block.reverse()) {
+    for (const [font, value, kind] of block.reverse()) {
       bottom -= FONT_HEIGHT[font]
-      rows.unshift([bottom, font, value])
+      rows.unshift([bottom, font, value, kind])
       bottom -= LINE_GAP
     }
 
-    for (const [y, font, value] of rows) put(y, font, value)
+    for (const [y, font, value, kind] of rows) {
+      if (kind === 'price' && label.oldPrice) putPrice(lines, width, y, value, label.oldPrice)
+      else put(y, font, value)
+    }
 
     // Shtrix-kodni printerning o'zi chizadi — rasm yuborilmaydi
     if (label.barcode) {
@@ -230,6 +233,37 @@ export function buildShelfLabels(job, options = {}, where = 'yorliq printeri') {
   }
 
   return Buffer.from(`${lines.join('\r\n')}\r\n`, 'latin1')
+}
+
+/** Aksiyadagi narx bilan eski narx orasidagi bo'shliq, nuqta */
+const OLD_PRICE_GAP = 8
+
+/**
+ * Aksiyadagi narx qatori: chapda eski narx kichik shriftda va chizilgan,
+ * o'ngda yangi narx. Ikkalasi birga yorliq o'rtasida turadi.
+ *
+ * Yonma-yon sig'masa eski narx tashlab yuboriladi: asosiysi — mijoz
+ * to'laydigan narx o'qilsin.
+ */
+function putPrice(lines, width, y, price, oldPrice) {
+  const text = fit(price, width, 3)
+  const old = quote(oldPrice)
+  const total = old.length * FONT_WIDTH[1] + OLD_PRICE_GAP + text.length * FONT_WIDTH[3]
+
+  if (!old || total > width - MARGIN * 2) {
+    lines.push(`TEXT ${centerText(width, text, 3)},${y},"3",0,1,1,"${text}"`)
+    return
+  }
+
+  const left = Math.round((width - total) / 2)
+  // Eski narx yangisining pastki chizig'iga tekislanadi
+  const oldY = y + FONT_HEIGHT[3] - FONT_HEIGHT[1] - 2
+  const oldWidth = old.length * FONT_WIDTH[1]
+
+  lines.push(`TEXT ${left},${oldY},"1",0,1,1,"${old}"`)
+  // Ustidan chiziq — eski narx amalda emas
+  lines.push(`BAR ${left},${oldY + Math.floor(FONT_HEIGHT[1] / 2)},${oldWidth},2`)
+  lines.push(`TEXT ${left + oldWidth + OLD_PRICE_GAP},${y},"3",0,1,1,"${text}"`)
 }
 
 /** O'lcham va zichlik — butun ish uchun bir marta beriladi. */

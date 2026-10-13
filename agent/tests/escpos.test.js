@@ -176,6 +176,21 @@ describe('buildReceipt — to‘liq bo‘lmagan sozlama', () => {
   })
 })
 
+describe('buildReceipt — aksiya', () => {
+  it('aksiya qator ostida yoziladi', () => {
+    const text = buildReceipt({
+      ...SAMPLE,
+      lines: [{ ...SAMPLE.lines[0], promo: 'Aksiya -30%' }],
+    }).toString('latin1')
+
+    assert.match(text, /450 000\n {2}Aksiya -30%\n/)
+  })
+
+  it('aksiyasiz qatorda izoh yo‘q', () => {
+    assert.equal(build().toString('latin1').includes('Aksiya'), false)
+  })
+})
+
 describe('buildReceipt — logotip', () => {
   /** 16 × 2 nuqtali logotip: hamma nuqtasi qora */
   const LOGO = { width: 16, height: 2, data: Buffer.alloc(4, 0xff).toString('base64') }

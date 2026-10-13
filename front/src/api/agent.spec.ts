@@ -102,6 +102,16 @@ describe('receiptPayload', () => {
     expect('logo' in receiptPayload(SALE, 'Madlen sen')).toBe(false)
   })
 
+  it('aksiyadagi qator ostida izoh chiqadi', () => {
+    const sale = {
+      ...SALE,
+      lines: [{ ...SALE.lines[0]!, promotion: 3, promotion_percent: '30.00' }],
+    } as Sale
+
+    expect(receiptPayload(sale, '').lines[0]?.promo).toBe('Aksiya -30%')
+    expect(receiptPayload(SALE, '').lines[0]?.promo).toBeUndefined()
+  })
+
   it('pul qutisi faqat naqd to‘lovda ochiladi', () => {
     expect(receiptPayload(SALE, '').openDrawer).toBe(true)
 
@@ -143,6 +153,18 @@ describe('labelJob', () => {
     const mixed = [...items, { ...items[0]!, barcode: '' }]
 
     expect(labelJob(mixed, SHOP).labels).toHaveLength(1)
+  })
+
+  it('aksiyada eski narx chizish uchun alohida yuboriladi', () => {
+    const promo = [{ ...items[0]!, price: '175000.00', oldPrice: '250000.00' }]
+    const label = labelJob(promo, SHOP).labels[0]!
+
+    expect(label.price.replace(/\s/g, ' ')).toBe("175 000 so'm")
+    expect(label.oldPrice?.replace(/\s/g, ' ')).toBe('250 000')
+  })
+
+  it('aksiyasiz yorliqda eski narx yo‘q', () => {
+    expect(labelJob(items, SHOP).labels[0]?.oldPrice).toBe('')
   })
 
   it('soni kamida bitta', () => {

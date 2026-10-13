@@ -7,7 +7,7 @@
  * orqali chop etishga qaytadi, ya'ni agent majburiy emas.
  */
 
-import { formatSum, isZero } from '@/utils/money'
+import { formatMoney, formatPercent, formatSum, isZero } from '@/utils/money'
 import type { ReceiptLogo, Sale, ShopSettings } from '@/types'
 
 /** Agent faqat shu kompyuterda tinglaydi */
@@ -58,6 +58,8 @@ export interface ReceiptLinePayload {
   quantity: number
   unitPrice: string
   lineTotal: string
+  /** «Aksiya −30 %» — qator ostida. Aksiya bo'lmasa yo'q */
+  promo?: string
 }
 
 export interface ReceiptPayload {
@@ -81,7 +83,10 @@ export interface LabelItem {
   barcode: string
   name: string
   label: string
+  /** Sotiladigan narx — aksiya bo'lsa aksiya narxi */
   price: string
+  /** Aksiyadan oldingi narx: yorliqda chizilgan holda turadi */
+  oldPrice?: string
   quantity: number
 }
 
@@ -90,6 +95,8 @@ export interface LabelPayload {
   name: string
   variant: string
   price: string
+  /** Aksiyadan oldingi narx, chiziladi. Bo'sh bo'lsa — aksiya yo'q */
+  oldPrice?: string
   barcode: string
   quantity: number
 }
@@ -219,6 +226,9 @@ export function receiptPayload(
       quantity: line.quantity,
       unitPrice: line.unit_price,
       lineTotal: line.line_total,
+      ...(line.promotion_percent
+        ? { promo: `Aksiya -${formatPercent(line.promotion_percent)}%` }
+        : {}),
     })),
     discount: sale.discount_total,
     total: sale.total,
@@ -250,6 +260,7 @@ export function labelJob(items: LabelItem[], shop: ShopSettings | null): LabelJo
         name: item.name,
         variant: item.label,
         price: formatSum(item.price),
+        oldPrice: item.oldPrice ? formatMoney(item.oldPrice) : '',
         barcode: item.barcode,
         quantity: Math.max(1, Math.trunc(item.quantity) || 1),
       })),

@@ -72,6 +72,17 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/products/promotions',
+    name: 'promotions',
+    component: () => import('@/views/PromotionsView.vue'),
+    meta: {
+      title: 'Tovarlar',
+      section: 'products',
+      admin: true,
+      description: 'Tanlangan tovar yoki kategoriyaga muddatli chegirma',
+    },
+  },
+  {
     path: '/products/:id(\\d+)',
     name: 'product',
     component: () => import('@/views/ProductPageView.vue'),

@@ -5,7 +5,8 @@ dona (o'sha ko'ylakning M o'lchami, qora rangi). Qoldiq, shtrix-kod va
 tannarx variantda yuritiladi.
 """
 
-from django.core.validators import RegexValidator
+from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -264,3 +265,57 @@ class Variant(TimeStampedModel):
 
 # Tugayotgan variant qoidasi `apps.inventory.queries` da: u savdo
 # zalidagi qoldiqqa qaraydi, `stock_quantity` esa ikki joyning yig'indisi.
+
+
+class Promotion(TimeStampedModel):
+    """Aksiya: tanlangan tovarlar yoki butun kategoriya muddat davomida arzonlashadi.
+
+    Narxning o'zi o'zgarmaydi — aksiya uning ustidan chegirma bo'lib
+    qo'llanadi. Shuning uchun muddat tugaganda tovar o'z narxiga o'zi
+    qaytadi va chekda ham, hisobotda ham aksiya chegirmasi alohida
+    ko'rinadi.
+
+    Bitta tovarga bir nechta aksiya to'g'ri kelsa, eng kattasi olinadi:
+    aksiyalar qo'shilmaydi.
+    """
+
+    name = models.CharField(_('Nomi'), max_length=120)
+
+    percent = models.DecimalField(
+        _('Chegirma, %'),
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(1), MaxValueValidator(90)],
+    )
+
+    #: Ikkala kun ham kiradi: 1-dan 7-gacha — yetti kun
+    starts_on = models.DateField(_('Boshlanadi'))
+    ends_on = models.DateField(_('Tugaydi'))
+
+    products = models.ManyToManyField(
+        Product, related_name='promotions', blank=True, verbose_name=_('Tovarlar')
+    )
+    categories = models.ManyToManyField(
+        Category, related_name='promotions', blank=True, verbose_name=_('Kategoriyalar')
+    )
+
+    #: Muddatidan oldin to'xtatish uchun: aksiya o'chirilmaydi, chunki
+    #: o'tgan cheklar unga bog'langan
+    is_active = models.BooleanField(_('Faol'), default=True)
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='promotions',
+        verbose_name=_('Kim yaratdi'),
+    )
+
+    class Meta:
+        verbose_name = _('Aksiya')
+        verbose_name_plural = _('Aksiyalar')
+        ordering = ['-starts_on', '-id']
+
+    def __str__(self):
+        return f'{self.name} (−{self.percent.normalize()} %)'

@@ -50,7 +50,10 @@ defineExpose({ printLabels })
       <span class="label-shop">{{ shopName }}</span>
       <span class="label-name">{{ item.name }}</span>
       <span class="label-variant">{{ item.label }}</span>
-      <strong class="label-price">{{ formatMoney(item.price) }} so‘m</strong>
+      <strong class="label-price">
+        <s v-if="item.oldPrice" class="label-old-price">{{ formatMoney(item.oldPrice) }}</s>
+        {{ formatMoney(item.price) }} so‘m
+      </strong>
 
       <!-- Chiziq balandligi 12 mm — standart talab qiladigan eng kam o'lcham -->
         <BarcodeImage :value="item.barcode" format="EAN13" :height-mm="12" :text-mm="2.2" />
@@ -114,5 +117,12 @@ defineExpose({ printLabels })
 .label-price {
   font-size: 3.2mm;
   line-height: 1.1;
+}
+
+/* Aksiyadan oldingi narx: kichik va chizilgan */
+.label-old-price {
+  margin-right: 1mm;
+  font-size: 2.2mm;
+  font-weight: 400;
 }
 </style>

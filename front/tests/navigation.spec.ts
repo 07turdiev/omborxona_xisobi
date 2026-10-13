@@ -101,7 +101,7 @@ test('bo‘lim ichidagi tablar', async ({ page }, info) => {
     ['/transfers', ['Zalga chiqarish', 'Ombor']],
     ['/reports', ['Savdo', 'Qoldiq qiymati', 'Xarajatlar', 'Cheklar']],
     ['/settings', ['Do‘kon', 'Xodimlar', 'Qurilmalar']],
-    ['/products', ['Tovarlar', 'Kategoriya, o‘lcham, rang']],
+    ['/products', ['Tovarlar', 'Kategoriya, o‘lcham, rang', 'Aksiyalar']],
   ]
 
   for (const [path, labels] of groups) {

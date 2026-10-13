@@ -7,6 +7,8 @@ export interface SaleLineInput {
   unit_price: string
   discount_percent?: string
   discount_amount?: string
+  /** Kassa ko'rgan aksiya — server o'zinikidan farq qilsa sotuvni rad etadi */
+  promotion?: number | null
 }
 
 export interface SaleInput {

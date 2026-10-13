@@ -7,6 +7,7 @@ import type {
   Paginated,
   Product,
   ProductImage,
+  Promotion,
   Size,
   Variant,
 } from '@/types'
@@ -218,6 +219,40 @@ export const catalogApi = {
       product,
       images,
     })
+    return data
+  },
+}
+
+/** Aksiya yaratish va tahrirlash uchun maydonlar */
+export type PromotionInput = Pick<
+  Promotion,
+  'name' | 'percent' | 'starts_on' | 'ends_on' | 'products' | 'categories'
+>
+
+/**
+ * Aksiyalar — faqat administratorga.
+ *
+ * O'chirish yo'q: o'tgan cheklar aksiyaga bog'langan. Muddatidan oldin
+ * tugatish — `stop`.
+ */
+export const promotionsApi = {
+  async list() {
+    const { data } = await api.get<Promotion[]>('/promotions/')
+    return data
+  },
+
+  async create(payload: PromotionInput) {
+    const { data } = await api.post<Promotion>('/promotions/', payload)
+    return data
+  },
+
+  async update(id: number, payload: Partial<PromotionInput>) {
+    const { data } = await api.patch<Promotion>(`/promotions/${id}/`, payload)
+    return data
+  },
+
+  async stop(id: number) {
+    const { data } = await api.patch<Promotion>(`/promotions/${id}/`, { is_active: false })
     return data
   },
 }

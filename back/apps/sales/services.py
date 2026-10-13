@@ -17,6 +17,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.catalog.promotions import PromotionIndex, discount_of
 from apps.catalog.services import variant_image
 from apps.core import telegram
 from apps.core.models import ShopSettings
@@ -70,6 +71,11 @@ def create_sale(
     lug'atlari. Chek darajasidagi chegirma qatorlarga summasiga
     proporsional taqsimlanadi: qaytarishda har qator o'z chegirmasi bilan
     qaytarilishi kerak.
+
+    Aksiya bazadan olinadi va qator summasidan foiz bo'lib chiqadi.
+    Kassir bergan chegirma unga **qo'shiladi** (ikkalasi ham qator
+    summasidan). Kassir chegarasi faqat kassir bergan qismga qo'llanadi:
+    aksiyani administrator e'lon qilgan.
     """
     if not lines:
         raise ValidationError('Chekda birorta qator yo‘q')
@@ -78,6 +84,7 @@ def create_sale(
 
     prepared = []
     subtotal = ZERO
+    promotions = PromotionIndex()
 
     for line in lines:
         variant = line['variant']
@@ -100,7 +107,18 @@ def create_sale(
 
         base = round_money(unit_price * quantity)
 
-        discount = _discount_amount(
+        promo = promotions.for_variant(variant)
+
+        # Kassa boshqa aksiyani ko'rgan bo'lsa — savat eskirgan
+        if 'promotion' in line and line['promotion'] != (promo.id if promo else None):
+            raise ValidationError(
+                f'{variant} — aksiya o‘zgargan ({promo.name if promo else "tugagan"}). '
+                'Savatni yangilang.'
+            )
+
+        promo_discount = discount_of(base, promo.percent) if promo else ZERO
+
+        discount = promo_discount + _discount_amount(
             base, line.get('discount_amount'), line.get('discount_percent')
         )
 
@@ -113,6 +131,8 @@ def create_sale(
             'unit_price': unit_price,
             'base': base,
             'discount': discount,
+            'promotion': promo,
+            'promo_discount': promo_discount,
         })
 
         subtotal += base
@@ -147,7 +167,9 @@ def create_sale(
     discount_total = sum((item['discount'] for item in prepared), ZERO)
     total = subtotal - discount_total
 
-    _check_discount_limit(user, subtotal, discount_total)
+    promo_total = sum((item['promo_discount'] for item in prepared), ZERO)
+
+    _check_discount_limit(user, subtotal, discount_total - promo_total)
 
     cash_amount = round_money(Decimal(cash_amount or 0))
     card_amount = round_money(Decimal(card_amount or 0))
@@ -188,6 +210,9 @@ def create_sale(
             line_total=item['base'] - item['discount'],
             unit_cost=movement.unit_cost,
             line_cost=round_money(movement.unit_cost * item['quantity']),
+            promotion_id=item['promotion'].id if item['promotion'] else None,
+            promotion_percent=item['promotion'].percent if item['promotion'] else None,
+            promotion_discount=item['promo_discount'],
         )
 
     transaction.on_commit(lambda: fiscal.register_sale(sale))

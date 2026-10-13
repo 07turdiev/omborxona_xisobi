@@ -2,7 +2,7 @@
 import { computed, nextTick, ref } from 'vue'
 
 import BarcodeImage from '@/components/BarcodeImage.vue'
-import { formatMoney } from '@/utils/money'
+import { formatMoney, formatPercent } from '@/utils/money'
 import { printWithPageSize, rememberReceiptHeight } from '@/utils/print'
 import { useAgentStore } from '@/stores/agent'
 import { useAuthStore } from '@/stores/auth'
@@ -112,6 +112,11 @@ defineExpose({ printReceipt })
             <td>{{ line.quantity }} × {{ formatMoney(line.unit_price) }}</td>
             <td class="receipt-sum">{{ formatMoney(line.line_total) }}</td>
           </tr>
+          <tr v-if="line.promotion_percent">
+            <td colspan="2" class="receipt-promo">
+              Aksiya −{{ formatPercent(line.promotion_percent) }} %
+            </td>
+          </tr>
         </tbody>
       </table>
 
@@ -178,6 +183,10 @@ defineExpose({ printReceipt })
 
 .receipt-head strong {
   font-size: 4.5mm;
+}
+
+.receipt-promo {
+  padding-left: 3mm;
 }
 
 .receipt-logo {

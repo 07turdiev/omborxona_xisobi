@@ -109,11 +109,42 @@ export interface CatalogVariant {
   color_name: string | null
   barcode: string
   price: string
+  /** Bugungi aksiya; yo'q bo'lsa `null` */
+  promotion: VariantPromotion | null
   /** Faqat administrator javobida bo'ladi */
   average_cost?: string
   stock_quantity: number
   stocks?: StockAtLocation[]
   is_active: boolean
+}
+
+/** Tovarga bugun tushgan aksiya */
+export interface VariantPromotion {
+  id: number
+  name: string
+  percent: string
+  /** Oxirgi kuni ham kiradi */
+  ends_on: string
+  /** Aksiya narxi — kassada shu olinadi */
+  price: string
+}
+
+export type PromotionStatus = 'running' | 'upcoming' | 'ended' | 'stopped'
+
+/** Aksiya: tanlangan tovarlar yoki kategoriyalar muddat davomida arzon */
+export interface Promotion {
+  id: number
+  name: string
+  percent: string
+  starts_on: string
+  ends_on: string
+  products: number[]
+  categories: number[]
+  product_names: string[]
+  category_names: string[]
+  is_active: boolean
+  status: PromotionStatus
+  created_at: string
 }
 
 export interface CatalogProduct extends CatalogCard {
@@ -200,6 +231,8 @@ export interface Variant {
   barcode: string
   sale_price: string | null
   price: string
+  /** Bugungi aksiya; yo'q bo'lsa `null` */
+  promotion: VariantPromotion | null
   /** Faqat administrator javobida bo'ladi */
   average_cost?: string
   /** Ikkala joyning yig'indisi */
@@ -325,6 +358,11 @@ export interface SaleLine {
   line_cost?: string
   profit?: string
   returned_quantity: number
+  /** Sotuv paytidagi aksiya; `discount_amount` uni ham o'z ichiga oladi */
+  promotion: number | null
+  promotion_name: string | null
+  promotion_percent: string | null
+  promotion_discount: string
 }
 
 export interface Sale {
@@ -489,6 +527,7 @@ export interface SalesReport {
   payments: { cash: string; card: string }
   by_category: { name: string; quantity: number; revenue: string; cost: string; profit: string }[]
   by_cashier: { name: string | null; receipts: number; revenue: string }[]
+  by_promotion: { id: number; name: string; quantity: number; revenue: string; discount: string }[]
   loss_rows: { reason: string; quantity: number; amount: string }[]
   expense_rows: { category: string; amount: string }[]
 }

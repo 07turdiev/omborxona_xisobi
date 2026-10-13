@@ -16,6 +16,7 @@ class SaleLineSerializer(HideFromCashierMixin, serializers.ModelSerializer):
     barcode = serializers.CharField(source='variant.barcode', read_only=True)
     profit = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     returned_quantity = serializers.SerializerMethodField()
+    promotion_name = serializers.CharField(source='promotion.name', read_only=True, default=None)
 
     class Meta:
         model = SaleLine
@@ -23,6 +24,7 @@ class SaleLineSerializer(HideFromCashierMixin, serializers.ModelSerializer):
             'id', 'variant', 'product_name', 'variant_label', 'sku', 'barcode',
             'quantity', 'unit_price', 'discount_amount', 'line_total', 'unit_cost',
             'line_cost', 'profit', 'returned_quantity',
+            'promotion', 'promotion_name', 'promotion_percent', 'promotion_discount',
         )
 
     def get_returned_quantity(self, obj) -> int:
@@ -70,6 +72,11 @@ class SaleLineInputSerializer(serializers.Serializer):
     discount_percent = serializers.DecimalField(
         max_digits=5, decimal_places=2, required=False, allow_null=True
     )
+
+    #: Kassa ko'rgan aksiya. Serverdagidan farq qilsa (aksiya shu orada
+    #: boshlangan yoki tugagan) sotuv rad etiladi — chekdagi summa kassir
+    #: aytganidan boshqa bo'lib chiqmasin
+    promotion = serializers.IntegerField(required=False, allow_null=True)
 
 
 class SaleCreateSerializer(serializers.Serializer):

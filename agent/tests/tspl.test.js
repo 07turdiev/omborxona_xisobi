@@ -140,6 +140,33 @@ describe('buildLabels — tuzilishi', () => {
     }
   })
 
+  it('aksiyada eski narx chizilgan holda yangi narxning chapida turadi', () => {
+    const commands = buildLabels({
+      ...JOB,
+      labels: [{ ...JOB.labels[0], price: "175 000 so'm", oldPrice: '250 000' }],
+    }).toString('latin1')
+
+    // Eski narx 1-shriftda, yangi narxning pastki chizig'iga tekislangan: 80 + 24 - 12 - 2
+    const [, oldX, oldY] = /TEXT (\d+),(\d+),"1",0,1,1,"250 000"/.exec(commands)
+    const [, newX] = /TEXT (\d+),80,"3",0,1,1,"175 000 so'm"/.exec(commands)
+
+    assert.equal(Number(oldY), 90)
+    // Ustidan chiziq — eski narx eni bo'ylab (7 belgi × 8 nuqta)
+    assert.match(commands, new RegExp(`BAR ${oldX},96,56,2`))
+    // Yangi narx eskisidan keyin, 8 nuqta oraliq bilan
+    assert.equal(Number(newX), Number(oldX) + 56 + 8)
+  })
+
+  it('eski narx sig‘masa faqat yangi narx yoziladi', () => {
+    const commands = buildLabels({
+      ...JOB,
+      labels: [{ ...JOB.labels[0], price: "1 175 000 so'm", oldPrice: '1 250 000 000' }],
+    }).toString('latin1')
+
+    assert.equal(commands.includes('BAR '), false)
+    assert.match(commands, /TEXT \d+,80,"3",0,1,1,"1 175 000 so'm"/)
+  })
+
   it('shtrix-kod yorliq ichida qoladi', () => {
     const height = 30 * DOTS_PER_MM
     const [, y] = /BARCODE \d+,(\d+),/.exec(text())

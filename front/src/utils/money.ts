@@ -102,6 +102,13 @@ export function formatMoney(value: string | number | null | undefined): string {
   return `${negative ? '−' : ''}${grouped}${tail}`
 }
 
+/** Foiz ortiqcha nolsiz: "30.00" → "30", "12.50" → "12.5". */
+export function formatPercent(value: string | number | null | undefined): string {
+  const number = Number(value ?? 0)
+
+  return Number.isFinite(number) ? String(Number(number.toFixed(2))) : '0'
+}
+
 /** Summa va valyuta: "450 000 so'm". */
 export function formatSum(value: string | number | null | undefined): string {
   const formatted = formatMoney(value)

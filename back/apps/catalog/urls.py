@@ -6,6 +6,7 @@ from apps.catalog.api import (
     ColorViewSet,
     ProductImageViewSet,
     ProductViewSet,
+    PromotionViewSet,
     SizeViewSet,
     VariantViewSet,
 )
@@ -20,5 +21,6 @@ router.register('products', ProductViewSet, basename='product')
 router.register('product-images', ProductImageViewSet, basename='product-image')
 router.register('catalog', CatalogViewSet, basename='catalog')
 router.register('variants', VariantViewSet, basename='variant')
+router.register('promotions', PromotionViewSet, basename='promotion')
 
 urlpatterns = router.urls

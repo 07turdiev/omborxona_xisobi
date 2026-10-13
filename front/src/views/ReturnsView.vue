@@ -7,7 +7,16 @@ import { catalogApi } from '@/api/catalog'
 import { errorMessage } from '@/api/client'
 import { shopStock, warehouseStock } from '@/utils/stock'
 import { salesApi } from '@/api/sales'
-import { addMoney, compareMoney, formatMoney, formatSum, multiplyMoney, subtractMoney } from '@/utils/money'
+import {
+  addMoney,
+  compareMoney,
+  formatMoney,
+  formatPercent,
+  formatSum,
+  multiplyMoney,
+  percentOf,
+  subtractMoney,
+} from '@/utils/money'
 import { uuid } from '@/utils/uuid'
 import type { Sale, Variant } from '@/types'
 
@@ -40,9 +49,22 @@ const refundTotal = computed(() =>
   }, '0'),
 )
 
+/**
+ * Yangi tovar qatorining summasi — aksiya bilan.
+ *
+ * Server ham aksiyani qator summasidan foiz qilib oladi: hisob shu
+ * yerda boshqacha bo'lsa, to'lov summasi mos kelmay sotuv rad etiladi.
+ */
+function exchangeLineTotal(item: { variant: Variant; quantity: number }): string {
+  const base = multiplyMoney(item.variant.price, item.quantity)
+  const promo = item.variant.promotion
+
+  return promo ? subtractMoney(base, percentOf(base, promo.percent)) : base
+}
+
 const exchangeTotal = computed(() =>
   exchangeLines.value.reduce(
-    (sum, item) => addMoney(sum, multiplyMoney(item.variant.price, item.quantity)),
+    (sum, item) => addMoney(sum, exchangeLineTotal(item)),
     '0',
   ),
 )
@@ -160,6 +182,7 @@ async function onSubmit() {
           variant: item.variant.id,
           quantity: item.quantity,
           unit_price: item.variant.price,
+          promotion: item.variant.promotion?.id ?? null,
         })),
         refund_method: method.value,
         // Farq bitta usulda: qaytarish ham, yangi sotuv ham shu usulda
@@ -277,7 +300,10 @@ onMounted(() => {
               </td>
               <td class="num">{{ item.quantity }} × {{ formatMoney(item.variant.price) }}</td>
               <td class="num">
-                <strong>{{ formatMoney(multiplyMoney(item.variant.price, item.quantity)) }}</strong>
+                <strong>{{ formatMoney(exchangeLineTotal(item)) }}</strong>
+                <small v-if="item.variant.promotion" class="cell-sub">
+                  Aksiya −{{ formatPercent(item.variant.promotion.percent) }} %
+                </small>
               </td>
               <td class="num">
                 <button

@@ -109,8 +109,27 @@ class SaleLine(models.Model):
     quantity = models.PositiveIntegerField(_('Miqdor'))
 
     unit_price = MoneyField(_('Narxi'))
+
+    #: Qatorning hamma chegirmasi: aksiya + kassir bergani + chek chegirmasining ulushi
     discount_amount = MoneyField(_('Chegirma'), default=0)
     line_total = MoneyField(_('Qator summasi'), default=0)
+
+    #: Sotuv paytidagi aksiya. Foizi nusxa bo'lib saqlanadi: aksiya keyin
+    #: tahrirlansa ham eski chek o'zgarmaydi
+    promotion = models.ForeignKey(
+        'catalog.Promotion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sale_lines',
+        verbose_name=_('Aksiya'),
+    )
+    promotion_percent = models.DecimalField(
+        _('Aksiya foizi'), max_digits=5, decimal_places=2, null=True, blank=True
+    )
+
+    #: `discount_amount` ning aksiyaga tegishli qismi — hisobot uchun
+    promotion_discount = MoneyField(_('Aksiya chegirmasi'), default=0)
 
     #: Sotuv paytidagi o'rtacha tannarx nusxasi
     unit_cost = MoneyField(_('Birlik tannarxi'), default=0)

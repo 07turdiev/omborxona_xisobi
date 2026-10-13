@@ -1,6 +1,6 @@
 from django.db.models import Count, Exists, OuterRef, ProtectedError, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
-from rest_framework import viewsets
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -11,6 +11,7 @@ from apps.catalog.models import (
     Color,
     Product,
     ProductImage,
+    Promotion,
     Size,
     Variant,
 )
@@ -21,6 +22,7 @@ from apps.catalog.serializers import (
     ColorSerializer,
     ProductImageSerializer,
     ProductSerializer,
+    PromotionSerializer,
     SizeSerializer,
     VariantSerializer,
 )
@@ -342,3 +344,27 @@ class VariantViewSet(viewsets.ModelViewSet):
             raise NotFound('Bu shtrix-kod bo‘yicha tovar topilmadi.')
 
         return Response(self.get_serializer(variant).data)
+
+
+class PromotionViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Aksiyalar — faqat administratorga.
+
+    O'chirish yo'q: o'tgan cheklar aksiyaga bog'langan va hisobot uni
+    ko'rsatadi. Muddatidan oldin tugatish uchun `is_active` o'chiriladi.
+    """
+
+    serializer_class = PromotionSerializer
+    permission_classes = [IsAdmin]
+
+    #: Aksiyalar o'nlab emas, bir nechta — ro'yxat bitta javobda
+    pagination_class = None
+    queryset = Promotion.objects.prefetch_related('products', 'categories')
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
