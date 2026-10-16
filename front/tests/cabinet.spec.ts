@@ -171,3 +171,31 @@ test('omborda yo‘q javon rad etiladi', async ({ request }) => {
 
   expect(wrong.status()).toBe(400)
 })
+
+test('band harf yozilsa oldindan aytiladi', async ({ page }) => {
+  // Forma qo'shish uchun ham, tahrirlash uchun ham bitta edi: band
+  // harf yozilganda server 400 qaytarar, xodim esa nima bo'lganini
+  // tushunmasdi.
+  await openApp(page, admin, '/warehouse')
+  await page.getByRole('button', { name: 'Qatorlarni sozlash' }).click()
+
+  const setup = page.locator('.setup')
+
+  await expect(setup.locator('.form-mode')).toContainText('Yangi qator')
+
+  await setup.getByLabel('Qator harfi').fill('a')
+
+  await expect(setup.locator('.clash')).toContainText('band')
+  await expect(setup.getByRole('button', { name: 'Qo‘shish' })).toBeDisabled()
+
+  // Bitta bosishda o'sha qatorni tahrirlashga o'tadi
+  await setup.getByRole('button', { name: 'O‘sha qatorni tahrirlash' }).click()
+
+  await expect(setup.locator('.form-mode')).toContainText('A qatorini tahrirlash')
+  await expect(setup.locator('.clash')).toHaveCount(0)
+
+  await setup.getByLabel('Javonlar soni').fill('7')
+  await setup.getByRole('button', { name: 'Saqlash' }).click()
+
+  await expect(page.locator('.run').first().locator('.shelf')).toHaveCount(7)
+})

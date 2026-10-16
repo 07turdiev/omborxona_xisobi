@@ -118,6 +118,25 @@ function printShelves(cells: string[]) {
 
 // --- Javon qatorlarini sozlash --------------------------------------------
 
+/**
+ * Yozilgan harf boshqa qatorda band bo'lsa — o'sha qator.
+ *
+ * Forma qo'shish uchun ham, tahrirlash uchun ham bitta. Band harf
+ * yozilsa server 400 qaytarardi va xodim nima bo'lganini tushunmasdi;
+ * endi buni oldindan aytamiz va bitta bosishda tahrirlashga o'tamiz.
+ */
+const clash = computed(() => {
+  const code = draft.value.code.trim().toUpperCase()
+
+  if (!code) return null
+
+  return runs.value.find((run) => run.code === code && run.id !== draft.value.id) ?? null
+})
+
+const canSave = computed(
+  () => Boolean(draft.value.code.trim() && draft.value.name.trim()) && !clash.value,
+)
+
 function startRun(run?: ShelfRun) {
   draft.value = run
     ? { id: run.id, code: run.code, name: run.name, shelves: run.shelves }
@@ -126,8 +145,12 @@ function startRun(run?: ShelfRun) {
   setupOpen.value = true
 }
 
+function cancelRun() {
+  draft.value = { code: '', name: '', shelves: 1 }
+}
+
 async function saveRun() {
-  if (!draft.value.code.trim() || !draft.value.name.trim()) return
+  if (!canSave.value) return
 
   try {
     await inventoryApi.saveShelfRun({
@@ -216,6 +239,17 @@ onMounted(load)
         </tbody>
       </table>
 
+      <!-- Qaysi rejimda ekani ochiq turadi: qo'shyapmizmi yoki
+           mavjud qatorni tahrirlayapmizmi -->
+      <p class="form-mode">
+        <strong v-if="draft.id">{{ draft.code }} qatorini tahrirlash</strong>
+        <strong v-else>Yangi qator qo‘shish</strong>
+
+        <button v-if="draft.id" class="button button-outline" type="button" @click="cancelRun">
+          Bekor qilish
+        </button>
+      </p>
+
       <div class="run-form">
         <div class="field narrow">
           <label>Harfi</label>
@@ -243,10 +277,22 @@ onMounted(load)
           />
         </div>
 
-        <button class="button button-gradient" type="button" @click="saveRun">
+        <button
+          class="button button-gradient"
+          type="button"
+          :disabled="!canSave"
+          @click="saveRun"
+        >
           {{ draft.id ? 'Saqlash' : 'Qo‘shish' }}
         </button>
       </div>
+
+      <p v-if="clash" class="field-hint clash">
+        <strong>{{ clash.code }}</strong> harfi band: «{{ clash.name }}».
+        <button class="link-button" type="button" @click="startRun(clash)">
+          O‘sha qatorni tahrirlash
+        </button>
+      </p>
 
       <p class="field-hint">
         Raqam tepadan boshlanadi: <strong>D1</strong> — o‘ng devorning eng tepadagi javoni.
@@ -572,6 +618,28 @@ onMounted(load)
 
 .setup {
   margin-bottom: 12px;
+}
+
+.form-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.clash {
+  color: var(--danger, #b3261e);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .run-form {

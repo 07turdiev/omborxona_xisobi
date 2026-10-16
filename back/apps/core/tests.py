@@ -327,7 +327,8 @@ class ResetShopTests(TransactionTestCase):
         shop = ShopSettings.load()
         shop.shop_name = 'Madlen sen'
         shop.label_width_mm = 58
-        shop.save(update_fields=['shop_name', 'label_width_mm'])
+        shop.receipt_logo = {'width': 384, 'rows': 2}
+        shop.save(update_fields=['shop_name', 'label_width_mm', 'receipt_logo'])
 
         self.run_reset()
 
@@ -335,6 +336,9 @@ class ResetShopTests(TransactionTestCase):
 
         self.assertEqual(restored.shop_name, 'Madlen sen')
         self.assertEqual(restored.label_width_mm, 58)
+
+        # Logotip qayta yuklashni talab qilmasin
+        self.assertEqual(restored.receipt_logo, {'width': 384, 'rows': 2})
 
     def test_wrong_name_changes_nothing(self):
         """Tasdiq noto'g'ri bo'lsa baza tegilmaydi."""
