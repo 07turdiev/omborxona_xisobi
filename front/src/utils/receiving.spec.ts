@@ -13,6 +13,7 @@ import {
   modelFromLines,
   modelTotal,
   modelUnits,
+  modelsWithoutCost,
   orderAxis,
 } from './receiving'
 import type { Product, PurchaseLine, Variant } from '@/types'
@@ -317,5 +318,42 @@ describe('zalga chiqarish', () => {
     model.toShop = { [OQ_S.id]: 9 }
 
     expect(draftLines([model])[0]!.to_shop).toBe(2)
+  })
+})
+
+describe('tannarxsiz modellar', () => {
+  it('tannarx yozilmagan model nomi qaytadi', () => {
+    const model = emptyModel(product())
+
+    model.quantities = { [OQ_S.id]: 3 }
+
+    expect(modelsWithoutCost([model])).toEqual(['Bahorgi kurtka'])
+  })
+
+  it('tannarxi bor model ogohlantirishga tushmaydi', () => {
+    const model = emptyModel(product())
+
+    model.cost = '100000'
+    model.quantities = { [OQ_S.id]: 3 }
+
+    expect(modelsWithoutCost([model])).toEqual([])
+  })
+
+  it('soni yozilmagan katakcha hisobga olinmaydi', () => {
+    const model = emptyModel(product())
+
+    model.cost = '100000'
+
+    expect(modelsWithoutCost([model])).toEqual([])
+  })
+
+  it('bitta qatorning alohida tannarxi nol bo‘lsa ham ogohlantiradi', () => {
+    const model = emptyModel(product())
+
+    model.cost = '100000'
+    model.quantities = { [OQ_S.id]: 3, [QORA_M.id]: 2 }
+    model.overrides = { [QORA_M.id]: '0' }
+
+    expect(modelsWithoutCost([model])).toEqual(['Bahorgi kurtka'])
   })
 })

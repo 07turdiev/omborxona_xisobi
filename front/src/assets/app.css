@@ -2047,6 +2047,19 @@ svg {
     font-size: 14px;
 }
 
+/* Ish to'xtamaydi, lekin e'tibor berish kerak: masalan tannarxsiz kirim */
+.warn-note {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+
+    border: 1px solid var(--orange);
+    border-radius: var(--radius);
+
+    background: var(--orange-soft);
+    color: var(--orange);
+    font-size: 14px;
+}
+
 .field-hint {
     margin-top: 4px;
     color: var(--text-muted);

@@ -19,6 +19,7 @@ import {
   draftUnits,
   emptyModel,
   modelFromLines,
+  modelsWithoutCost,
   type DraftModel,
 } from '@/utils/receiving'
 import type { LabelItem } from '@/api/agent'
@@ -94,6 +95,22 @@ const cabinetCells = computed(() => (toWarehouse.value ? shelfCells.value : []))
 
 const units = computed(() => draftUnits(models.value))
 const total = computed(() => draftTotal(models.value))
+
+/**
+ * Tannarxi yozilmagan modellar.
+ *
+ * Tannarxsiz qabul qilingan tovarda foyda ham, omborning qiymati ham
+ * hisoblanmaydi. Tasdiqlash to'xtatilmaydi — ba'zan tannarx haqiqatan
+ * keyin aniqlanadi — lekin ogohlantirish ko'rinib turadi.
+ */
+const costless = computed(() => modelsWithoutCost(models.value))
+
+const costlessWarning = computed(
+  () =>
+    `Tannarx yozilmagan: ${costless.value.join(', ')}.\n\n` +
+    'Foyda hisobotida bu tovarning hammasi foyda bo‘lib ko‘rinadi. ' +
+    'Shunday qabul qilinsinmi?',
+)
 
 const labelCount = computed(
   () => (summary.value?.units ?? 0) + Math.max(0, Number(extraLabels.value) || 0),
@@ -215,6 +232,10 @@ async function save(confirmAfter: boolean) {
   const lines = draftLines(models.value)
 
   if (!lines.length || saving.value) return
+
+  if (confirmAfter && costless.value.length && !window.confirm(costlessWarning.value)) {
+    return
+  }
 
   saving.value = true
   error.value = ''
@@ -482,6 +503,11 @@ onMounted(async () => {
           </div>
         </div>
       </div>
+
+      <p v-if="costless.length" class="warn-note">
+        Tannarx yozilmagan: {{ costless.join(', ') }} — foyda hisobotida bu tovar
+        butunlay foyda bo'lib ko'rinadi.
+      </p>
 
       <footer class="stage-foot">
         <strong>Jami: {{ units }} dona · {{ formatSum(total) }}</strong>

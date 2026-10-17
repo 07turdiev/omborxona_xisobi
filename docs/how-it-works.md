@@ -195,6 +195,19 @@ tushadi (`SaleLine.unit_cost`). Keyin tannarx o'zgarsa ham eski chekning
 foydasi o'zgarmaydi — o'tgan oyning hisoboti bugun boshqacha
 ko'rsatmaydi.
 
+### Tannarx yozilmasa
+
+Kirimda «Tannarx» bo'sh qolsa, qator nol bilan saqlanadi: hujjat summasi
+nol bo'ladi va variantning o'rtacha tannarxi ham nolga tushadi. Keyin
+o'sha tovar sotilsa, foyda **sotuv narxining hammasi** bo'lib
+hisoblanadi, omborning qiymati esa nol ko'rinadi.
+
+Shuning uchun qabul ekranida tannarxi yozilmagan modellar ro'yxati
+ogohlantirish bo'lib chiqadi va «Qabul qilish» qo'shimcha tasdiq
+so'raydi. Taqiqlanmaydi: ba'zan tovar keladi, hisob-kitob esa keyin
+aniqlanadi. Keyinroq aniqlangan tannarxni qo'yish uchun kirimni bekor
+qilib, tannarx bilan qayta kiritish kerak.
+
 ---
 
 ## 5. Narx

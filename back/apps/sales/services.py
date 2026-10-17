@@ -18,7 +18,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.catalog.promotions import PromotionIndex, discount_of
-from apps.catalog.services import variant_image
+from apps.catalog.services import photo_of
 from apps.core import telegram
 from apps.core.models import ShopSettings
 from apps.core.numbering import next_number
@@ -272,18 +272,7 @@ def notify_sale(sale: Sale) -> None:
 
     message.append(f'Kassir: {telegram.who(sale.cashier)}')
 
-    telegram.notify('\n'.join(message), photo=sale_photo(rows))
-
-
-def sale_photo(rows) -> bytes:
-    """Chekdagi birinchi rasmli tovarning surati."""
-    for line in rows:
-        image = variant_image(line.variant)
-
-        if image is not None:
-            return telegram.photo_bytes(image.medium)
-
-    return b''
+    telegram.notify('\n'.join(message), photo=photo_of(rows))
 
 
 @transaction.atomic

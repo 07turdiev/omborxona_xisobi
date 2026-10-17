@@ -139,6 +139,46 @@ class NotificationTests(TestCase):
 
         self.assertIn('Sotuv', self.messages())
 
+    def receive(self, unit_cost='100000'):
+        """Omborga kirim. `on_commit` testda o'zi ishlamaydi — qo'lda yuritiladi."""
+        with self.captureOnCommitCallbacks(execute=True):
+            return receive_stock(
+                self.variant,
+                3,
+                unit_cost,
+                user=self.admin,
+                location=Location.warehouse(),
+            )
+
+    def test_a_purchase_names_the_garment(self):
+        """«Nima keldi» degan savolga xabarning o'zi javob bersin."""
+        self.receive()
+
+        text = self.messages()
+
+        self.assertIn('Tovar qabul qilindi', text)
+        self.assertIn(self.product.name, text)
+        self.assertIn('× 3', text)
+        self.assertIn('300 000', text)
+
+    def test_a_purchase_without_a_cost_explains_the_zero(self):
+        """Tannarx yozilmasa «0 so‘m» chalg'itadi — sababi aytiladi."""
+        self.receive(unit_cost='0')
+
+        self.assertIn('tannarx kiritilmagan', self.messages())
+        self.assertNotIn('0 so‘m', self.messages())
+
+    def test_the_purchase_photo_goes_with_it(self):
+        """Kirim xabarida ham tovarning rasmi bo'lsin."""
+        add_product_image(self.product, image_upload())
+
+        self.receive()
+
+        photo = self.send.call_args.kwargs.get('photo') or self.send.call_args.args[1]
+
+        self.assertTrue(photo, 'rasm yuborilmadi')
+        self.assertTrue(photo.startswith(bytes.fromhex('ffd8')), 'JPEG emas')
+
     def test_a_voided_receipt_is_announced(self):
         sale = self.sell()
 

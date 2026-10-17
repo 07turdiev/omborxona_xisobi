@@ -8,6 +8,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.catalog.models import Product
+from apps.catalog.services import photo_of
 from apps.core import telegram
 from apps.inventory.models import Location, MovementReason, VariantStock
 from apps.inventory.services import create_transfer, record_movement
@@ -117,7 +118,7 @@ def confirm(purchase: Purchase, user=None) -> Purchase:
     if purchase.status != Purchase.Status.DRAFT:
         raise ValidationError('Faqat qoralama kirimni tasdiqlash mumkin')
 
-    lines = list(purchase.lines.select_related('variant'))
+    lines = list(purchase.lines.select_related('variant__product'))
 
     if not lines:
         raise ValidationError('Kirimda birorta qator yo‘q')
@@ -148,17 +149,45 @@ def confirm(purchase: Purchase, user=None) -> Purchase:
     return purchase
 
 
+#: Xabarda shuncha qator sanaladi: Telegram izohni 1024 belgi bilan cheklaydi
+NOTIFY_LINES = 8
+
+
 def notify_confirmed(purchase: Purchase, lines) -> None:
-    """Boshliqqa qabul haqida xabar."""
+    """Boshliqqa qabul haqida xabar — tovar rasmi bilan.
+
+    Qaysi kiyim kelgani sanalib ko'rsatiladi: «12 dona» degan quruq
+    son nima kelganini aytmaydi.
+    """
     units = sum(line.quantity for line in lines)
     to_shop = sum(line.to_shop for line in lines)
     prices = sum(1 for line in lines if line.new_sale_price)
 
-    text = [
-        f'<b>Tovar qabul qilindi: {purchase.number}</b>',
-        f'{units} dona — {telegram.money(purchase.total)} so‘m',
-        f'Joyi: {purchase.location.name}',
-    ]
+    text = [f'<b>Tovar qabul qilindi: {purchase.number}</b>', '']
+
+    for line in lines[:NOTIFY_LINES]:
+        label = line.variant.label
+
+        text.append(
+            f'{line.variant.product.name}'
+            f'{f" — {label}" if label else ""}'
+            f' × {line.quantity}'
+        )
+
+    if len(lines) > NOTIFY_LINES:
+        text.append(f'…va yana {len(lines) - NOTIFY_LINES} ta')
+
+    text.append('')
+
+    # Tannarx kiritilmasa summa nolga teng bo'ladi. «0 so'm» deb yozish
+    # chalg'itadi: sababini ochiq aytamiz, chunki tannarxsiz foyda
+    # hisoboti ham ishlamaydi.
+    if purchase.total:
+        text.append(f'<b>{units} dona — {telegram.money(purchase.total)} so‘m</b>')
+    else:
+        text.append(f'<b>{units} dona</b> — tannarx kiritilmagan')
+
+    text.append(f'Joyi: {purchase.location.name}')
 
     if purchase.supplier_id:
         text.append(f'Ta’minotchi: {purchase.supplier.name}')
@@ -171,7 +200,7 @@ def notify_confirmed(purchase: Purchase, lines) -> None:
 
     text.append(f'Kim: {telegram.who(purchase.created_by)}')
 
-    telegram.notify('\n'.join(text))
+    telegram.notify('\n'.join(text), photo=photo_of(lines))
 
 
 @transaction.atomic

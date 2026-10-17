@@ -7,7 +7,7 @@
  * baribir oddiy qatorlar ketadi — hujjat tuzilishi o'zgarmagan.
  */
 
-import { addMoney, multiplyMoney, normalizeMoneyInput } from '@/utils/money'
+import { addMoney, isZero, multiplyMoney, normalizeMoneyInput } from '@/utils/money'
 import type { Product, PurchaseLine, Variant } from '@/types'
 
 export interface DraftModel {
@@ -136,6 +136,28 @@ export function modelTotal(model: DraftModel): string {
   }
 
   return total
+}
+
+/**
+ * Tannarxi yozilmagan modellarning nomi.
+ *
+ * Tannarxsiz qabul qilingan tovarning o'rtacha tannarxi nolga teng
+ * bo'lib qoladi: foyda hisoboti ham, qoldiq qiymati ham noto'g'ri
+ * chiqadi. Shuning uchun tasdiqlashdan oldin ogohlantiriladi.
+ */
+export function modelsWithoutCost(models: DraftModel[]): string[] {
+  const names: string[] = []
+
+  for (const model of models) {
+    const missing = model.variants.some(
+      (variant) =>
+        (model.quantities[variant.id] ?? 0) > 0 && isZero(lineCost(model, variant.id)),
+    )
+
+    if (missing) names.push(model.name)
+  }
+
+  return names
 }
 
 /** Serverga ketadigan qator */

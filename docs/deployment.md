@@ -318,8 +318,10 @@ standart chegarasi 1 MB: proxyda unutilsa, tovar rasmi yuklanganda
 ## 5.1. Telegram bildirishnomalari
 
 Do'kon egasiga sotuv, qabul, bekor qilish, qaytarish, hisobdan
-chiqarish, xarajat va narx o'zgarishi haqida xabar boradi. Sotuv
-xabarida qaysi kiyim ketgani sanalib, tovarning rasmi ham yuboriladi.
+chiqarish, xarajat va narx o'zgarishi haqida xabar boradi. Sotuv va
+qabul xabarida qaysi kiyim bo'lgani sanalib, tovarning rasmi ham
+yuboriladi. Qabulda tannarx yozilmagan bo'lsa, summa o'rnida
+«tannarx kiritilmagan» deb turadi — «0 so'm» chalg'itmasin.
 
 1. Telegramda **@BotFather** ga `/newbot` yozib bot yarating va
    tokenni oling.

@@ -258,3 +258,21 @@ def remove_product(product: Product) -> None:
             storage.delete(name)
 
     transaction.on_commit(delete_files)
+
+
+def photo_of(lines) -> bytes:
+    """Qatorlardagi birinchi rasmli tovarning surati (Telegram uchun JPEG).
+
+    Sotuv ham, kirim ham bir xil ishlatadi: xabarda qaysi kiyim
+    haqida gap ketayotgani suratdan darhol ko'rinadi. Rasm topilmasa
+    bo'sh qaytadi — xabar matn bilan ketaveradi.
+    """
+    from apps.core import telegram
+
+    for line in lines:
+        image = variant_image(line.variant)
+
+        if image is not None:
+            return telegram.photo_bytes(image.medium)
+
+    return b''
